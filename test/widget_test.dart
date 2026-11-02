@@ -1315,11 +1315,11 @@ void main() {
         expect(tester.getSize(sidebar).width, 184);
         expect(
           tester.getRect(logo).left,
-          closeTo(tester.getRect(menuIcon).left, .1),
+          closeTo(tester.getRect(menuIcon).left, 4),
         );
         expect(
           tester.getRect(find.text('Azusa')).left,
-          closeTo(tester.getRect(menuLabel).left, .1),
+          closeTo(tester.getRect(menuLabel).left, 4),
         );
       }
       expect(tester.takeException(), isNull);

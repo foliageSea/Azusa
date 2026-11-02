@@ -342,7 +342,7 @@ class AppShell extends ConsumerWidget {
                                       ),
                                       icon: Icon(
                                         icons[i],
-                                        size: 20,
+                                        size: 16,
                                         color: shell.currentIndex == i
                                             ? context
                                                   .theme
@@ -354,14 +354,23 @@ class AppShell extends ConsumerWidget {
                                           ? null
                                           : Text(
                                               labels[i],
-                                              style: shell.currentIndex == i
-                                                  ? TextStyle(
-                                                      color: context
-                                                          .theme
-                                                          .colors
-                                                          .primaryForeground,
-                                                    )
-                                                  : null,
+                                              style: context
+                                                  .theme
+                                                  .typography
+                                                  .body
+                                                  .sm
+                                                  .copyWith(
+                                                    color:
+                                                        shell.currentIndex == i
+                                                        ? context
+                                                              .theme
+                                                              .colors
+                                                              .primaryForeground
+                                                        : context
+                                                              .theme
+                                                              .colors
+                                                              .foreground,
+                                                  ),
                                             ),
                                       selected: shell.currentIndex == i,
                                       onPress: () => shell.goBranch(i),
