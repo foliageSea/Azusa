@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -126,7 +127,11 @@ class ConnectionRepository {
 final connectionRepositoryProvider = Provider(
   (ref) => ConnectionRepository(
     ref.watch(preferencesProvider),
-    const FlutterSecureStorage(),
+    Platform.isMacOS
+        ? const FlutterSecureStorage(
+            mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+          )
+        : const FlutterSecureStorage(),
   ),
 );
 final connectionSettingsProvider =

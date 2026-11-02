@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
@@ -82,7 +83,9 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
         notifyUser(
           context,
           context.l10n.saveFailed(
-            localizeRuntimeMessage(context.l10n, serviceError(e)),
+            e is PlatformException
+                ? context.l10n.storageError
+                : localizeRuntimeMessage(context.l10n, serviceError(e)),
           ),
           type: NoticeType.error,
         );
