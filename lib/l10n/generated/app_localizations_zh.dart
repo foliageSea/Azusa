@@ -256,6 +256,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortDirectory => '排序';
 
   @override
+  String get parentDirectories => '上级目录';
+
+  @override
   String get sortNameAscending => '名称：升序';
 
   @override

@@ -258,6 +258,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortDirectory => 'Sort';
 
   @override
+  String get parentDirectories => 'Parent directories';
+
+  @override
   String get sortNameAscending => 'Name: A to Z';
 
   @override

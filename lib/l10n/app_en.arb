@@ -82,6 +82,7 @@
   "namingLanguage": "Naming language",
   "organizeSeries": "Organize media",
   "sortDirectory": "Sort",
+  "parentDirectories": "Parent directories",
   "sortNameAscending": "Name: A to Z",
   "sortNameDescending": "Name: Z to A",
   "sortModifiedDescending": "Modified: newest first",

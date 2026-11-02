@@ -245,6 +245,60 @@ class FlattenOrganizer extends TestOrganizer {
 }
 
 void main() {
+  for (final width in [390.0, 800.0, 1280.0]) {
+    testWidgets('长目录面包屑在 $width 宽度省略并支持上级跳转', (tester) async {
+      tester.view.physicalSize = Size(width, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final window = NoWindow();
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(TestConnections.new),
+          organizerProvider.overrideWith(FavoritesOrganizer.new),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(window.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final controller = container.read(organizerProvider.notifier);
+      final longName = List.filled(
+        12,
+        'Azur.Lane.S01.2019.1080p.WEB-DL',
+      ).join('.');
+      await controller.open('/dav/library/series/$longName/');
+      await tester.pumpAndSettle();
+      final current = find.byKey(const ValueKey('directory-current-crumb'));
+      final text = tester.widget<Text>(current);
+      expect(text.data, longName);
+      expect(text.overflow, TextOverflow.ellipsis);
+      final bounds = tester.getRect(
+        find.byKey(const ValueKey('directory-breadcrumb')),
+      );
+      expect(tester.getRect(current).right, lessThanOrEqualTo(bounds.right));
+      expect(find.text('根目录'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.byKey(const ValueKey('directory-ancestors')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('directory-ancestor-/dav/library/')),
+      );
+      await tester.pumpAndSettle();
+      expect(container.read(organizerProvider).directory, '/dav/library/');
+      await tester.tap(find.text('根目录'));
+      await tester.pumpAndSettle();
+      expect(container.read(organizerProvider).directory, '/dav/');
+      expect(find.byKey(const ValueKey('directory-ancestors')), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
   for (final width in [390.0, 1280.0]) {
     testWidgets('NAS 排序菜单在 $width 宽度下即时重排并保存', (tester) async {
       tester.view.physicalSize = Size(width, 1000);

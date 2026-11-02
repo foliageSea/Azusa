@@ -726,29 +726,57 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
               if (connected) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    reverse: true,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: (box.maxWidth - 40).clamp(0, double.infinity),
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: FBreadcrumb(
-                          children: [
-                            for (final (index, (label, path)) in crumbs.indexed)
-                              FBreadcrumbItem(
-                                current: index == crumbs.length - 1,
-                                onPress: locked || index == crumbs.length - 1
-                                    ? null
-                                    : () => _openDirectory(path),
-                                child: Text(label),
-                              ),
+                  child: FBreadcrumb(
+                    key: const ValueKey('directory-breadcrumb'),
+                    children: [
+                      if (crumbs.length > 1)
+                        FBreadcrumbItem(
+                          onPress: locked ? null : () => _openDirectory(root),
+                          child: Text(crumbs.first.$1),
+                        ),
+                      if (crumbs.length > 2)
+                        FBreadcrumbItem.collapsed(
+                          key: const ValueKey('directory-ancestors'),
+                          semanticsLabel: context.l10n.parentDirectories,
+                          maxHeight: 320,
+                          menu: [
+                            FItemGroup(
+                              children: [
+                                for (final (label, path)
+                                    in crumbs.skip(1).take(crumbs.length - 2))
+                                  FItem(
+                                    key: ValueKey('directory-ancestor-$path'),
+                                    title: Text(
+                                      label,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    onPress: locked
+                                        ? null
+                                        : () => _openDirectory(path),
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
-                      ),
-                    ),
+                      if (crumbs.isNotEmpty)
+                        Expanded(
+                          child: FTooltip(
+                            tipBuilder: (_, _) =>
+                                Text(displayDavPath(state.directory)),
+                            child: FBreadcrumbItem(
+                              current: true,
+                              child: Text(
+                                crumbs.last.$1,
+                                key: const ValueKey('directory-current-crumb'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: false,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 14),

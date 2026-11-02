@@ -590,6 +590,12 @@ abstract class AppLocalizations {
   /// **'Sort'**
   String get sortDirectory;
 
+  /// No description provided for @parentDirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent directories'**
+  String get parentDirectories;
+
   /// No description provided for @sortNameAscending.
   ///
   /// In en, this message translates to:
