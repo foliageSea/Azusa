@@ -52,6 +52,10 @@ class PendingTestConnections extends TestConnections {
 }
 
 class TestOrganizer extends OrganizerController {
+  void updateAnalysis({AiUsage? usage, ModelPricing? pricing}) {
+    state = state.copyWith(aiUsage: usage, pricing: pricing);
+  }
+
   @override
   OrganizerState build() => const OrganizerState(
     directory: '/dav/',
@@ -797,6 +801,51 @@ void main() {
     ) as PendingTestConnections).pending.complete();
     await tester.pumpAndSettle();
     expect(tester.widget<LoadingButton>(save).loading, isFalse);
+  });
+
+  testWidgets('AI 用量卡片在价格到达及用量增长时更新费用', (tester) async {
+    tester.view.physicalSize = const Size(1280, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final window = NoWindow();
+    addTearDown(window.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(TestOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    container.read(routerProvider).go('/organize/assistant');
+    await tester.pumpAndSettle();
+    final controller =
+        container.read(organizerProvider.notifier) as TestOrganizer;
+    controller.updateAnalysis(
+      usage: const AiUsage(responses: 1, inputTokens: 1000),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('—'), findsWidgets);
+    controller.updateAnalysis(
+      pricing: const ModelPricing(input: 2, output: 8, source: 'test'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('\$0.002000'), findsOneWidget);
+    controller.updateAnalysis(
+      usage: const AiUsage(responses: 2, inputTokens: 2000, outputTokens: 100),
+    );
+    await tester.pump(const Duration(milliseconds: 225));
+    expect(find.text('\$0.004800'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text('\$0.004800'), findsOneWidget);
   });
 
   testWidgets('亮暗模式快捷切换并保存设置', (tester) async {

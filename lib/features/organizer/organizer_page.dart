@@ -936,10 +936,6 @@ class AiUsagePanel extends StatelessWidget {
       (context.l10n.inputTokens, available ? '${usage.inputTokens}' : '—'),
       (context.l10n.outputTokens, available ? '${usage.outputTokens}' : '—'),
       (context.l10n.averageTps, tps?.toStringAsFixed(1) ?? '—'),
-      (
-        context.l10n.estimatedCost,
-        cost == null ? '—' : '\$${cost.toStringAsFixed(6)}',
-      ),
     ];
     return Surface(
       padding: 20,
@@ -967,6 +963,30 @@ class AiUsagePanel extends StatelessWidget {
                     Text(value, style: theme.typography.body.lg),
                   ],
                 ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    context.l10n.estimatedCost,
+                    style: theme.typography.body.xs.copyWith(
+                      color: theme.colors.mutedForeground,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (cost == null)
+                    Text('—', style: theme.typography.body.lg)
+                  else
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(end: cost),
+                      duration: const Duration(milliseconds: 450),
+                      builder: (context, value, _) => Text(
+                        '\$${value.toStringAsFixed(6)}',
+                        style: theme.typography.body.lg,
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
         ],

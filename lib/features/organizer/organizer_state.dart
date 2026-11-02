@@ -72,6 +72,8 @@ final executionHistoryProvider = FutureProvider<List<String>>(
 );
 
 class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
+  int _analysisGeneration = 0;
+
   @override
   OrganizerState build() => const OrganizerState();
 
@@ -81,11 +83,13 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
 
   void disconnect() {
     if (state.busy || state.executing) return;
+    _analysisGeneration++;
     state = const OrganizerState();
   }
 
   Future<void> open(String? path) async {
     if (state.busy || state.executing) return;
+    _analysisGeneration++;
     state = state.copyWith(busy: true, message: '');
     WebDavClient? dav;
     try {
@@ -115,6 +119,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
 
   Future<void> propose({String instruction = ''}) async {
     if (state.busy || state.executing || state.directory.isEmpty) return;
+    final generation = ++_analysisGeneration;
     final startedAt = DateTime.now();
     final directory = state.directory;
     String? model;
@@ -132,7 +137,12 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     try {
       final settings = config;
       model = settings.model;
-      pricing = ModelPricingCatalog.lookup(settings);
+      pricing = ModelPricingCatalog.lookup(settings).then((value) {
+        if (generation == _analysisGeneration) {
+          state = state.copyWith(pricing: value);
+        }
+        return value;
+      });
       state = state.copyWith(aiUsage: const AiUsage());
       dav = client();
       tmdb = TmdbClient(
@@ -160,7 +170,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       agent?.close();
       tmdb?.close();
       dav?.close();
-      if (pricing != null) state = state.copyWith(pricing: await pricing);
+      if (pricing != null) await pricing;
       final usage = state.aiUsage;
       if (usage != null && usage.responses > 0 && model != null) {
         try {
