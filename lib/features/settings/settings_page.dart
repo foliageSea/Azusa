@@ -1,6 +1,7 @@
 import '../../shared/responsive_button.dart';
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:forui/forui.dart';
@@ -543,6 +544,12 @@ class _SettingsTabs extends StatelessWidget {
       child: FTabs(
         scrollable: true,
         expands: true,
+        contentPhysics: switch (defaultTargetPlatform) {
+          TargetPlatform.macOS ||
+          TargetPlatform.windows ||
+          TargetPlatform.linux => const NeverScrollableScrollPhysics(),
+          _ => const BouncingScrollPhysics(),
+        },
         control: control,
         children: [
           for (final entry in children)

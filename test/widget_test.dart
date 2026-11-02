@@ -255,6 +255,43 @@ void main() {
     expect(window.maximizes, 1);
     expect(window.closes, 1);
   });
+  testWidgets('桌面设置页禁止滑动切换 Tab 并保留点击切换', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    tester.view.physicalSize = const Size(1280, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final window = NoWindow();
+    addTearDown(window.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(TestOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    container.read(routerProvider).go('/connections');
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<FTabs>(find.byType(FTabs)).contentPhysics,
+      isA<NeverScrollableScrollPhysics>(),
+    );
+    await tester.drag(find.text('语言').last, const Offset(-600, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('语言').last, findsOneWidget);
+    await tester.tap(find.text('WebDAV').first);
+    await tester.pumpAndSettle();
+    expect(find.text('测试 WebDAV'), findsOneWidget);
+    debugDefaultTargetPlatformOverride = null;
+  });
   for (final width in [390.0, 1280.0]) {
     testWidgets('步骤跳转和快速返回在 $width 宽度不叠加透明页面', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
