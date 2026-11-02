@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon/icon_rounded.png" alt="Azusa 应用图标" width="96" height="96">
+</p>
+
 # Azusa
 
 Azusa 是一个使用 Flutter 构建的 WebDAV 剧集整理工具。连接 NAS 或其他 WebDAV 服务后，可浏览远程文件，借助兼容 OpenAI 的 AI 服务与 TMDB 数据生成重命名建议，经人工预览、编辑和确认后再执行。
