@@ -354,6 +354,8 @@ void main() {
           '${listing('/dav/.local/', collection: true)}'
           '${listing('/dav/.xterminal/', collection: true)}'
           '${listing('/dav/.episode.mkv')}'
+          '${listing('/dav/.bash_history')}'
+          '${listing('/dav/.DS_Store')}'
           '${listing('/dav/sub/hidden.mkv')}'
           '${listing('/dav/denied.mkv', status: 403)}'
           '</d:multistatus>',
@@ -366,7 +368,7 @@ void main() {
     );
     addTearDown(dav.close);
     final entries = await dav.list('/dav/');
-    expect(entries.map((e) => e.name), ['sub', '.episode.mkv', '剧集 1.mkv']);
+    expect(entries.map((e) => e.name), ['sub', '剧集 1.mkv']);
     expect(entries.last.etag, '"v1"');
   });
 
