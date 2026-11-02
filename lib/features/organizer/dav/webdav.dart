@@ -129,6 +129,10 @@ class WebDavClient {
           (e) =>
               e.path != directory &&
               e.path.startsWith(directory) &&
+              !(e.directory &&
+                  (e.name.startsWith('.') ||
+                      e.name == '#recycle' ||
+                      e.name == '__MACOSX')) &&
               !e.path
                   .substring(directory.length)
                   .replaceFirst(RegExp(r'/$'), '')

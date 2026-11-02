@@ -348,6 +348,12 @@ void main() {
           '${listing('/dav/', collection: true)}'
           '${listing('/dav/%E5%89%A7%E9%9B%86%201.mkv')}'
           '${listing('/dav/sub/', collection: true)}'
+          '${listing('/dav/%23recycle/', collection: true)}'
+          '${listing('/dav/__MACOSX/', collection: true)}'
+          '${listing('/dav/.config/', collection: true)}'
+          '${listing('/dav/.local/', collection: true)}'
+          '${listing('/dav/.xterminal/', collection: true)}'
+          '${listing('/dav/.episode.mkv')}'
           '${listing('/dav/sub/hidden.mkv')}'
           '${listing('/dav/denied.mkv', status: 403)}'
           '</d:multistatus>',
@@ -360,7 +366,7 @@ void main() {
     );
     addTearDown(dav.close);
     final entries = await dav.list('/dav/');
-    expect(entries.map((e) => e.name), ['sub', '剧集 1.mkv']);
+    expect(entries.map((e) => e.name), ['sub', '.episode.mkv', '剧集 1.mkv']);
     expect(entries.last.etag, '"v1"');
   });
 
