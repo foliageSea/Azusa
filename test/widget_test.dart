@@ -80,6 +80,11 @@ class TestOrganizer extends OrganizerController {
   );
 }
 
+class EmptyDirectoryOrganizer extends OrganizerController {
+  @override
+  OrganizerState build() => const OrganizerState(directory: '/dav/');
+}
+
 class NoWindow extends DesktopWindowController {
   @override
   bool get available => false;
@@ -247,6 +252,40 @@ class FlattenOrganizer extends TestOrganizer {
 }
 
 void main() {
+  for (final width in [390.0, 1280.0]) {
+    testWidgets('空目录提示在 $width 宽度下位于列表区域中心', (tester) async {
+      tester.view.physicalSize = Size(width, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final window = NoWindow();
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(TestConnections.new),
+          organizerProvider.overrideWith(EmptyDirectoryOrganizer.new),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(window.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final region = tester.getRect(
+        find.byKey(const ValueKey('nas-empty-state')),
+      );
+      final icon = tester.getRect(find.byIcon(FLucideIcons.folderOpen));
+      final label = tester.getRect(find.text('此目录为空'));
+      expect((icon.top + label.bottom) / 2, closeTo(region.center.dy, .1));
+      expect(icon.center.dx, closeTo(region.center.dx, .1));
+      expect(label.center.dx, closeTo(region.center.dx, .1));
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets('修改预览显示已核验匹配的 TMDB 跳转入口', (tester) async {
     final window = NoWindow();
     final container = ProviderContainer(

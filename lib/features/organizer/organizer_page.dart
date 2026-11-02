@@ -812,47 +812,43 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
               ),
               Expanded(
                 child: ClipRect(
-                  child: ListView.builder(
-                    key: const ValueKey('nas-file-list'),
-                    controller: _fileScrollController,
-                    primary: false,
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    itemCount: !connected || visible.isEmpty
-                        ? 1
-                        : visible.length,
-                    itemBuilder: (context, index) {
-                      if (!connected) {
-                        return _Placeholder(
-                          icon: FLucideIcons.hardDrive,
-                          message: context.l10n.browseNasHint,
-                        );
-                      }
-                      if (state.entries.isEmpty) {
-                        return _Placeholder(
-                          icon: FLucideIcons.folderOpen,
-                          message: context.l10n.directoryEmpty,
-                        );
-                      }
-                      if (visible.isEmpty) {
-                        return _Placeholder(
-                          icon: FLucideIcons.search,
-                          message: context.l10n.noNameMatches(
-                            filter.text.trim(),
+                  child: !connected || visible.isEmpty
+                      ? Center(
+                          key: const ValueKey('nas-empty-state'),
+                          child: _Placeholder(
+                            icon: !connected
+                                ? FLucideIcons.hardDrive
+                                : state.entries.isEmpty
+                                ? FLucideIcons.folderOpen
+                                : FLucideIcons.search,
+                            message: !connected
+                                ? context.l10n.browseNasHint
+                                : state.entries.isEmpty
+                                ? context.l10n.directoryEmpty
+                                : context.l10n.noNameMatches(
+                                    filter.text.trim(),
+                                  ),
                           ),
-                        );
-                      }
-                      final entry = visible[index];
-                      return _EntryRow(
-                        key: ValueKey(entry.path),
-                        entry: entry,
-                        locked: locked,
-                        compact: compact,
-                        planned: planned.contains(entry.path),
-                        onOpen: () => _openDirectory(entry.path),
-                        onRename: () => _renameEntry(entry),
-                      );
-                    },
-                  ),
+                        )
+                      : ListView.builder(
+                          key: const ValueKey('nas-file-list'),
+                          controller: _fileScrollController,
+                          primary: false,
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          itemCount: visible.length,
+                          itemBuilder: (context, index) {
+                            final entry = visible[index];
+                            return _EntryRow(
+                              key: ValueKey(entry.path),
+                              entry: entry,
+                              locked: locked,
+                              compact: compact,
+                              planned: planned.contains(entry.path),
+                              onOpen: () => _openDirectory(entry.path),
+                              onRename: () => _renameEntry(entry),
+                            );
+                          },
+                        ),
                 ),
               ),
             ],
@@ -1289,6 +1285,7 @@ class _Placeholder extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
     child: Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 28, color: context.theme.colors.mutedForeground),
         const SizedBox(height: 12),
