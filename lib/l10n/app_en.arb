@@ -168,6 +168,7 @@
   "viewRenamePreview": "View rename preview",
   "noPendingChanges": "No pending changes",
   "backToRequirements": "Back to requirements",
+  "backToNasDirectory": "Back to NAS directory",
   "selectedChanges": "{selected} / {total} selected · {changes} changes",
   "@selectedChanges": {"placeholders": {"selected": {"type": "int"}, "total": {"type": "int"}, "changes": {"type": "int"}}},
   "deselectAll": "Deselect all",

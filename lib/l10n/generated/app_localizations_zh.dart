@@ -509,6 +509,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backToRequirements => '返回整理要求';
 
   @override
+  String get backToNasDirectory => '返回 NAS 目录';
+
+  @override
   String selectedChanges(int selected, int total, int changes) {
     return '已选 $selected / $total 项 · $changes 项将被修改';
   }

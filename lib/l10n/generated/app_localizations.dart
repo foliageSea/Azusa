@@ -1064,6 +1064,12 @@ abstract class AppLocalizations {
   /// **'Back to requirements'**
   String get backToRequirements;
 
+  /// No description provided for @backToNasDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to NAS directory'**
+  String get backToNasDirectory;
+
   /// No description provided for @selectedChanges.
   ///
   /// In en, this message translates to:

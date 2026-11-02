@@ -218,6 +218,12 @@ class DirectoryScrollOrganizer extends OrganizerController {
   }
 }
 
+class CompletedOrganizer extends TestOrganizer {
+  @override
+  OrganizerState build() =>
+      const OrganizerState(directory: '/dav/', message: '已完成 1 项');
+}
+
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized()
@@ -743,6 +749,35 @@ void main() {
       closeTo(saved, 1),
     );
     expect(find.text('folder25'), findsOneWidget);
+  });
+
+  testWidgets('执行完成后可直接从空预览返回 NAS 目录', (tester) async {
+    final window = NoWindow();
+    addTearDown(window.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(CompletedOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    container.read(routerProvider).go('/organize/assistant/preview');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('返回 NAS 目录'));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(routerProvider).routeInformationProvider.value.uri.path,
+      '/organize',
+    );
+    expect(find.text('NAS 目录'), findsWidgets);
   });
 
   testWidgets('四个连接配置 Tab 使用保存气泡提示', (tester) async {

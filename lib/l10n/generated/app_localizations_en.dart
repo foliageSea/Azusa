@@ -519,6 +519,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backToRequirements => 'Back to requirements';
 
   @override
+  String get backToNasDirectory => 'Back to NAS directory';
+
+  @override
   String selectedChanges(int selected, int total, int changes) {
     return '$selected / $total selected · $changes changes';
   }

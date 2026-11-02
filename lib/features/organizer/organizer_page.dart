@@ -848,6 +848,13 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
             const SizedBox(height: 6),
             Text(context.l10n.noPendingChanges, style: muted),
             const SizedBox(height: 12),
+            if (state.message.startsWith('已完成 ')) ...[
+              FButton(
+                onPress: locked ? null : () => context.go('/organize'),
+                child: Text(context.l10n.backToNasDirectory),
+              ),
+              const SizedBox(height: 12),
+            ],
             FButton(
               variant: .outline,
               onPress: locked ? null : () => context.go('/organize/assistant'),
