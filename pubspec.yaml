@@ -1,0 +1,71 @@
+name: azusa
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: '>=3.47.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  forui: 0.27.5
+  forui_lucide: 0.27.0
+  material_ui: ^1.6.0
+  flutter_riverpod: 3.4.3
+  go_router: ^18.0.2
+  dio: ^5.11.1
+  xml: ^6.6.1
+  flutter_secure_storage: ^10.0.0
+  shared_preferences: ^2.5.6
+  sqlite3: ^3.8.0
+  window_manager: ^0.5.2
+  logging: ^1.3.0
+  stack_trace: ^1.12.2
+  path_provider: ^2.1.6
+  archive: ^4.5.1
+  file_selector: ^1.1.0
+  share_plus: ^13.3.1
+  url_launcher: ^6.3.3
+  package_info_plus: ^10.2.2
+  intl: ^0.20.3
+  langchain: ^0.9.0
+  langchain_openai: ^0.9.0
+  http: ^1.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  icons_launcher: ^3.1.0
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/icon/ui/icon_rounded.png
+  fonts:
+    - family: MiSans
+      fonts:
+        - asset: assets/MiSans-Regular.ttf
+
+
+icons_launcher:
+  image_path: "assets/icon/icon_rounded.png"
+  platforms:
+    android:
+      enable: true
+    ios:
+      enable: true
+      # iOS 不支持透明通道：使用铺白底的 icon_rounded，避免透明角被填成黑色
+      image_path: "assets/icon/icon_rounded_ios.png"
+    macos:
+      enable: true
+    windows:
+      enable: true
+    linux:
+      enable: true

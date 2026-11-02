@@ -1,0 +1,12 @@
+{
+  "name": "azusa-icon-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "pngjs": "7.0.0"
+  }
+}
