@@ -571,6 +571,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newFileName => 'New file name';
 
   @override
+  String get renameEntry => 'Rename';
+
+  @override
+  String entryActions(String name) {
+    return 'More actions for $name';
+  }
+
+  @override
   String get usageLoadFailed => 'Could not load AI usage';
 
   @override

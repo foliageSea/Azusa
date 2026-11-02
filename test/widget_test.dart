@@ -863,6 +863,55 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('NAS 文件和文件夹可通过下拉菜单打开重命名对话框', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final window = NoWindow();
+    addTearDown(window.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(TestOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final entry in ['a.mkv', 'season']) {
+      await tester.tap(find.bySemanticsLabel('$entry 的更多操作'));
+      await tester.pumpAndSettle();
+      expect(find.text('重命名'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.widgetWithText(FItem, '重命名'),
+          matching: find.byIcon(FLucideIcons.pencil),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('重命名'));
+      await tester.pumpAndSettle();
+      expect(find.text('重命名'), findsWidgets);
+      final input = find.descendant(
+        of: find.byKey(const ValueKey('rename-entry-name')),
+        matching: find.byType(EditableText),
+      );
+      expect(tester.widget<EditableText>(input).controller.text, entry);
+      await tester.enterText(input, 'bad/name');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('文件名无效'), findsOneWidget);
+      await tester.tap(find.text('取消').last);
+      await tester.pumpAndSettle();
+    }
+  });
+
   testWidgets('保存期间进度显示在保存按钮内并禁用测试按钮', (tester) async {
     tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1;

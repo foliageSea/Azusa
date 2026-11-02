@@ -561,6 +561,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get newFileName => '新文件名';
 
   @override
+  String get renameEntry => '重命名';
+
+  @override
+  String entryActions(String name) {
+    return '$name 的更多操作';
+  }
+
+  @override
   String get usageLoadFailed => '读取 AI 用量失败';
 
   @override

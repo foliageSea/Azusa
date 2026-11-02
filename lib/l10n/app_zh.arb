@@ -177,6 +177,8 @@
   "pendingRename": "待重命名",
   "unchanged": "未变化",
   "newFileName": "新文件名",
+  "renameEntry": "重命名",
+  "entryActions": "{name} 的更多操作",
   "usageLoadFailed": "读取 AI 用量失败",
   "analysisCount": "分析次数",
   "modelRequests": "模型请求",

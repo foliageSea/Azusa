@@ -218,6 +218,34 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     ref.invalidate(executionHistoryProvider);
   }
 
+  Future<void> renameEntry(DavEntry entry, String name) async {
+    if (state.busy || state.executing || state.directory.isEmpty) return;
+    final issue = fileNameError(name);
+    if (issue != null) {
+      state = state.copyWith(message: issue);
+      return;
+    }
+    if (name == entry.name) return;
+    if (!state.entries.any((item) => item.path == entry.path)) {
+      state = state.copyWith(message: '源文件已不存在，请刷新目录核对');
+      return;
+    }
+    final target = childDavPath(
+      state.directory,
+      name,
+      directory: entry.directory,
+    );
+    if (state.entries.any(
+      (item) =>
+          item.path != entry.path &&
+          item.name.toLowerCase() == name.toLowerCase(),
+    )) {
+      state = state.copyWith(message: '目标已存在：$name');
+      return;
+    }
+    await manage('move', entry.path, target: target);
+  }
+
   Future<void> manage(
     String action,
     String source, {
@@ -242,6 +270,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         if (source.endsWith('/') && target.startsWith(source)) {
           throw StateError('不能移动目录到自身内部');
         }
+        if (await dav.stat(source) == null) throw StateError('源文件已不存在');
         if (await dav.exists(target)) throw StateError('目标已存在');
         await dav.move(source, target);
       } else if (action == 'upload' && bytes != null && length != null) {

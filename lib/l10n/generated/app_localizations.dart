@@ -1160,6 +1160,18 @@ abstract class AppLocalizations {
   /// **'New file name'**
   String get newFileName;
 
+  /// No description provided for @renameEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renameEntry;
+
+  /// No description provided for @entryActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions for {name}'**
+  String entryActions(String name);
+
   /// No description provided for @usageLoadFailed.
   ///
   /// In en, this message translates to:

@@ -179,6 +179,16 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     }
   }
 
+  Future<void> _renameEntry(DavEntry entry) async {
+    final target = await showFDialog<String>(
+      context: context,
+      builder: (context, style, animation) =>
+          _RenameEntryDialog(entry: entry, animation: animation),
+    );
+    if (target == null || !mounted) return;
+    await _controller.renameEntry(entry, target);
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(organizerProvider.select((s) => s.directory), (_, directory) {
@@ -723,6 +733,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                         compact: compact,
                         planned: planned.contains(entry.path),
                         onOpen: () => _openDirectory(entry.path),
+                        onRename: () => _renameEntry(entry),
                       );
                     },
                   ),
@@ -1028,6 +1039,82 @@ class AiUsagePanel extends StatelessWidget {
   }
 }
 
+class _RenameEntryDialog extends StatefulWidget {
+  const _RenameEntryDialog({required this.entry, required this.animation});
+
+  final DavEntry entry;
+  final Animation<double> animation;
+
+  @override
+  State<_RenameEntryDialog> createState() => _RenameEntryDialogState();
+}
+
+class _RenameEntryDialogState extends State<_RenameEntryDialog> {
+  late final name = TextEditingController(text: widget.entry.name);
+  String? issue;
+
+  @override
+  void dispose() {
+    name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FDialog(
+    animation: widget.animation,
+    builder: (context, style) => SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            context.l10n.renameEntry,
+            style: context.theme.typography.body.lg,
+          ),
+          const SizedBox(height: 16),
+          FTextField(
+            key: const ValueKey('rename-entry-name'),
+            label: Text(context.l10n.newFileName),
+            control: .managed(
+              controller: name,
+              onChange: (_) => setState(() => issue = fileNameError(name.text)),
+            ),
+          ),
+          if (issue != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              issue!,
+              style: TextStyle(color: context.theme.colors.destructive),
+            ),
+          ],
+          const SizedBox(height: 20),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              FButton(
+                variant: .outline,
+                mainAxisSize: MainAxisSize.min,
+                onPress: () => Navigator.of(context).pop(),
+                child: Text(context.l10n.cancel),
+              ),
+              FButton(
+                mainAxisSize: MainAxisSize.min,
+                onPress: issue != null || name.text == widget.entry.name
+                    ? null
+                    : () => Navigator.of(context).pop(name.text),
+                child: Text(context.l10n.renameEntry),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _DialogActions extends StatelessWidget {
   const _DialogActions({
     required this.action,
@@ -1145,11 +1232,13 @@ class _EntryRow extends StatelessWidget {
     required this.compact,
     required this.planned,
     required this.onOpen,
+    required this.onRename,
     super.key,
   });
   final DavEntry entry;
   final bool locked, compact, planned;
   final VoidCallback onOpen;
+  final VoidCallback onRename;
 
   @override
   Widget build(BuildContext context) {
@@ -1225,6 +1314,31 @@ class _EntryRow extends StatelessWidget {
               ),
             ],
             const SizedBox(width: 4),
+            FPopoverMenu(
+              menuAnchor: Alignment.topRight,
+              childAnchor: Alignment.bottomRight,
+              menuBuilder: (context, controller, _) => [
+                FItemGroup(
+                  children: [
+                    FItem(
+                      prefix: const Icon(FLucideIcons.pencil, size: 16),
+                      title: Text(context.l10n.renameEntry),
+                      onPress: () {
+                        controller.hide();
+                        onRename();
+                      },
+                    ),
+                  ],
+                ),
+              ],
+              builder: (context, controller, _) => FButton.icon(
+                variant: .ghost,
+                size: .sm,
+                semanticsLabel: context.l10n.entryActions(entry.name),
+                onPress: locked ? null : controller.toggle,
+                child: const Icon(FLucideIcons.ellipsis, size: 16),
+              ),
+            ),
             if (entry.directory)
               Icon(
                 FLucideIcons.chevronRight,

@@ -49,7 +49,91 @@ class RecordingDav extends WebDavClient {
   }
 }
 
+class RenameDav extends RecordingDav {
+  RenameDav(this.files);
+
+  final Map<String, DavEntry> files;
+  final moves = <(String, String)>[];
+
+  @override
+  Future<DavEntry?> stat(String path) => Future.value(files[path]);
+
+  @override
+  Future<List<DavEntry>> list(String path) async => files.values.toList();
+
+  @override
+  Future<void> move(String from, String to, {String? etag}) async {
+    moves.add((from, to));
+    final entry = files.remove(from)!;
+    files[to] = DavEntry(to, entry.directory);
+  }
+}
+
+class RenameOrganizer extends ReadyOrganizer {
+  @override
+  OrganizerState build() => const OrganizerState(
+    directory: '/dav/',
+    entries: [
+      DavEntry('/dav/a.mkv', false),
+      DavEntry('/dav/season/', true),
+      DavEntry('/dav/taken.mkv', false),
+    ],
+  );
+}
+
 void main() {
+  test('目录文件和文件夹重命名保留类型且冲突时不写入 NAS', () async {
+    final database = AppDatabase(open: () async => sqlite3.openInMemory());
+    addTearDown(database.close);
+    final repo = ExecutionHistoryRepository(database);
+    final dav = RenameDav({
+      '/dav/a.mkv': const DavEntry('/dav/a.mkv', false),
+      '/dav/season/': const DavEntry('/dav/season/', true),
+      '/dav/taken.mkv': const DavEntry('/dav/taken.mkv', false),
+    });
+    addTearDown(dav.close);
+    final container = ProviderContainer(
+      overrides: [
+        organizerProvider.overrideWith(RenameOrganizer.new),
+        executionHistoryRepositoryProvider.overrideWithValue(repo),
+        webDavFactoryProvider.overrideWithValue((_) => dav),
+      ],
+    );
+    addTearDown(container.dispose);
+    final controller = container.read(organizerProvider.notifier);
+
+    await controller.renameEntry(
+      const DavEntry('/dav/a.mkv', false),
+      '新 剧集%.mkv',
+    );
+    await controller.renameEntry(const DavEntry('/dav/season/', true), '第二季');
+    expect(dav.moves, [
+      ('/dav/a.mkv', '/dav/%E6%96%B0%20%E5%89%A7%E9%9B%86%25.mkv'),
+      ('/dav/season/', '/dav/%E7%AC%AC%E4%BA%8C%E5%AD%A3/'),
+    ]);
+    expect(
+      container
+          .read(organizerProvider)
+          .entries
+          .any(
+            (e) => e.path == '/dav/%E7%AC%AC%E4%BA%8C%E5%AD%A3/' && e.directory,
+          ),
+      isTrue,
+    );
+    await controller.renameEntry(
+      const DavEntry('/dav/taken.mkv', false),
+      '新 剧集%.mkv',
+    );
+    expect(container.read(organizerProvider).message, contains('已存在'));
+    await controller.renameEntry(
+      const DavEntry('/dav/taken.mkv', false),
+      'bad/name',
+    );
+    expect(container.read(organizerProvider).message, contains('无效'));
+    expect(dav.moves.length, 2);
+    expect((await repo.load()).length, 4);
+  });
+
   test('SQLite 重启及并发追加保留原文、顺序和重复记录', () async {
     final directory = await Directory('/tmp/opencode')
         .createTemp('execution-history-');
