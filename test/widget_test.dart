@@ -194,6 +194,30 @@ class LongOrganizer extends OrganizerController {
   }
 }
 
+class DirectoryScrollOrganizer extends OrganizerController {
+  @override
+  OrganizerState build() => OrganizerState(
+    directory: '/dav/',
+    entries: [
+      for (var i = 0; i < 40; i++)
+        DavEntry('/dav/folder${i.toString().padLeft(2, '0')}/', true),
+    ],
+  );
+
+  @override
+  Future<void> open(String? path) async {
+    state = state.copyWith(
+      directory: path ?? '/dav/',
+      entries: path == '/dav/'
+          ? [
+              for (var i = 0; i < 40; i++)
+                DavEntry('/dav/folder${i.toString().padLeft(2, '0')}/', true),
+            ]
+          : [const DavEntry('/dav/folder25/episode.mkv', false)],
+    );
+  }
+}
+
 void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized()
@@ -672,6 +696,54 @@ void main() {
       await tester.pumpAndSettle();
     });
   }
+
+  testWidgets('进入子目录后返回时恢复父目录列表位置', (tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final window = NoWindow();
+    addTearDown(window.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(DirectoryScrollOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final list = find.byKey(const ValueKey('nas-file-list'));
+    final scrollable = find.descendant(
+      of: list,
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      find.text('folder25'),
+      350,
+      scrollable: scrollable,
+    );
+    await tester.pumpAndSettle();
+    final saved = tester.state<ScrollableState>(scrollable).position.pixels;
+    expect(saved, greaterThan(0));
+    await tester.tap(find.text('folder25'));
+    await tester.pumpAndSettle();
+    expect(tester.state<ScrollableState>(scrollable).position.pixels, 0);
+    await tester.tap(find.bySemanticsLabel('返回上级'));
+    await tester.pumpAndSettle();
+    expect(container.read(organizerProvider).directory, '/dav/');
+    expect(
+      tester.state<ScrollableState>(scrollable).position.pixels,
+      closeTo(saved, 1),
+    );
+    expect(find.text('folder25'), findsOneWidget);
+  });
 
   testWidgets('四个连接配置 Tab 使用保存气泡提示', (tester) async {
     tester.view.physicalSize = const Size(1280, 1000);

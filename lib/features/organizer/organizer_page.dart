@@ -41,16 +41,27 @@ class OrganizerPage extends ConsumerStatefulWidget {
 class _OrganizerPageState extends ConsumerState<OrganizerPage> {
   final instruction = TextEditingController();
   final filter = TextEditingController();
+  final _fileScrollController = ScrollController();
+  final _directoryScrollOffsets = <String, double>{};
   bool _savingFavorite = false;
 
   @override
   void dispose() {
     instruction.dispose();
     filter.dispose();
+    _fileScrollController.dispose();
     super.dispose();
   }
 
   OrganizerController get _controller => ref.read(organizerProvider.notifier);
+
+  void _openDirectory(String? path) {
+    final directory = ref.read(organizerProvider).directory;
+    if (directory.isNotEmpty && _fileScrollController.hasClients) {
+      _directoryScrollOffsets[directory] = _fileScrollController.offset;
+    }
+    _controller.open(path);
+  }
 
   String? _parentDirectory(OrganizerState state, String root) {
     if (state.directory.isEmpty || state.directory == root) return null;
@@ -62,7 +73,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     final state = ref.read(organizerProvider);
     if (state.busy || state.executing) return;
     final parent = _parentDirectory(state, root);
-    if (parent != null) _controller.open(parent);
+    if (parent != null) _openDirectory(parent);
   }
 
   Future<bool> _confirm(
@@ -112,7 +123,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       scope: scope,
       directory: directory,
     );
-    if (path != null && mounted) await _controller.open(path);
+    if (path != null && mounted) _openDirectory(path);
   }
 
   Future<void> _toggleFavorite(
@@ -170,10 +181,24 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(
-      organizerProvider.select((s) => s.directory),
-      (_, _) => filter.clear(),
-    );
+    ref.listen(organizerProvider.select((s) => s.directory), (_, directory) {
+      filter.clear();
+      if (directory.isEmpty) _directoryScrollOffsets.clear();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted ||
+            !_fileScrollController.hasClients ||
+            ref.read(organizerProvider).directory != directory) {
+          return;
+        }
+        final position = _fileScrollController.position;
+        _fileScrollController.jumpTo(
+          (_directoryScrollOffsets[directory] ?? 0).clamp(
+            position.minScrollExtent,
+            position.maxScrollExtent,
+          ),
+        );
+      });
+    });
     final state = ref.watch(organizerProvider);
     final settings = ref.watch(connectionSettingsProvider);
     final config = settings.asData?.value;
@@ -420,7 +445,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
         tool(
           FLucideIcons.refreshCw,
           context.l10n.refreshDirectory,
-          locked ? null : () => _controller.open(state.directory),
+          locked ? null : () => _openDirectory(state.directory),
         ),
         const SizedBox(width: 8),
         tool(
@@ -599,7 +624,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                           ? null
                           : connected
                           ? _controller.disconnect
-                          : () => _controller.open(null),
+                          : () => _openDirectory(null),
                       prefix: Icon(
                         connected ? FLucideIcons.unplug : FLucideIcons.plugZap,
                       ),
@@ -631,7 +656,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                                 current: index == crumbs.length - 1,
                                 onPress: locked || index == crumbs.length - 1
                                     ? null
-                                    : () => _controller.open(path),
+                                    : () => _openDirectory(path),
                                 child: Text(label),
                               ),
                           ],
@@ -663,6 +688,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 child: ClipRect(
                   child: ListView.builder(
                     key: const ValueKey('nas-file-list'),
+                    controller: _fileScrollController,
                     primary: false,
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     itemCount: !connected || visible.isEmpty
@@ -696,7 +722,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                         locked: locked,
                         compact: compact,
                         planned: planned.contains(entry.path),
-                        onOpen: () => _controller.open(entry.path),
+                        onOpen: () => _openDirectory(entry.path),
                       );
                     },
                   ),
