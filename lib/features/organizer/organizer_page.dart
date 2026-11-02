@@ -12,6 +12,7 @@ import '../../shared/widgets.dart';
 import '../../shared/localization.dart';
 import '../../shared/runtime_localization.dart';
 import '../../shared/responsive_button.dart';
+import '../../shared/organizer_stepper.dart';
 import 'ai/ai_usage.dart';
 import 'connections/connection_settings.dart';
 import 'dav/dav_paths.dart';
@@ -200,68 +201,76 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
 
     final status = _status(context, state);
     const gap = SizedBox(height: 16);
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Align(
-          alignment: Alignment.center,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: PageContent.maxWidth),
-            child: SizedBox(
-              width: double.infinity,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  PageContent.paddingOf(context),
-                  12,
-                  PageContent.paddingOf(context),
-                  4,
+    final content = ColoredBox(
+      key: const ValueKey('organizer-page-background'),
+      color: context.theme.colors.background,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.center,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: PageContent.maxWidth),
+              child: SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    PageContent.paddingOf(context),
+                    12,
+                    PageContent.paddingOf(context),
+                    4,
+                  ),
+                  child: _navigation(context, locked: locked),
                 ),
-                child: _navigation(context, locked: locked),
               ),
             ),
           ),
-        ),
-        Expanded(
-          child: PageContent(
-            fill: widget.step == OrganizerStep.browse,
-            topPadding: 8,
-            children: [
-              if (status != null) ...[status, gap],
-              if (widget.step != OrganizerStep.browse &&
-                  state.aiUsage != null) ...[
-                AiUsagePanel(usage: state.aiUsage!, pricing: state.pricing),
-                gap,
-              ],
-              switch (widget.step) {
-                OrganizerStep.browse => Expanded(
-                  child: _browser(
+          Expanded(
+            child: PageContent(
+              fill: widget.step == OrganizerStep.browse,
+              topPadding: 8,
+              children: [
+                if (status != null) ...[status, gap],
+                if (widget.step != OrganizerStep.browse &&
+                    state.aiUsage != null) ...[
+                  AiUsagePanel(usage: state.aiUsage!, pricing: state.pricing),
+                  gap,
+                ],
+                switch (widget.step) {
+                  OrganizerStep.browse => Expanded(
+                    child: _browser(
+                      context,
+                      state,
+                      locked: locked,
+                      root: root,
+                      scope: nasScope(config),
+                    ),
+                  ),
+                  OrganizerStep.assistant => _assistant(
                     context,
                     state,
                     locked: locked,
-                    root: root,
-                    scope: nasScope(config),
                   ),
-                ),
-                OrganizerStep.assistant => _assistant(
-                  context,
-                  state,
-                  locked: locked,
-                ),
-                OrganizerStep.preview => _plan(context, state, locked: locked),
-              },
-            ],
+                  OrganizerStep.preview => _plan(
+                    context,
+                    state,
+                    locked: locked,
+                  ),
+                },
+              ],
+            ),
           ),
-        ),
-        if (widget.step == OrganizerStep.browse ||
-            widget.step == OrganizerStep.preview && state.plan.isNotEmpty)
-          _bottomActions(
-            context,
-            state,
-            locked: locked,
-            root: root,
-            scope: nasScope(config),
-          ),
-      ],
+          if (widget.step == OrganizerStep.browse ||
+              widget.step == OrganizerStep.preview && state.plan.isNotEmpty)
+            _bottomActions(
+              context,
+              state,
+              locked: locked,
+              root: root,
+              scope: nasScope(config),
+            ),
+        ],
+      ),
     );
     if (widget.step != OrganizerStep.browse) return content;
 
@@ -435,40 +444,19 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     );
   }
 
-  Widget _navigation(BuildContext context, {required bool locked}) => Wrap(
-    spacing: 12,
-    runSpacing: 12,
-    crossAxisAlignment: WrapCrossAlignment.center,
-    children: [
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: FBreadcrumb(
-          children: [
-            FBreadcrumbItem(
-              current: widget.step == OrganizerStep.browse,
-              onPress: locked || widget.step == OrganizerStep.browse
-                  ? null
-                  : () => context.go('/organize'),
-              child: Text(context.l10n.nasDirectory),
-            ),
-            if (widget.step != OrganizerStep.browse)
-              FBreadcrumbItem(
-                current: widget.step == OrganizerStep.assistant,
-                onPress: locked || widget.step == OrganizerStep.assistant
-                    ? null
-                    : () => context.go('/organize/assistant'),
-                child: Text(context.l10n.organizingRequirements),
-              ),
-            if (widget.step == OrganizerStep.preview)
-              FBreadcrumbItem(
-                current: true,
-                child: Text(context.l10n.renamePreview),
-              ),
-          ],
+  Widget _navigation(BuildContext context, {required bool locked}) =>
+      OrganizerStepper(
+        key: const ValueKey('organizer-stepper'),
+        currentStep: widget.step.index,
+        locked: locked,
+        onStepSelected: (index) => context.go(
+          const [
+            '/organize',
+            '/organize/assistant',
+            '/organize/assistant/preview',
+          ][index],
         ),
-      ),
-    ],
-  );
+      );
 
   Widget? _status(BuildContext context, OrganizerState state) {
     final theme = context.theme;

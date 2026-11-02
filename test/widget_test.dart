@@ -175,6 +175,69 @@ void main() {
         .clearLocalesTestValue();
   });
   for (final width in [390.0, 1280.0]) {
+    testWidgets('步骤跳转和快速返回在 $width 宽度不叠加透明页面', (tester) async {
+      tester.view.physicalSize = Size(width, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final window = NoWindow();
+      addTearDown(window.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(TestConnections.new),
+          organizerProvider.overrideWith(TestOrganizer.new),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final router = container.read(routerProvider);
+      for (final path in [
+        '/organize/assistant',
+        '/organize/assistant/preview',
+        '/organize/assistant',
+        '/organize',
+      ]) {
+        router.go(path);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(find.byKey(const ValueKey('organizer-stepper')), findsOneWidget);
+        final background = find.byKey(
+          const ValueKey('organizer-page-background'),
+        );
+        expect(background, findsOneWidget);
+        final color = tester.widget<ColoredBox>(background).color;
+        expect(color.a, 1);
+        final bounds = tester.getRect(background);
+        expect(
+          bounds.contains(
+            tester.getCenter(find.byKey(const ValueKey('organizer-stepper'))),
+          ),
+          isTrue,
+        );
+        if (path.endsWith('/preview')) {
+          expect(find.text('整理要求（可选）'), findsNothing);
+          expect(find.text('确认并执行'), findsOneWidget);
+        } else if (path.endsWith('/assistant')) {
+          expect(find.text('断开连接'), findsNothing);
+          expect(find.text('整理要求（可选）'), findsOneWidget);
+        } else {
+          expect(find.text('整理要求（可选）'), findsNothing);
+          expect(find.text('断开连接'), findsOneWidget);
+        }
+        expect(tester.takeException(), isNull);
+      }
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('English 界面在 $width 宽度下即时切换且不影响命名语言', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
       tester.view.devicePixelRatio = 1;
@@ -232,14 +295,46 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Disconnect'), findsOneWidget);
       expect(find.text('Organize this directory'), findsOneWidget);
+      for (var index = 0; index < 3; index++) {
+        expect(
+          tester
+              .widget<FTappable>(find.byKey(ValueKey('organizer-step-$index')))
+              .onPress,
+          isNull,
+        );
+      }
       container.read(routerProvider).go('/organize/assistant');
       await tester.pumpAndSettle();
       expect(find.text('Generate rename suggestions'), findsOneWidget);
       expect(find.text('Organizing requirements (optional)'), findsOneWidget);
+      expect(
+        tester
+            .widget<FTappable>(find.byKey(const ValueKey('organizer-step-0')))
+            .onPress,
+        isNotNull,
+      );
+      expect(
+        tester
+            .widget<FTappable>(find.byKey(const ValueKey('organizer-step-2')))
+            .onPress,
+        isNull,
+      );
       container.read(routerProvider).go('/organize/assistant/preview');
       await tester.pumpAndSettle();
       expect(find.text('Confirm and execute'), findsOneWidget);
       expect(find.text('New file name'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('organizer-step-1')));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(routerProvider).routeInformationProvider.value.uri.path,
+        '/organize/assistant',
+      );
+      await tester.tap(find.byKey(const ValueKey('organizer-step-0')));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(routerProvider).routeInformationProvider.value.uri.path,
+        '/organize',
+      );
       container.read(routerProvider).go('/history');
       await tester.pumpAndSettle();
       expect(find.text('No execution history yet'), findsOneWidget);
@@ -695,7 +790,7 @@ void main() {
       await tester.pumpAndSettle();
       final button = find.text(label);
       final before = tester.getRect(button);
-      final breadcrumb = find.byType(FBreadcrumb).first;
+      final breadcrumb = find.byKey(const ValueKey('organizer-stepper'));
       final breadcrumbBefore = tester.getRect(breadcrumb);
       expect(before.bottom, lessThan(800));
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -600));
@@ -801,7 +896,9 @@ void main() {
         matching: find.text('剧集整理'),
       );
       final card = tester.getRect(find.byType(FCard).first);
-      final breadcrumb = tester.getRect(find.byType(FBreadcrumb).first);
+      final breadcrumb = tester.getRect(
+        find.byKey(const ValueKey('organizer-stepper')),
+      );
       expect(tester.getRect(headerTitle).left, closeTo(card.left, .1));
       expect(breadcrumb.left, closeTo(card.left, .1));
       expect(card.top - breadcrumb.bottom, lessThanOrEqualTo(16));

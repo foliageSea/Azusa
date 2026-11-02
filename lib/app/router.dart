@@ -20,7 +20,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/organize',
-                builder: (_, _) => const OrganizerPage(),
+                pageBuilder: (_, state) => NoTransitionPage<void>(
+                  key: state.pageKey,
+                  child: const OrganizerPage(),
+                ),
                 routes: [
                   GoRoute(
                     path: 'assistant',
@@ -28,13 +31,19 @@ final routerProvider = Provider<GoRouter>((ref) {
                         ref.read(organizerProvider).directory.isEmpty
                         ? '/organize'
                         : null,
-                    builder: (_, _) =>
-                        const OrganizerPage(step: OrganizerStep.assistant),
+                    pageBuilder: (_, state) => NoTransitionPage<void>(
+                      key: state.pageKey,
+                      child: const OrganizerPage(step: OrganizerStep.assistant),
+                    ),
                     routes: [
                       GoRoute(
                         path: 'preview',
-                        builder: (_, _) =>
-                            const OrganizerPage(step: OrganizerStep.preview),
+                        pageBuilder: (_, state) => NoTransitionPage<void>(
+                          key: state.pageKey,
+                          child: const OrganizerPage(
+                            step: OrganizerStep.preview,
+                          ),
+                        ),
                       ),
                     ],
                   ),
