@@ -16,7 +16,7 @@ class HistoryEntry {
   final String? source, target;
 
   static final _timestamp = RegExp(
-    r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?)(?:Z|[+-]\d{2}:\d{2})? ',
+    r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?) ',
   );
   static final _operation = RegExp(
     r'^(准备|完成)(重命名| move| upload| delete| mkdir) ',

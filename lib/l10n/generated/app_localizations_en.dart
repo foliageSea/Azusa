@@ -261,6 +261,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewOnTmdb => 'View on TMDB';
 
   @override
+  String get originalPath => 'Original path';
+
+  @override
+  String get newPath => 'New path';
+
+  @override
+  String get copyPath => 'Copy path';
+
+  @override
+  String completedAtTime(String time) {
+    return 'Completed at $time';
+  }
+
+  @override
   String get stopSuggestions => 'Stop generating';
 
   @override

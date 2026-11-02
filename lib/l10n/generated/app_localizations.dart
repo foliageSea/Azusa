@@ -596,6 +596,30 @@ abstract class AppLocalizations {
   /// **'View on TMDB'**
   String get viewOnTmdb;
 
+  /// No description provided for @originalPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Original path'**
+  String get originalPath;
+
+  /// No description provided for @newPath.
+  ///
+  /// In en, this message translates to:
+  /// **'New path'**
+  String get newPath;
+
+  /// No description provided for @copyPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy path'**
+  String get copyPath;
+
+  /// No description provided for @completedAtTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed at {time}'**
+  String completedAtTime(String time);
+
   /// No description provided for @stopSuggestions.
   ///
   /// In en, this message translates to:

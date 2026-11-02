@@ -266,6 +266,47 @@ class FlattenOrganizer extends TestOrganizer {
 }
 
 void main() {
+  for (final width in [390.0, 1280.0]) {
+    testWidgets('历史详情在 $width 宽度格式化时间并分开展示新旧路径', (tester) async {
+      tester.view.physicalSize = Size(width, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final window = NoWindow();
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(TestConnections.new),
+          organizerProvider.overrideWith(TestOrganizer.new),
+          executionHistoryProvider.overrideWith(
+            (_) async => [
+              '2026-11-02 20:49:55.000001 准备重命名 /dav/Season 01/original.mkv → /dav/Season 01/new.mkv',
+              '2026-11-02 20:49:56.117603 完成重命名 /dav/Season 01/original.mkv → /dav/Season 01/new.mkv',
+            ],
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(window.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      container.read(routerProvider).go('/history');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(FLucideIcons.chevronDown).last);
+      await tester.pumpAndSettle();
+      expect(find.text('原路径'), findsOneWidget);
+      expect(find.text('新路径'), findsOneWidget);
+      expect(find.text('开始于 2026-11-02 20:49:55'), findsOneWidget);
+      expect(find.text('完成于 2026-11-02 20:49:56'), findsOneWidget);
+      expect(find.textContaining('117603'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets('AI 生成期间可点击停止并恢复生成按钮', (tester) async {
     final window = NoWindow();
     final container = ProviderContainer(

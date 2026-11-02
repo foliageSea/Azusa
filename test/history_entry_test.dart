@@ -2,6 +2,12 @@ import 'package:azusa/features/organizer/history/history_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('保留时间戳的时区以便正确转换为本地时间', () {
+    final entry = HistoryEntry.parse(
+      '2026-11-02 20:49:56.117603+08:00 完成重命名 /a → /b',
+    );
+    expect(entry.time, DateTime.utc(2026, 11, 2, 12, 49, 56, 117, 603));
+  });
   test('解析日期、重命名路径并合并准备和完成记录', () {
     final entries = HistoryEntry.fromRecords([
       '2026-11-02 09:48:54.720825 准备重命名 /dav/剧集/a.mkv → /dav/剧集/新名称.mkv',

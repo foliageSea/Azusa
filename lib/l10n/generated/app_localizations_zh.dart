@@ -259,6 +259,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewOnTmdb => '在 TMDB 查看';
 
   @override
+  String get originalPath => '原路径';
+
+  @override
+  String get newPath => '新路径';
+
+  @override
+  String get copyPath => '复制路径';
+
+  @override
+  String completedAtTime(String time) {
+    return '完成于 $time';
+  }
+
+  @override
   String get stopSuggestions => '停止生成';
 
   @override

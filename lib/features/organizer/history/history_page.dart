@@ -100,6 +100,11 @@ String _clock(DateTime time) {
   return '${_two(local.hour)}:${_two(local.minute)}:${_two(local.second)}';
 }
 
+String _dateTime(DateTime time) {
+  final local = time.toLocal();
+  return '${local.year}-${_two(local.month)}-${_two(local.day)} ${_clock(local)}';
+}
+
 String _fileName(String path) =>
     path.replaceFirst(RegExp(r'/+$'), '').split('/').last;
 
@@ -183,7 +188,7 @@ class _HistoryRowState extends State<_HistoryRow> {
             ],
           ),
           const SizedBox(height: 8),
-          if (entry.source != null) ...[
+          if (entry.source != null && !expanded) ...[
             Text(
               _fileName(entry.source!),
               style: entry.target == null ? theme.typography.body.sm : muted,
@@ -212,14 +217,14 @@ class _HistoryRowState extends State<_HistoryRow> {
                 ],
               ),
             ],
-          ] else
+          ] else if (entry.source == null && !expanded)
             Text(
               entry.message,
               style: muted,
               maxLines: expanded ? null : 2,
               overflow: expanded ? null : TextOverflow.ellipsis,
             ),
-          if (entry.time != null) ...[
+          if (entry.time != null && !expanded) ...[
             const SizedBox(height: 10),
             Text(
               _clock(entry.time!),
@@ -230,15 +235,99 @@ class _HistoryRowState extends State<_HistoryRow> {
           ],
           if (expanded) ...[
             const SizedBox(height: 12),
-            if (entry.startedAt != null) ...[
-              Text(
-                context.l10n.startedAtTime(_clock(entry.startedAt!)),
-                style: muted,
+            if (entry.time != null || entry.startedAt != null) ...[
+              Wrap(
+                spacing: 24,
+                runSpacing: 8,
+                children: [
+                  if (entry.startedAt != null)
+                    Text(
+                      context.l10n.startedAtTime(_dateTime(entry.startedAt!)),
+                      style: muted,
+                    ),
+                  if (entry.time != null)
+                    Text(
+                      entry.completed == true
+                          ? context.l10n.completedAtTime(_dateTime(entry.time!))
+                          : context.l10n.startedAtTime(_dateTime(entry.time!)),
+                      style: muted,
+                    ),
+                ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
             ],
-            SelectableText(entry.raw, style: muted),
+            if (entry.source != null) ...[
+              _HistoryPath(
+                label: context.l10n.originalPath,
+                path: entry.source!,
+              ),
+              if (entry.target != null) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 6,
+                    horizontal: 12,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Icon(
+                      FLucideIcons.arrowDown,
+                      size: 16,
+                      color: theme.colors.mutedForeground,
+                    ),
+                  ),
+                ),
+                _HistoryPath(
+                  label: context.l10n.newPath,
+                  path: entry.target!,
+                  target: true,
+                ),
+              ],
+            ] else
+              SelectableText(entry.message, style: muted),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryPath extends StatelessWidget {
+  const _HistoryPath({
+    required this.label,
+    required this.path,
+    this.target = false,
+  });
+  final String label, path;
+  final bool target;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colors.muted,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.typography.body.xs.copyWith(
+              color: theme.colors.mutedForeground,
+            ),
+          ),
+          const SizedBox(height: 4),
+          SelectableText(
+            path,
+            style: theme.typography.body.sm.copyWith(
+              color: target
+                  ? theme.colors.foreground
+                  : theme.colors.mutedForeground,
+            ),
+          ),
         ],
       ),
     );
