@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
@@ -760,12 +761,15 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
             style: theme.typography.body.sm,
           ),
           const SizedBox(height: 16),
-          FTextField(
+          FTextField.multiline(
+            key: const ValueKey('organizing-requirements'),
             control: .managed(controller: instruction),
             label: Text(context.l10n.optionalRequirements),
             hint: context.l10n.requirementsHint,
             enabled: !locked,
-            onSubmit: canPropose ? (_) => _propose() : null,
+            minLines: 3,
+            maxLines: 6,
+            textInputAction: TextInputAction.newline,
           ),
           const SizedBox(height: 12),
           FButton(

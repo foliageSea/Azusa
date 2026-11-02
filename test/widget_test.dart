@@ -871,6 +871,14 @@ void main() {
       expect(find.text('40.0'), findsOneWidget);
       expect(find.text('\$0.003360'), findsOneWidget);
       final instruction = find.byType(FTextField);
+      final editable = tester.widget<EditableText>(
+        find.descendant(of: instruction, matching: find.byType(EditableText)),
+      );
+      expect(editable.minLines, 3);
+      expect(editable.maxLines, 6);
+      expect(editable.keyboardType, TextInputType.multiline);
+      expect(editable.textInputAction, TextInputAction.newline);
+      expect(editable.onSubmitted, isNull);
       await tester.enterText(
         find.descendant(of: instruction, matching: find.byType(EditableText)),
         '保留中文剧名',
