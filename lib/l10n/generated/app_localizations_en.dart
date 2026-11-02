@@ -400,7 +400,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyzeDirectoryDetail =>
-      'The selected directory path and file names will be sent to your configured AI service. File contents will not be uploaded.';
+      'Paths and file names in the selected directory and its immediate subfolders will be sent to your configured AI service. File contents will not be uploaded.';
 
   @override
   String get startAnalysis => 'Start analysis';
@@ -410,7 +410,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get executeRenamesDetail =>
-      'Files on the NAS will be renamed one by one as previewed. Execution stops on failure and never overwrites existing files.';
+      'Files will be renamed as previewed. Files in subfolders will move into the selected directory; original subfolders remain. Execution stops on failure and never overwrites existing files.';
 
   @override
   String get startExecution => 'Start execution';

@@ -10,13 +10,16 @@ class RenameItem {
     this.enabled = true,
     this.fingerprint,
     this.etag,
+    this.targetDirectory,
   });
   final String source, targetName, reason;
   final String? fingerprint, etag;
+  final String? targetDirectory;
   final bool enabled;
 
   String get parent => source.substring(0, source.lastIndexOf('/') + 1);
-  String get target => '$parent${Uri.encodeComponent(targetName)}';
+  String get target =>
+      '${targetDirectory ?? parent}${Uri.encodeComponent(targetName)}';
 
   RenameItem copyWith({String? targetName, bool? enabled}) => RenameItem(
     source: source,
@@ -25,6 +28,7 @@ class RenameItem {
     enabled: enabled ?? this.enabled,
     fingerprint: fingerprint,
     etag: etag,
+    targetDirectory: targetDirectory,
   );
 }
 
@@ -44,6 +48,17 @@ String? validatePlan(List<RenameItem> plan, List<DavEntry> entries) {
     }
     final nameError = fileNameError(item.targetName);
     if (nameError != null) return nameError;
+    if (item.targetDirectory != null &&
+        (!item.targetDirectory!.startsWith('/') ||
+            !item.targetDirectory!.endsWith('/') ||
+            !item.parent.startsWith(item.targetDirectory!))) {
+      return '目标目录无效';
+    }
+    try {
+      if (canonicalDavPath(item.target) != item.target) return '目标目录无效';
+    } on FormatException {
+      return '目标目录无效';
+    }
     final oldName = Uri.decodeComponent(item.source.split('/').last);
     final oldExtension = oldName.contains('.')
         ? oldName.substring(oldName.lastIndexOf('.'))
@@ -93,8 +108,15 @@ class RenameExecutor {
         plan.where((p) => p.enabled && p.source != p.target),
       );
       if (selected.isEmpty) return const ExecutionResult([], null);
-      final directory = selected.first.parent;
-      final initial = await dav.list(directory);
+      final directories = {
+        for (final item in selected) item.parent,
+        for (final item in selected)
+          if (item.targetDirectory != null) item.targetDirectory!,
+      };
+      final initial = <DavEntry>[];
+      for (final directory in directories) {
+        initial.addAll(await dav.list(directory));
+      }
       final error = validatePlan(selected, initial);
       if (error != null) return ExecutionResult(completed, error);
       for (final (index, item) in selected.indexed) {

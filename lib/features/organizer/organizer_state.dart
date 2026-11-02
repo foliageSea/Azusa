@@ -18,6 +18,7 @@ class OrganizerState {
   const OrganizerState({
     this.directory = '',
     this.entries = const [],
+    this.analysisEntries = const [],
     this.plan = const [],
     this.busy = false,
     this.executing = false,
@@ -28,6 +29,7 @@ class OrganizerState {
   });
   final String directory, progress, message;
   final List<DavEntry> entries;
+  final List<DavEntry> analysisEntries;
   final List<RenameItem> plan;
   final bool busy, executing;
   final AiUsage? aiUsage;
@@ -41,6 +43,7 @@ class OrganizerState {
     String? progress,
     String? message,
     List<DavEntry>? entries,
+    List<DavEntry>? analysisEntries,
     List<RenameItem>? plan,
     bool? busy,
     bool? executing,
@@ -50,6 +53,9 @@ class OrganizerState {
   }) => OrganizerState(
     directory: directory ?? this.directory,
     entries: entries ?? this.entries,
+    analysisEntries: clearAnalysis
+        ? const []
+        : analysisEntries ?? this.analysisEntries,
     plan: plan ?? this.plan,
     busy: busy ?? this.busy,
     executing: executing ?? this.executing,
@@ -151,9 +157,13 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       );
       agent = RenameAgent(settings, dav, tmdb);
       final fresh = await dav.list(state.directory);
+      final analysisEntries = <DavEntry>[...fresh];
+      for (final folder in fresh.where((entry) => entry.directory)) {
+        analysisEntries.addAll(await dav.list(folder.path));
+      }
       final plan = await agent.propose(
         state.directory,
-        fresh,
+        analysisEntries,
         instruction: instruction,
         onStatus: (message) => state = state.copyWith(message: message),
         onUsage: (usage) => state = state.copyWith(aiUsage: usage),
@@ -161,6 +171,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       succeeded = true;
       state = state.copyWith(
         entries: fresh,
+        analysisEntries: analysisEntries,
         plan: plan,
         message: plan.isEmpty ? '未找到可靠的重命名建议，请补充剧名和季数后重试' : '建议已生成',
       );
@@ -318,7 +329,10 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   Future<void> execute() async {
     if (state.executing || state.busy) return;
     final frozen = List<RenameItem>.unmodifiable(state.plan);
-    final error = validatePlan(frozen, state.entries);
+    final error = validatePlan(
+      frozen,
+      state.analysisEntries.isEmpty ? state.entries : state.analysisEntries,
+    );
     if (error != null) {
       state = state.copyWith(message: error);
       return;
@@ -344,7 +358,19 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
             : '已停止：${result.error}。请核对后再次确认执行剩余项',
         plan: frozen.where((e) => !result.completed.contains(e)).toList(),
       );
-      state = state.copyWith(entries: await dav.list(state.directory));
+      final refreshed = await dav.list(state.directory);
+      final remaining = state.plan;
+      final sourceDirectories = {for (final item in remaining) item.parent};
+      final analysisEntries = <DavEntry>[...refreshed];
+      for (final path in sourceDirectories.where(
+        (path) => path != state.directory,
+      )) {
+        analysisEntries.addAll(await dav.list(path));
+      }
+      state = state.copyWith(
+        entries: refreshed,
+        analysisEntries: analysisEntries,
+      );
     } catch (e) {
       state = state.copyWith(message: '执行已停止：${serviceError(e)}；请刷新目录核对结果');
     } finally {

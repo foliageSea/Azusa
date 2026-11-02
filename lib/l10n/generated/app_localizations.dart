@@ -851,7 +851,7 @@ abstract class AppLocalizations {
   /// No description provided for @analyzeDirectoryDetail.
   ///
   /// In en, this message translates to:
-  /// **'The selected directory path and file names will be sent to your configured AI service. File contents will not be uploaded.'**
+  /// **'Paths and file names in the selected directory and its immediate subfolders will be sent to your configured AI service. File contents will not be uploaded.'**
   String get analyzeDirectoryDetail;
 
   /// No description provided for @startAnalysis.
@@ -869,7 +869,7 @@ abstract class AppLocalizations {
   /// No description provided for @executeRenamesDetail.
   ///
   /// In en, this message translates to:
-  /// **'Files on the NAS will be renamed one by one as previewed. Execution stops on failure and never overwrites existing files.'**
+  /// **'Files will be renamed as previewed. Files in subfolders will move into the selected directory; original subfolders remain. Execution stops on failure and never overwrites existing files.'**
   String get executeRenamesDetail;
 
   /// No description provided for @startExecution.

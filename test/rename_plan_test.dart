@@ -12,7 +12,16 @@ class MemoryDav extends WebDavClient {
   int active = 0, maximum = 0;
   String? fail;
   @override
-  Future<List<DavEntry>> list(String path) async => files.values.toList();
+  Future<List<DavEntry>> list(String path) async => files.values
+      .where(
+        (e) =>
+            e.path.startsWith(path) &&
+            !e.path
+                .substring(path.length)
+                .replaceFirst(RegExp(r'/$'), '')
+                .contains('/'),
+      )
+      .toList();
   @override
   Future<DavEntry?> stat(String path) async => files[path];
   @override
@@ -221,9 +230,121 @@ void main() {
   test('写入准备日志失败时不执行 NAS 修改', () async {
     final dav = MemoryDav({for (final e in entries) e.path: e});
     addTearDown(dav.close);
-    final result = await RenameExecutor(dav)
-        .execute([first], onStarting: (_) async => throw StateError('存储失败'));
+    final result = await RenameExecutor(
+      dav,
+    ).execute([first], onStarting: (_) async => throw StateError('存储失败'));
     expect(result.error, contains('存储失败'));
     expect(dav.moved, isEmpty);
+  });
+
+  test('单集子目录文件平铺到季目录，字幕同名目标且保留子目录', () async {
+    final dav = MemoryDav({
+      '/dav/01/': const DavEntry('/dav/01/', true),
+      '/dav/01/old.mkv': const DavEntry('/dav/01/old.mkv', false),
+      '/dav/01/old.zh.srt': const DavEntry('/dav/01/old.zh.srt', false),
+      '/dav/01/cover.jpg': const DavEntry('/dav/01/cover.jpg', false),
+    });
+    addTearDown(dav.close);
+    final plan = [
+      const RenameItem(
+        source: '/dav/01/old.mkv',
+        targetDirectory: '/dav/',
+        targetName: 'Show - S03E01.mkv',
+      ),
+      const RenameItem(
+        source: '/dav/01/old.zh.srt',
+        targetDirectory: '/dav/',
+        targetName: 'Show - S03E01.zh.srt',
+      ),
+    ];
+    expect(validatePlan(plan, dav.files.values.toList()), isNull);
+    final result = await RenameExecutor(dav).execute(plan);
+    expect(result.error, isNull);
+    expect(
+      dav.files.keys,
+      containsAll([
+        '/dav/Show%20-%20S03E01.mkv',
+        '/dav/Show%20-%20S03E01.zh.srt',
+        '/dav/01/',
+        '/dav/01/cover.jpg',
+      ]),
+    );
+  });
+
+  test('平铺时季目录已有目标或多个子目录目标重复则停止', () async {
+    final first = const RenameItem(
+      source: '/dav/01/old.mkv',
+      targetDirectory: '/dav/',
+      targetName: 'Show.mkv',
+    );
+    final second = const RenameItem(
+      source: '/dav/02/old.mkv',
+      targetDirectory: '/dav/',
+      targetName: 'Show.mkv',
+    );
+    final dav = MemoryDav({
+      first.source: DavEntry(first.source, false),
+      second.source: DavEntry(second.source, false),
+      first.target: DavEntry(first.target, false),
+    });
+    addTearDown(dav.close);
+    expect(
+      validatePlan([
+        first,
+        second,
+      ], dav.files.values.where((e) => e.path != first.target).toList()),
+      contains('重复'),
+    );
+    expect((await RenameExecutor(dav).execute([first])).error, contains('已存在'));
+    expect(dav.moved, isEmpty);
+  });
+
+  test('平铺中途失败保留完成结果，剩余项可继续', () async {
+    const one = RenameItem(
+      source: '/dav/01/a.mkv',
+      targetDirectory: '/dav/',
+      targetName: 'one.mkv',
+    );
+    const two = RenameItem(
+      source: '/dav/02/b.mkv',
+      targetDirectory: '/dav/',
+      targetName: 'two.mkv',
+    );
+    final dav = MemoryDav({
+      one.source: DavEntry(one.source, false),
+      two.source: DavEntry(two.source, false),
+    })..fail = two.source;
+    addTearDown(dav.close);
+    final executor = RenameExecutor(dav);
+    final failed = await executor.execute([one, two]);
+    expect(failed.completed, [one]);
+    expect(failed.error, contains('模拟失败'));
+    dav.fail = null;
+    expect((await executor.execute([two])).error, isNull);
+    expect(dav.moved, [one.source, two.source]);
+  });
+
+  test('平铺目标不能越界或使用编码后的分隔符', () {
+    const entry = DavEntry('/dav/01/a.mkv', false);
+    for (final directory in [
+      '/other/',
+      '/dav/../',
+      '/dav/%2e%2e/',
+      '/dav/a%2fb/',
+    ]) {
+      expect(
+        validatePlan(
+          [
+            RenameItem(
+              source: entry.path,
+              targetDirectory: directory,
+              targetName: 'new.mkv',
+            ),
+          ],
+          [entry],
+        ),
+        contains('无效'),
+      );
+    }
   });
 }

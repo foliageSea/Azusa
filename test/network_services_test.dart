@@ -69,9 +69,11 @@ void main() {
         ..httpClientAdapter = TestAdapter((options) async {
           requests++;
           final stream = options.data as Stream<List<int>>;
-          final body = jsonDecode(
-            utf8.decode(await stream.expand((bytes) => bytes).toList()),
-          ) as Map;
+          final body =
+              jsonDecode(
+                    utf8.decode(await stream.expand((bytes) => bytes).toList()),
+                  )
+                  as Map;
           final messages = (body['messages'] as List).cast<Map>();
           final system = messages.firstWhere((m) => m['role'] == 'system');
           expect(
@@ -431,8 +433,9 @@ void main() {
         final data = options.data;
         final body = data is Stream<List<int>>
             ? jsonDecode(
-                utf8.decode(await data.expand((bytes) => bytes).toList()),
-              ) as Map
+                    utf8.decode(await data.expand((bytes) => bytes).toList()),
+                  )
+                  as Map
             : data as Map;
         expect(body['model'], 'custom-model');
         final messages = body['messages'] as List;
@@ -511,6 +514,95 @@ void main() {
     expect(round, 2);
   });
 
+  test('单集文件夹借助文件夹名分析，配对字幕并平铺到季目录', () async {
+    var round = 0;
+    final ai = Dio()
+      ..httpClientAdapter = TestAdapter((options) async {
+        final data = options.data;
+        final body = data is Stream<List<int>>
+            ? jsonDecode(
+                    utf8.decode(await data.expand((bytes) => bytes).toList()),
+                  )
+                  as Map
+            : data as Map;
+        if (round++ == 0) {
+          final message = (body['messages'] as List).last.toString();
+          expect(message, contains('Season 3 - 01'));
+          return jsonResponse({
+            'choices': [
+              {
+                'message': {
+                  'role': 'assistant',
+                  'content': null,
+                  'tool_calls': [
+                    {
+                      'id': 'call1',
+                      'type': 'function',
+                      'function': {
+                        'name': 'get_season',
+                        'arguments': '{"series_id":1396,"season_number":3}',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          });
+        }
+        return jsonResponse({
+          'choices': [
+            {
+              'message': {
+                'content': jsonEncode({
+                  'items': [
+                    {
+                      'source': '/dav/Season%203%20-%2001/raw.mkv',
+                      'targetName': '剧集 - S03E01.mkv',
+                      'series_id': 1396,
+                      'season_number': 3,
+                      'episode_number': 1,
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        });
+      });
+    final tmdbDio = Dio()
+      ..httpClientAdapter = TestAdapter(
+        (_) => jsonResponse({
+          'episodes': [
+            {'episode_number': 1, 'season_number': 3, 'name': 'First'},
+          ],
+        }),
+      );
+    const settings = ConnectionSettings(
+      webdavUrl: 'https://nas.test/dav/',
+      aiUrl: 'http://localhost/v1',
+      model: 'custom-model',
+      tmdbToken: 'test',
+    );
+    final dav = WebDavClient(settings);
+    final tmdb = TmdbClient(settings, client: tmdbDio);
+    final agent = RenameAgent(settings, dav, tmdb, client: ai);
+    addTearDown(() {
+      agent.close();
+      dav.close();
+      tmdb.close();
+    });
+    final plan = await agent.propose('/dav/', [
+      const DavEntry('/dav/Season%203%20-%2001/', true),
+      const DavEntry('/dav/Season%203%20-%2001/raw.mkv', false),
+      const DavEntry('/dav/Season%203%20-%2001/raw.zh.srt', false),
+      const DavEntry('/dav/Season%203%20-%2001/unrelated.srt', false),
+    ]);
+    expect(plan.length, 2);
+    expect(plan.first.target, '/dav/%E5%89%A7%E9%9B%86%20-%20S03E01.mkv');
+    expect(plan.last.targetName, '剧集 - S03E01.zh.srt');
+    expect(round, 2);
+  });
+
   test('Agent 未查询 TMDB 的猜测不能进入预览', () async {
     final ai = Dio()
       ..httpClientAdapter = TestAdapter(
@@ -518,7 +610,8 @@ void main() {
           'choices': [
             {
               'message': {
-                'content': '{"items":[{"source":"/dav/a.mkv","targetName":"new.mkv","series_id":1,"season_number":1,"episode_number":1}]}',
+                'content':
+                    '{"items":[{"source":"/dav/a.mkv","targetName":"new.mkv","series_id":1,"season_number":1,"episode_number":1}]}',
               },
             },
           ],

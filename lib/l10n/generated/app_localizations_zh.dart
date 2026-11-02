@@ -396,7 +396,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get analyzeDirectory => '将此目录发送给 AI 分析？';
 
   @override
-  String get analyzeDirectoryDetail => '所选目录路径和文件名将发送至你配置的 AI 服务，文件内容不会上传。';
+  String get analyzeDirectoryDetail =>
+      '所选目录及直接子文件夹的路径、文件名将发送至你配置的 AI 服务，文件内容不会上传。';
 
   @override
   String get startAnalysis => '开始分析';
@@ -405,7 +406,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get executeRenames => '执行已选择的重命名？';
 
   @override
-  String get executeRenamesDetail => '将按预览逐项修改 NAS 文件名，遇到失败立即停止，不覆盖已有文件。';
+  String get executeRenamesDetail =>
+      '将按预览逐项重命名文件；子文件夹内的文件会移到当前目录，原文件夹保留。遇到失败立即停止，不覆盖已有文件。';
 
   @override
   String get startExecution => '开始执行';

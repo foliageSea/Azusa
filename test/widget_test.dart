@@ -224,7 +224,58 @@ class CompletedOrganizer extends TestOrganizer {
       const OrganizerState(directory: '/dav/', message: '已完成 1 项');
 }
 
+class FlattenOrganizer extends TestOrganizer {
+  @override
+  OrganizerState build() => const OrganizerState(
+    directory: '/dav/',
+    entries: [DavEntry('/dav/01/', true)],
+    analysisEntries: [
+      DavEntry('/dav/01/', true),
+      DavEntry('/dav/01/raw.mkv', false),
+    ],
+    plan: [
+      RenameItem(
+        source: '/dav/01/raw.mkv',
+        targetDirectory: '/dav/',
+        targetName: 'Show - S03E01.mkv',
+      ),
+    ],
+  );
+}
+
 void main() {
+  testWidgets('只有单集文件夹时可进入整理，平铺预览可执行', (tester) async {
+    final window = NoWindow();
+    addTearDown(window.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(FlattenOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('整理此目录'));
+    await tester.pumpAndSettle();
+    expect(find.text('AI 生成重命名建议'), findsOneWidget);
+    container.read(routerProvider).go('/organize/assistant/preview');
+    await tester.pumpAndSettle();
+    expect(find.text('/dav/01/raw.mkv'), findsOneWidget);
+    expect(find.text('→ /dav/Show - S03E01.mkv'), findsOneWidget);
+    expect(find.text('无法执行'), findsNothing);
+    final button = tester.widget<FButton>(
+      find.ancestor(of: find.text('确认并执行'), matching: find.byType(FButton)),
+    );
+    expect(button.onPress, isNotNull);
+  });
+
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized()
         .platformDispatcher
@@ -952,9 +1003,10 @@ void main() {
       find.descendant(of: test, matching: find.byType(FCircularProgress)),
       findsNothing,
     );
-    (container.read(
-      connectionSettingsProvider.notifier,
-    ) as PendingTestConnections).pending.complete();
+    (container.read(connectionSettingsProvider.notifier)
+            as PendingTestConnections)
+        .pending
+        .complete();
     await tester.pumpAndSettle();
     expect(tester.widget<LoadingButton>(save).loading, isFalse);
   });

@@ -345,7 +345,13 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     final preview = widget.step == OrganizerStep.preview;
     final canExecute =
         !locked &&
-        validatePlan(state.plan, state.entries) == null &&
+        validatePlan(
+              state.plan,
+              state.analysisEntries.isEmpty
+                  ? state.entries
+                  : state.analysisEntries,
+            ) ==
+            null &&
         state.plan.any((item) => item.enabled && item.source != item.target);
     final padding = PageContent.paddingOf(context);
     return DecoratedBox(
@@ -399,9 +405,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                           child: FButton(
                             builder: responsiveButtonContent,
                             prefix: const Icon(FLucideIcons.arrowRight),
-                            onPress:
-                                locked ||
-                                    !state.entries.any((e) => !e.directory)
+                            onPress: locked || state.entries.isEmpty
                                 ? null
                                 : () => context.go('/organize/assistant'),
                             child: Text(context.l10n.organizeDirectory),
@@ -752,7 +756,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     required bool locked,
   }) {
     final theme = context.theme;
-    final hasFiles = state.entries.any((e) => !e.directory);
+    final hasFiles = state.entries.isNotEmpty;
     final canPropose = !locked && state.directory.isNotEmpty && hasFiles;
     final hint = state.directory.isEmpty
         ? context.l10n.openSeriesDirectory
@@ -875,7 +879,10 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
         ),
       );
     }
-    final error = validatePlan(state.plan, state.entries);
+    final error = validatePlan(
+      state.plan,
+      state.analysisEntries.isEmpty ? state.entries : state.analysisEntries,
+    );
     final selected = state.plan.where((e) => e.enabled).length;
     final changes = state.plan
         .where((p) => p.enabled && p.source != p.target)
@@ -940,7 +947,9 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
             _RenameRow(
               key: ValueKey(item.source),
               item: item,
-              entries: state.entries,
+              entries: state.analysisEntries.isEmpty
+                  ? state.entries
+                  : state.analysisEntries,
               disabled: locked,
               onName: (name) => _controller.edit(index, name: name),
               onEnabled: (enabled) => _controller.edit(index, enabled: enabled),
@@ -1390,7 +1399,9 @@ class _RenameRowState extends State<_RenameRow> {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final item = widget.item;
-    final original = Uri.decodeComponent(item.source.split('/').last);
+    final original = item.targetDirectory == null
+        ? Uri.decodeComponent(item.source.split('/').last)
+        : displayDavPath(item.source);
     final unchanged = item.source == item.target;
     final issue = item.enabled ? validatePlan([item], widget.entries) : null;
     return AnimatedOpacity(
@@ -1445,6 +1456,15 @@ class _RenameRowState extends State<_RenameRow> {
                     enabled: !widget.disabled,
                     hint: context.l10n.newFileName,
                   ),
+                  if (item.targetDirectory != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      '→ ${displayDavPath(item.target)}',
+                      style: theme.typography.body.xs.copyWith(
+                        color: theme.colors.mutedForeground,
+                      ),
+                    ),
+                  ],
                   if (issue != null) ...[
                     const SizedBox(height: 6),
                     Text(
