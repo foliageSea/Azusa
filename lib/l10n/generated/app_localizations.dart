@@ -581,7 +581,7 @@ abstract class AppLocalizations {
   /// No description provided for @organizeSeries.
   ///
   /// In en, this message translates to:
-  /// **'Organize series'**
+  /// **'Organize media'**
   String get organizeSeries;
 
   /// No description provided for @executionHistory.
@@ -995,7 +995,7 @@ abstract class AppLocalizations {
   /// No description provided for @browseNasHint.
   ///
   /// In en, this message translates to:
-  /// **'Connect to your NAS to browse and open the series directory you want to organize.'**
+  /// **'Connect to your NAS to browse and open the media directory you want to organize.'**
   String get browseNasHint;
 
   /// No description provided for @directoryEmpty.
@@ -1013,13 +1013,13 @@ abstract class AppLocalizations {
   /// No description provided for @openSeriesDirectory.
   ///
   /// In en, this message translates to:
-  /// **'Connect to your NAS and open a series directory first.'**
+  /// **'Connect to your NAS and open a movie or series directory first.'**
   String get openSeriesDirectory;
 
   /// No description provided for @openNonemptyDirectory.
   ///
   /// In en, this message translates to:
-  /// **'This directory has no files. Open a directory containing episode files.'**
+  /// **'This directory has no files. Open a directory containing movies or episodes.'**
   String get openNonemptyDirectory;
 
   /// No description provided for @aiSuggestions.
@@ -1037,7 +1037,7 @@ abstract class AppLocalizations {
   /// No description provided for @requirementsHint.
   ///
   /// In en, this message translates to:
-  /// **'Series name, season, TMDB ID, or naming preferences'**
+  /// **'Movie / series title, year / season, TMDB ID, or naming preferences'**
   String get requirementsHint;
 
   /// No description provided for @generateSuggestions.
@@ -1487,7 +1487,7 @@ abstract class AppLocalizations {
   /// No description provided for @queryingMetadata.
   ///
   /// In en, this message translates to:
-  /// **'Looking up series metadata…'**
+  /// **'Looking up movie and series metadata…'**
   String get queryingMetadata;
 
   /// No description provided for @suggestionsGenerated.
@@ -1499,7 +1499,7 @@ abstract class AppLocalizations {
   /// No description provided for @noReliableSuggestions.
   ///
   /// In en, this message translates to:
-  /// **'No reliable rename suggestions found. Add a series name and season, then try again.'**
+  /// **'No reliable rename suggestions found. Add a movie title and year or a series name and season, then try again.'**
   String get noReliableSuggestions;
 
   /// No description provided for @usageSaveFailed.
@@ -1705,6 +1705,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Configure a TMDB token'**
   String get tmdbTokenRequired;
+
+  /// No description provided for @invalidMovieQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid movie query'**
+  String get invalidMovieQuery;
+
+  /// No description provided for @invalidMovieId.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid movie ID'**
+  String get invalidMovieId;
+
+  /// No description provided for @invalidMovieDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid TMDB movie details'**
+  String get invalidMovieDetails;
+
+  /// No description provided for @invalidMediaType.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI suggestion has an invalid media type. Try again'**
+  String get invalidMediaType;
+
+  /// No description provided for @missingMovieEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI suggestion has no verified TMDB movie evidence. Try again'**
+  String get missingMovieEvidence;
+
+  /// No description provided for @movieMatchEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Movie match: {title} · {date}\nTMDB {id}'**
+  String movieMatchEvidence(String title, String date, String id);
+
+  /// No description provided for @subtitleRenamedWithVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename with video · {name}'**
+  String subtitleRenamedWithVideo(String name);
 
   /// No description provided for @invalidSeriesQuery.
   ///

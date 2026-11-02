@@ -252,7 +252,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get namingLanguage => 'Naming language';
 
   @override
-  String get organizeSeries => 'Organize series';
+  String get organizeSeries => 'Organize media';
 
   @override
   String get executionHistory => 'Execution history';
@@ -478,7 +478,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get browseNasHint =>
-      'Connect to your NAS to browse and open the series directory you want to organize.';
+      'Connect to your NAS to browse and open the media directory you want to organize.';
 
   @override
   String get directoryEmpty => 'This directory is empty';
@@ -490,11 +490,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openSeriesDirectory =>
-      'Connect to your NAS and open a series directory first.';
+      'Connect to your NAS and open a movie or series directory first.';
 
   @override
   String get openNonemptyDirectory =>
-      'This directory has no files. Open a directory containing episode files.';
+      'This directory has no files. Open a directory containing movies or episodes.';
 
   @override
   String get aiSuggestions => 'AI organizing suggestions';
@@ -504,7 +504,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get requirementsHint =>
-      'Series name, season, TMDB ID, or naming preferences';
+      'Movie / series title, year / season, TMDB ID, or naming preferences';
 
   @override
   String get generateSuggestions => 'Generate rename suggestions';
@@ -764,14 +764,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get targetFileExists => 'The target file already exists';
 
   @override
-  String get queryingMetadata => 'Looking up series metadata…';
+  String get queryingMetadata => 'Looking up movie and series metadata…';
 
   @override
   String get suggestionsGenerated => 'Suggestions generated';
 
   @override
   String get noReliableSuggestions =>
-      'No reliable rename suggestions found. Add a series name and season, then try again.';
+      'No reliable rename suggestions found. Add a movie title and year or a series name and season, then try again.';
 
   @override
   String get usageSaveFailed => 'Could not save AI usage';
@@ -905,6 +905,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tmdbTokenRequired => 'Configure a TMDB token';
+
+  @override
+  String get invalidMovieQuery => 'Invalid movie query';
+
+  @override
+  String get invalidMovieId => 'Invalid movie ID';
+
+  @override
+  String get invalidMovieDetails => 'Invalid TMDB movie details';
+
+  @override
+  String get invalidMediaType =>
+      'The AI suggestion has an invalid media type. Try again';
+
+  @override
+  String get missingMovieEvidence =>
+      'The AI suggestion has no verified TMDB movie evidence. Try again';
+
+  @override
+  String movieMatchEvidence(String title, String date, String id) {
+    return 'Movie match: $title · $date\nTMDB $id';
+  }
+
+  @override
+  String subtitleRenamedWithVideo(String name) {
+    return 'Rename with video · $name';
+  }
 
   @override
   String get invalidSeriesQuery => 'Invalid series query';

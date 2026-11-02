@@ -57,6 +57,63 @@ class TmdbClient {
         .toList();
   }
 
+  Future<List<Map<String, dynamic>>> searchMovies(
+    String query, {
+    int? year,
+  }) async {
+    if (token.isEmpty) throw StateError('请配置 TMDB Token');
+    if (query.trim().isEmpty ||
+        query.length > 200 ||
+        (year != null && (year < 1 || year > 9999))) {
+      throw const FormatException('电影查询无效');
+    }
+    final response = await dio.get<Map<String, dynamic>>(
+      'https://api.themoviedb.org/3/search/movie',
+      queryParameters: parameters({
+        'query': query,
+        'language': namingLanguage.code,
+        'year': ?year,
+      }),
+      options: options,
+    );
+    return (response.data?['results'] as List? ?? [])
+        .cast<Map<String, dynamic>>()
+        .take(10)
+        .map(_movieFields)
+        .toList();
+  }
+
+  static Map<String, dynamic> _movieFields(Map<String, dynamic> movie) => {
+    for (final key in [
+      'id',
+      'title',
+      'original_title',
+      'release_date',
+      'overview',
+    ])
+      key: movie[key],
+  };
+
+  Future<Map<String, dynamic>> movie(int id) async {
+    if (token.isEmpty) throw StateError('请配置 TMDB Token');
+    if (id < 1) throw const FormatException('电影编号无效');
+    final response = await dio.get<Map<String, dynamic>>(
+      'https://api.themoviedb.org/3/movie/$id',
+      queryParameters: parameters({'language': namingLanguage.code}),
+      options: options,
+    );
+    final data = response.data;
+    if (data == null ||
+        data['id'] != id ||
+        ![
+          data['title'],
+          data['original_title'],
+        ].any((value) => value is String && value.trim().isNotEmpty)) {
+      throw const FormatException('TMDB 电影详情无效');
+    }
+    return _movieFields(data);
+  }
+
   Future<List<Map<String, dynamic>>> season(int id, int number) async {
     if (token.isEmpty) throw StateError('请配置 TMDB Token');
     if (id < 1 || number < 0 || number > 1000) {

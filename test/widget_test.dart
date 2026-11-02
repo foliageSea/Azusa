@@ -1315,7 +1315,7 @@ void main() {
       expect(find.byIcon(FLucideIcons.ellipsis), findsNothing);
       final headerTitle = find.descendant(
         of: find.byWidgetPredicate((widget) => widget is FHeader),
-        matching: find.text('剧集整理'),
+        matching: find.text('影视整理'),
       );
       final card = tester.getRect(find.byType(FCard).first);
       final breadcrumb = tester.getRect(
@@ -1362,7 +1362,7 @@ void main() {
         );
         final menuLabel = find.descendant(
           of: sidebar,
-          matching: find.text('剧集整理'),
+          matching: find.text('影视整理'),
         );
         expect(tester.getSize(sidebar).width, 184);
         expect(

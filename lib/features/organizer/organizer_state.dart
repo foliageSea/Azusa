@@ -133,7 +133,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     state = state.copyWith(
       busy: true,
       plan: [],
-      message: '正在查询剧集资料…',
+      message: '正在查询影视资料…',
       clearAnalysis: true,
     );
     Future<ModelPricing?>? pricing;
@@ -173,7 +173,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         entries: fresh,
         analysisEntries: analysisEntries,
         plan: plan,
-        message: plan.isEmpty ? '未找到可靠的重命名建议，请补充剧名和季数后重试' : '建议已生成',
+        message: plan.isEmpty ? '未找到可靠的重命名建议，请补充片名和年份或剧名和季数后重试' : '建议已生成',
       );
     } catch (e) {
       state = state.copyWith(message: '生成建议失败：${serviceError(e)}');

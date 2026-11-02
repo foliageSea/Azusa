@@ -44,4 +44,21 @@ void main() {
       en.invalidFileNameReplace('/', '／'),
     );
   });
+  test('电影匹配、字幕改名及核验错误可显示英文', () {
+    expect(
+      localizeRuntimeMessage(
+        en,
+        zh.movieMatchEvidence('毒液', '2024-10-22', '912649'),
+      ),
+      en.movieMatchEvidence('毒液', '2024-10-22', '912649'),
+    );
+    expect(
+      localizeRuntimeMessage(en, zh.missingMovieEvidence),
+      en.missingMovieEvidence,
+    );
+    expect(
+      localizeRuntimeMessage(en, zh.subtitleRenamedWithVideo('原名.mkv')),
+      en.subtitleRenamedWithVideo('原名.mkv'),
+    );
+  });
 }

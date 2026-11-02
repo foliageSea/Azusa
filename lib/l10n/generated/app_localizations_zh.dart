@@ -250,7 +250,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get namingLanguage => '命名语言';
 
   @override
-  String get organizeSeries => '剧集整理';
+  String get organizeSeries => '影视整理';
 
   @override
   String get executionHistory => '执行记录';
@@ -473,7 +473,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get filterByName => '按名称筛选';
 
   @override
-  String get browseNasHint => '连接 NAS 后，在这里浏览并打开要整理的剧集目录。';
+  String get browseNasHint => '连接 NAS 后，在这里浏览并打开要整理的影视目录。';
 
   @override
   String get directoryEmpty => '此目录为空';
@@ -484,10 +484,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get openSeriesDirectory => '请先连接 NAS 并打开剧集所在目录。';
+  String get openSeriesDirectory => '请先连接 NAS 并打开电影或剧集所在目录。';
 
   @override
-  String get openNonemptyDirectory => '当前目录没有文件，请打开包含剧集文件的目录。';
+  String get openNonemptyDirectory => '当前目录没有文件，请打开包含电影或剧集文件的目录。';
 
   @override
   String get aiSuggestions => 'AI 整理建议';
@@ -496,7 +496,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get optionalRequirements => '整理要求（可选）';
 
   @override
-  String get requirementsHint => '剧名、季数、TMDB ID 或命名偏好';
+  String get requirementsHint => '片名 / 剧名、年份 / 季数、TMDB ID 或命名偏好';
 
   @override
   String get generateSuggestions => 'AI 生成重命名建议';
@@ -743,13 +743,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get targetFileExists => '目标文件已存在';
 
   @override
-  String get queryingMetadata => '正在查询剧集资料…';
+  String get queryingMetadata => '正在查询影视资料…';
 
   @override
   String get suggestionsGenerated => '建议已生成';
 
   @override
-  String get noReliableSuggestions => '未找到可靠的重命名建议，请补充剧名和季数后重试';
+  String get noReliableSuggestions => '未找到可靠的重命名建议，请补充片名和年份或剧名和季数后重试';
 
   @override
   String get usageSaveFailed => '保存 AI 用量失败';
@@ -863,7 +863,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get modelNameRequired => '请填写 AI 模型名称';
 
   @override
-  String get tooManyFiles => '当前目录文件超过 500 个，请选择更小的剧集目录';
+  String get tooManyFiles => '当前目录文件超过 500 个，请选择更小的影视目录';
 
   @override
   String get aiCallLimit => 'AI 工具调用次数超过限制';
@@ -876,6 +876,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tmdbTokenRequired => '请配置 TMDB Token';
+
+  @override
+  String get invalidMovieQuery => '电影查询无效';
+
+  @override
+  String get invalidMovieId => '电影编号无效';
+
+  @override
+  String get invalidMovieDetails => 'TMDB 电影详情无效';
+
+  @override
+  String get invalidMediaType => 'AI 建议媒体类型无效，请重试';
+
+  @override
+  String get missingMovieEvidence => 'AI 建议缺少有效 TMDB 电影依据，请重试';
+
+  @override
+  String movieMatchEvidence(String title, String date, String id) {
+    return '电影匹配：$title · $date\nTMDB $id';
+  }
+
+  @override
+  String subtitleRenamedWithVideo(String name) {
+    return '随视频重命名 · $name';
+  }
 
   @override
   String get invalidSeriesQuery => '剧集查询无效';

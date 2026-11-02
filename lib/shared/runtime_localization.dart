@@ -53,6 +53,11 @@ String localizeRuntimeMessage(AppLocalizations l, String message) {
     zh.aiCallLimit: l.aiCallLimit,
     zh.invalidAiSuggestions: l.invalidAiSuggestions,
     zh.missingTmdbEvidence: l.missingTmdbEvidence,
+    zh.invalidMovieQuery: l.invalidMovieQuery,
+    zh.invalidMovieId: l.invalidMovieId,
+    zh.invalidMovieDetails: l.invalidMovieDetails,
+    zh.invalidMediaType: l.invalidMediaType,
+    zh.missingMovieEvidence: l.missingMovieEvidence,
     zh.tmdbTokenRequired: l.tmdbTokenRequired,
     zh.invalidSeriesQuery: l.invalidSeriesQuery,
     zh.invalidSeasonNumber: l.invalidSeasonNumber,
@@ -136,6 +141,14 @@ String localizeRuntimeMessage(AppLocalizations l, String message) {
       template(
         zh.invalidFileNameReplace('{0}', '{1}'),
         (a) => l.invalidFileNameReplace(a[0], a[1]),
+      ) ??
+      template(
+        zh.movieMatchEvidence('{0}', '{1}', '{2}'),
+        (a) => l.movieMatchEvidence(a[0], a[1], a[2]),
+      ) ??
+      template(
+        zh.subtitleRenamedWithVideo('{0}'),
+        (a) => l.subtitleRenamedWithVideo(a[0]),
       ) ??
       template(
         zh.matchEvidence('{0}', '{1}', '{2}', '{3}'),
