@@ -1,14 +1,20 @@
 import 'package:dio/dio.dart';
 
+import '../../../core/settings/naming_language.dart';
 import '../connections/connection_settings.dart';
 import '../connections/http_clients.dart';
 
 class TmdbClient {
-  TmdbClient(ConnectionSettings settings, {Dio? client})
-    : token = settings.tmdbToken,
-      dio =
-          client ?? createServiceClient(settings, service: NetworkService.tmdb);
+  TmdbClient(
+    ConnectionSettings settings, {
+    Dio? client,
+    this.namingLanguage = NamingLanguage.simplifiedChinese,
+  }) : token = settings.tmdbToken,
+       dio =
+           client ??
+           createServiceClient(settings, service: NetworkService.tmdb);
   final String token;
+  final NamingLanguage namingLanguage;
   final Dio dio;
 
   bool get usesBearer => token.split('.').length == 3;
@@ -26,7 +32,10 @@ class TmdbClient {
     }
     final response = await dio.get<Map<String, dynamic>>(
       'https://api.themoviedb.org/3/search/tv',
-      queryParameters: parameters({'query': query, 'language': 'zh-CN'}),
+      queryParameters: parameters({
+        'query': query,
+        'language': namingLanguage.code,
+      }),
       options: options,
     );
     return (response.data?['results'] as List? ?? [])
@@ -55,7 +64,7 @@ class TmdbClient {
     }
     final response = await dio.get<Map<String, dynamic>>(
       'https://api.themoviedb.org/3/tv/$id/season/$number',
-      queryParameters: parameters({'language': 'zh-CN'}),
+      queryParameters: parameters({'language': namingLanguage.code}),
       options: options,
     );
     return (response.data?['episodes'] as List? ?? [])

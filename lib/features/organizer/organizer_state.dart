@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/logging.dart';
+import '../../core/settings/settings.dart';
 import 'ai/agent.dart';
 import 'ai/ai_usage.dart';
 import 'ai/ai_usage_history.dart';
@@ -134,7 +135,10 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       pricing = ModelPricingCatalog.lookup(settings);
       state = state.copyWith(aiUsage: const AiUsage());
       dav = client();
-      tmdb = TmdbClient(settings);
+      tmdb = TmdbClient(
+        settings,
+        namingLanguage: ref.read(settingsProvider).namingLanguage,
+      );
       agent = RenameAgent(settings, dav, tmdb);
       final fresh = await dav.list(state.directory);
       final plan = await agent.propose(

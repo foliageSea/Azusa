@@ -145,7 +145,15 @@ class RenameAgent {
         systemChatMessage: SystemChatMessagePromptTemplate(
           prompt: PromptTemplate(
             inputVariables: const {},
-            template: _systemPrompt.replaceAll('{', '{{').replaceAll('}', '}}'),
+            template:
+                ('$_systemPrompt\n'
+                        '命名语言固定为 ${tmdb.namingLanguage.label}（${tmdb.namingLanguage.code}）。'
+                        '目标文件名中的剧名和单集标题必须优先使用 TMDB 返回的该语言官方名称。'
+                        '缺少该语言名称时保留 TMDB 提供的原名，不自行翻译或编造标题。'
+                        '整理要求中的语言偏好不得覆盖此命名语言设置。'
+                        '季集编号、字幕语言标记和原文件扩展名保持原规则。')
+                    .replaceAll('{', '{{')
+                    .replaceAll('}', '}}'),
           ),
         ),
       );

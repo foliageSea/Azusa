@@ -20,11 +20,14 @@ import 'runtime_environment_section.dart';
 import 'live_logs_section.dart';
 
 const _misansLicenseUrl = 'https://hyperos.mi.com/font/download';
+const _showDiagnostics = false;
 
 final packageInfoProvider = FutureProvider((ref) => PackageInfo.fromPlatform());
 
 class SettingsPage extends ConsumerStatefulWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({this.connectionTabs = const [], super.key});
+
+  final List<FTabEntry> connectionTabs;
   @override
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
@@ -386,124 +389,132 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                 ),
               ),
-              FTabEntry(
-                label: Text(l.logs),
-                child: _fillTab(
-                  Surface(
-                    expand: true,
-                    padding: MediaQuery.sizeOf(context).width < 480 ? 12 : 24,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Builder(
-                          builder: (buttonContext) => FButton(
-                            key: const ValueKey('export-logs'),
+              ...widget.connectionTabs.map(
+                (entry) =>
+                    FTabEntry(label: entry.label, child: tab(entry.child)),
+              ),
+              if (_showDiagnostics)
+                FTabEntry(
+                  label: Text(l.logs),
+                  child: _fillTab(
+                    Surface(
+                      expand: true,
+                      padding: MediaQuery.sizeOf(context).width < 480 ? 12 : 24,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Builder(
+                            builder: (buttonContext) => FButton(
+                              key: const ValueKey('export-logs'),
+                              builder: responsiveButtonContent,
+                              variant: .outline,
+                              prefix: const Icon(FLucideIcons.download),
+                              onPress: _exportingLogs
+                                  ? null
+                                  : () => _exportLogs(buttonContext),
+                              child: Text(
+                                _exportingLogs ? l.exportingLogs : l.exportLogs,
+                              ),
+                            ),
+                          ),
+                          if (_logExportFailed) ...[
+                            const SizedBox(height: 16),
+                            FAlert(
+                              variant: .destructive,
+                              title: Text(l.logExportError),
+                            ),
+                          ],
+                          if (_logExportResult != null &&
+                              _logExportResult !=
+                                  LogExportResult.cancelled) ...[
+                            const SizedBox(height: 16),
+                            Text(switch (_logExportResult!) {
+                              LogExportResult.empty => l.noLogsToExport,
+                              LogExportResult.saved => l.logsExported,
+                              LogExportResult.shared => l.logsShared,
+                              LogExportResult.presented => l.logShareOpened,
+                              LogExportResult.cancelled => '',
+                            }),
+                          ],
+                          const Expanded(child: LiveLogsSection(fill: true)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (_showDiagnostics)
+                FTabEntry(
+                  label: Text(l.runtimeEnvironment),
+                  child: tab(const Surface(child: RuntimeEnvironmentSection())),
+                ),
+              if (_showDiagnostics)
+                FTabEntry(
+                  label: Text(l.about),
+                  child: tab(
+                    Surface(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ref
+                              .watch(packageInfoProvider)
+                              .when(
+                                data: (info) => Text(
+                                  '${l.version} ${info.version} (${info.buildNumber})',
+                                ),
+                                loading: () => Text(l.loading),
+                                error: (e, _) => ErrorNotice(
+                                  e,
+                                  onRetry: () =>
+                                      ref.invalidate(packageInfoProvider),
+                                ),
+                              ),
+                          const SizedBox(height: 16),
+                          FButton(
+                            builder: responsiveButtonContent,
+                            mainAxisSize: MainAxisSize.min,
+                            variant: .outline,
+                            onPress: () => openDocumentation(
+                              context,
+                              'https://forui.dev/docs',
+                            ),
+                            suffix: const Icon(FLucideIcons.externalLink),
+                            child: Text(l.openDocs),
+                          ),
+                          const SizedBox(height: 28),
+                          FButton(
+                            key: const ValueKey('font-notice'),
                             builder: responsiveButtonContent,
                             variant: .outline,
-                            prefix: const Icon(FLucideIcons.download),
-                            onPress: _exportingLogs
-                                ? null
-                                : () => _exportLogs(buttonContext),
-                            child: Text(
-                              _exportingLogs ? l.exportingLogs : l.exportLogs,
+                            prefix: const Icon(FLucideIcons.type),
+                            onPress: () => _showFontNotice(context),
+                            child: Text(l.fonts),
+                          ),
+                          const SizedBox(height: 12),
+                          FButton(
+                            key: const ValueKey('open-source-licenses'),
+                            builder: responsiveButtonContent,
+                            variant: .outline,
+                            prefix: const Icon(FLucideIcons.scrollText),
+                            onPress: () => showLicensePage(
+                              context: context,
+                              applicationName: l.appTitle,
+                              applicationIcon: const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: AzusaLogo(height: 64),
+                              ),
+                              applicationVersion: ref
+                                  .read(packageInfoProvider)
+                                  .asData
+                                  ?.value
+                                  .version,
                             ),
-                          ),
-                        ),
-                        if (_logExportFailed) ...[
-                          const SizedBox(height: 16),
-                          FAlert(
-                            variant: .destructive,
-                            title: Text(l.logExportError),
+                            child: Text(l.openSourceLicenses),
                           ),
                         ],
-                        if (_logExportResult != null &&
-                            _logExportResult != LogExportResult.cancelled) ...[
-                          const SizedBox(height: 16),
-                          Text(switch (_logExportResult!) {
-                            LogExportResult.empty => l.noLogsToExport,
-                            LogExportResult.saved => l.logsExported,
-                            LogExportResult.shared => l.logsShared,
-                            LogExportResult.presented => l.logShareOpened,
-                            LogExportResult.cancelled => '',
-                          }),
-                        ],
-                        const Expanded(child: LiveLogsSection(fill: true)),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              FTabEntry(
-                label: Text(l.runtimeEnvironment),
-                child: tab(const Surface(child: RuntimeEnvironmentSection())),
-              ),
-              FTabEntry(
-                label: Text(l.about),
-                child: tab(
-                  Surface(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ref
-                            .watch(packageInfoProvider)
-                            .when(
-                              data: (info) => Text(
-                                '${l.version} ${info.version} (${info.buildNumber})',
-                              ),
-                              loading: () => Text(l.loading),
-                              error: (e, _) => ErrorNotice(
-                                e,
-                                onRetry: () =>
-                                    ref.invalidate(packageInfoProvider),
-                              ),
-                            ),
-                        const SizedBox(height: 16),
-                        FButton(
-                          builder: responsiveButtonContent,
-                          mainAxisSize: MainAxisSize.min,
-                          variant: .outline,
-                          onPress: () => openDocumentation(
-                            context,
-                            'https://forui.dev/docs',
-                          ),
-                          suffix: const Icon(FLucideIcons.externalLink),
-                          child: Text(l.openDocs),
-                        ),
-                        const SizedBox(height: 28),
-                        FButton(
-                          key: const ValueKey('font-notice'),
-                          builder: responsiveButtonContent,
-                          variant: .outline,
-                          prefix: const Icon(FLucideIcons.type),
-                          onPress: () => _showFontNotice(context),
-                          child: Text(l.fonts),
-                        ),
-                        const SizedBox(height: 12),
-                        FButton(
-                          key: const ValueKey('open-source-licenses'),
-                          builder: responsiveButtonContent,
-                          variant: .outline,
-                          prefix: const Icon(FLucideIcons.scrollText),
-                          onPress: () => showLicensePage(
-                            context: context,
-                            applicationName: l.appTitle,
-                            applicationIcon: const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: AzusaLogo(height: 64),
-                            ),
-                            applicationVersion: ref
-                                .read(packageInfoProvider)
-                                .asData
-                                ?.value
-                                .version,
-                          ),
-                          child: Text(l.openSourceLicenses),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),

@@ -12,6 +12,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: '/organize',
     routes: [
+      GoRoute(path: '/settings', redirect: (_, _) => '/connections'),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppShell(shell: shell),
         branches: [

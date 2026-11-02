@@ -79,6 +79,7 @@
   "light": "浅色",
   "dark": "深色",
   "language": "语言",
+  "namingLanguage": "命名语言",
   "compactSidebar": "紧凑侧栏",
   "about": "关于模板",
   "version": "版本",

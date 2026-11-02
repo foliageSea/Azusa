@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:azusa/core/settings/naming_language.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:azusa/features/organizer/ai/agent.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
@@ -42,6 +43,75 @@ String listing(String href, {bool collection = false, int status = 200}) =>
 </d:prop><d:status>HTTP/1.1 $status OK</d:status></d:propstat></d:response>''';
 
 void main() {
+  for (final language in NamingLanguage.values) {
+    test('TMDB 搜索和季查询使用命名语言 ${language.code}', () async {
+      final paths = <String>[];
+      final dio = Dio()
+        ..httpClientAdapter = TestAdapter((options) {
+          paths.add(options.path);
+          expect(options.queryParameters['language'], language.code);
+          return jsonResponse({'results': [], 'episodes': []});
+        });
+      final tmdb = TmdbClient(
+        const ConnectionSettings(tmdbToken: 'test'),
+        client: dio,
+        namingLanguage: language,
+      );
+      addTearDown(tmdb.close);
+      await tmdb.search('Breaking Bad');
+      await tmdb.season(1396, 1);
+      expect(paths, hasLength(2));
+    });
+
+    test('AI 系统指令使用命名语言 ${language.code} 并优先于整理要求', () async {
+      var requests = 0;
+      final ai = Dio()
+        ..httpClientAdapter = TestAdapter((options) async {
+          requests++;
+          final stream = options.data as Stream<List<int>>;
+          final body = jsonDecode(
+            utf8.decode(await stream.expand((bytes) => bytes).toList()),
+          ) as Map;
+          final messages = (body['messages'] as List).cast<Map>();
+          final system = messages.firstWhere((m) => m['role'] == 'system');
+          expect(
+            system['content'],
+            contains('${language.label}（${language.code}）'),
+          );
+          expect(system['content'], contains('不自行翻译或编造标题'));
+          expect(system['content'], contains('不得覆盖此命名语言设置'));
+          final user = messages.firstWhere((m) => m['role'] == 'user');
+          expect(user['content'], contains('使用其他语言'));
+          return jsonResponse({
+            'choices': [
+              {
+                'message': {'role': 'assistant', 'content': '{"items":[]}'},
+              },
+            ],
+          });
+        });
+      const settings = ConnectionSettings(
+        webdavUrl: 'https://nas.test/dav/',
+        model: 'test',
+      );
+      final dav = WebDavClient(settings);
+      final tmdb = TmdbClient(settings, namingLanguage: language);
+      final agent = RenameAgent(settings, dav, tmdb, client: ai);
+      addTearDown(() {
+        agent.close();
+        tmdb.close();
+        dav.close();
+      });
+      expect(
+        await agent.propose('/dav/', [
+          const DavEntry('/dav/a.mkv', false),
+        ], instruction: '使用其他语言'),
+        isEmpty,
+      );
+      expect(requests, 1);
+    });
+  }
+
   test('HTTP 适配层读取 usage 不影响 SDK 正文，忽略失败响应', () async {
     var responses = 0;
     final dio = Dio()

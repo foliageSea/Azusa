@@ -3,6 +3,7 @@ import 'package:azusa/app/router.dart';
 import 'package:azusa/core/database/app_database.dart';
 import 'package:azusa/core/window/desktop_window.dart';
 import 'package:azusa/core/settings/settings.dart';
+import 'package:azusa/core/settings/naming_language.dart';
 import 'package:material_ui/material_ui.dart' show ThemeMode;
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/ai/ai_usage.dart';
@@ -162,6 +163,65 @@ class LongOrganizer extends OrganizerController {
 }
 
 void main() {
+  for (final width in [390.0, 1280.0]) {
+    testWidgets('命名语言在 $width 宽度可独立选择并保存', (tester) async {
+      tester.view.physicalSize = Size(width, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repository = MemorySettings();
+      final window = NoWindow();
+      addTearDown(window.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(TestConnections.new),
+          organizerProvider.overrideWith(TestOrganizer.new),
+          settingsRepositoryProvider.overrideWithValue(repository),
+          initialSettingsProvider.overrideWithValue(
+            const AppSettings(language: 'zh'),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      container.read(routerProvider).go('/settings');
+      await tester.pumpAndSettle();
+      expect(find.text('命名语言'), findsNothing);
+      expect(find.text('日志'), findsNothing);
+      expect(find.text('运行环境'), findsNothing);
+      expect(find.text('关于模板'), findsNothing);
+      expect(find.text('常规设置'), findsNothing);
+      await tester.ensureVisible(find.text('TMDB').first);
+      await tester.tap(find.text('TMDB').first);
+      await tester.pumpAndSettle();
+      expect(find.text('命名语言'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('naming-language-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('English').last);
+      await tester.pumpAndSettle();
+      expect(repository.value.namingLanguage, NamingLanguage.english);
+      expect(
+        container.read(settingsProvider).namingLanguage,
+        NamingLanguage.english,
+      );
+      expect(container.read(settingsProvider).language, 'zh');
+      expect(
+        container.read(organizerProvider).plan.single.targetName,
+        '剧集 - S01E01.mkv',
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+  }
+
   for (final platform in [TargetPlatform.android, TargetPlatform.linux]) {
     testWidgets('$platform 返回操作打开上级目录且不越过根目录', (tester) async {
       debugDefaultTargetPlatformOverride = platform;
@@ -328,6 +388,7 @@ void main() {
     container.read(routerProvider).go('/connections');
     await tester.pumpAndSettle();
     for (final tab in ['WebDAV', 'AI Agent', 'TMDB', 'HTTP 代理']) {
+      await tester.ensureVisible(find.text(tab).first);
       await tester.tap(find.text(tab).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('保存配置'));
@@ -776,6 +837,9 @@ void main() {
       expect(find.text('分析记录'), findsOneWidget);
       expect(tester.takeException(), isNull);
       container.read(routerProvider).go('/connections');
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('WebDAV').first);
+      await tester.tap(find.text('WebDAV').first);
       await tester.pumpAndSettle();
       expect(find.text('WebDAV 地址'), findsOneWidget);
       expect(find.text('OpenAI 兼容 API 基础地址'), findsNothing);

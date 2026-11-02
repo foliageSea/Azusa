@@ -41,7 +41,7 @@ class AppShell extends ConsumerWidget {
     final showBack =
         shell.currentIndex == 0 &&
         GoRouterState.of(context).uri.path.startsWith('/organize/assistant');
-    const labels = ['剧集整理', '执行记录', 'AI 用量', '连接设置'];
+    const labels = ['剧集整理', '执行记录', 'AI 用量', '设置'];
     const icons = [
       FLucideIcons.folderPen,
       FLucideIcons.history,

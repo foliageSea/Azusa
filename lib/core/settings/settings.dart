@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_exception.dart';
 import '../logging.dart';
+import 'naming_language.dart';
 
 enum AppThemeColor { azusa, neutral, blue, green, violet, orange, rose }
 
@@ -13,6 +14,7 @@ class AppSettings {
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.language = 'system',
+    this.namingLanguage = NamingLanguage.simplifiedChinese,
     this.compactSidebar = false,
     this.themeColor = AppThemeColor.azusa,
     this.radiusScale = 1,
@@ -21,6 +23,7 @@ class AppSettings {
        assert(fontScale >= 0.8 && fontScale <= 1.2);
   final ThemeMode themeMode;
   final String language;
+  final NamingLanguage namingLanguage;
   final bool compactSidebar;
   final AppThemeColor themeColor;
   final double radiusScale;
@@ -29,6 +32,7 @@ class AppSettings {
   AppSettings copyWith({
     ThemeMode? themeMode,
     String? language,
+    NamingLanguage? namingLanguage,
     bool? compactSidebar,
     AppThemeColor? themeColor,
     double? radiusScale,
@@ -36,6 +40,7 @@ class AppSettings {
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     language: language ?? this.language,
+    namingLanguage: namingLanguage ?? this.namingLanguage,
     compactSidebar: compactSidebar ?? this.compactSidebar,
     themeColor: themeColor ?? this.themeColor,
     radiusScale: radiusScale ?? this.radiusScale,
@@ -44,6 +49,7 @@ class AppSettings {
   Map<String, Object> toJson() => {
     'theme': themeMode.name,
     'language': language,
+    'namingLanguage': namingLanguage.code,
     'compactSidebar': compactSidebar,
     'themeColor': themeColor.name,
     'radiusScale': radiusScale,
@@ -57,6 +63,7 @@ class AppSettings {
     language: ['zh', 'en'].contains(json['language'])
         ? json['language'] as String
         : 'system',
+    namingLanguage: NamingLanguage.fromCode(json['namingLanguage']),
     compactSidebar: json['compactSidebar'] == true,
     themeColor: AppThemeColor.values.firstWhere(
       // 原默认中性色迁移为 Azusa 红；保留用户选择的其他主题色。

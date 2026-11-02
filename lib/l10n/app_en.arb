@@ -79,6 +79,7 @@
   "light": "Light",
   "dark": "Dark",
   "language": "Language",
+  "namingLanguage": "Naming language",
   "compactSidebar": "Compact sidebar",
   "about": "About this template",
   "version": "Version",

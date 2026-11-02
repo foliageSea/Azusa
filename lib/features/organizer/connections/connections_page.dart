@@ -5,6 +5,10 @@ import 'package:forui/forui.dart';
 
 import '../../../shared/azusa_logo.dart';
 import '../../../shared/widgets.dart';
+import '../../../shared/localization.dart';
+import '../../../core/settings/settings.dart';
+import '../../../core/settings/naming_language.dart';
+import '../../settings/settings_page.dart';
 import 'connection_settings.dart';
 import 'http_clients.dart';
 import '../organizer_state.dart';
@@ -20,6 +24,7 @@ class ConnectionsPage extends ConsumerStatefulWidget {
 class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
   final fields = List.generate(8, (_) => TextEditingController());
   bool loaded = false, busy = false;
+  bool savingNamingLanguage = false;
   bool proxyAi = true, proxyTmdb = true, proxyWebdav = false;
   ProxyMode proxyMode = ProxyMode.direct;
 
@@ -89,7 +94,10 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
           dav = WebDavClient(value);
           await dav.list(dav.root);
         case NetworkService.tmdb:
-          tmdb = TmdbClient(value);
+          tmdb = TmdbClient(
+            value,
+            namingLanguage: ref.read(settingsProvider).namingLanguage,
+          );
           await tmdb.search('Breaking Bad');
         case NetworkService.ai:
           final base = validatedHttpUrl(value.aiUrl, allowHttp: true);
@@ -130,9 +138,11 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final appSettings = ref.watch(settingsProvider);
     final settings = ref.watch(connectionSettingsProvider);
     final organizer = ref.watch(organizerProvider);
-    final locked = busy || organizer.busy || organizer.executing;
+    final locked =
+        busy || savingNamingLanguage || organizer.busy || organizer.executing;
     Widget field(int i, String label) => Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: FTextField(
@@ -207,127 +217,153 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
           proxyWebdav = value.proxyWebdav;
           loaded = true;
         }
-        return PageContent(
-          children: [
-            FTabs(
-              scrollable: true,
-              children: [
-                FTabEntry(
-                  label: const Text('WebDAV'),
-                  child: section('WebDAV', [
-                    field(0, 'WebDAV 地址'),
-                    field(1, '用户名'),
-                    field(2, '密码'),
-                    FButton(
-                      variant: .outline,
-                      onPress: locked
-                          ? null
-                          : () => test(NetworkService.webdav),
-                      child: const Text('测试 WebDAV'),
-                    ),
-                  ]),
+        return SettingsPage(
+          connectionTabs: [
+            FTabEntry(
+              label: const Text('WebDAV'),
+              child: section('WebDAV', [
+                field(0, 'WebDAV 地址'),
+                field(1, '用户名'),
+                field(2, '密码'),
+                FButton(
+                  variant: .outline,
+                  onPress: locked ? null : () => test(NetworkService.webdav),
+                  child: const Text('测试 WebDAV'),
                 ),
-                FTabEntry(
-                  label: const Text('AI Agent'),
-                  child: section('AI Agent', [
-                    field(3, 'OpenAI 兼容 API 基础地址'),
-                    field(4, '模型名称'),
-                    field(5, 'API Key'),
-                    FButton(
-                      variant: .outline,
-                      onPress: locked ? null : () => test(NetworkService.ai),
-                      child: const Text('测试 AI'),
-                    ),
-                  ]),
+              ]),
+            ),
+            FTabEntry(
+              label: const Text('AI Agent'),
+              child: section('AI Agent', [
+                field(3, 'OpenAI 兼容 API 基础地址'),
+                field(4, '模型名称'),
+                field(5, 'API Key'),
+                FButton(
+                  variant: .outline,
+                  onPress: locked ? null : () => test(NetworkService.ai),
+                  child: const Text('测试 AI'),
                 ),
-                FTabEntry(
-                  label: const Text('TMDB'),
-                  child: section('TMDB', [
-                    field(6, 'API Key / Read Access Token'),
-                    FButton(
-                      variant: .outline,
-                      onPress: locked ? null : () => test(NetworkService.tmdb),
-                      child: const Text('测试 TMDB'),
-                    ),
-                  ]),
+              ]),
+            ),
+            FTabEntry(
+              label: const Text('TMDB'),
+              child: section('TMDB', [
+                field(6, 'API Key / Read Access Token'),
+                FSelect<NamingLanguage>.rich(
+                  key: const ValueKey('naming-language-select'),
+                  label: Text(context.l10n.namingLanguage),
+                  enabled: !locked,
+                  format: (value) => value.label,
+                  control: .lifted(
+                    value: appSettings.namingLanguage,
+                    onChange: (value) async {
+                      if (value == null || value == appSettings.namingLanguage) {
+                        return;
+                      }
+                      setState(() => savingNamingLanguage = true);
+                      try {
+                        await ref
+                            .read(settingsProvider.notifier)
+                            .update((s) => s.copyWith(namingLanguage: value));
+                      } catch (e) {
+                        if (context.mounted) {
+                          notifyUser(
+                            context,
+                            '保存失败：${serviceError(e)}',
+                            type: NoticeType.error,
+                          );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => savingNamingLanguage = false);
+                        }
+                      }
+                    },
+                  ),
+                  children: [
+                    for (final language in NamingLanguage.values)
+                      FSelectItem(title: Text(language.label), value: language),
+                  ],
                 ),
-                FTabEntry(
-                  label: const Text('HTTP 代理'),
-                  child: section('HTTP 代理', [
-                    FSelect<ProxyMode>.rich(
-                      label: const Text('代理模式'),
-                      enabled: !locked,
-                      control: .lifted(
-                        value: proxyMode,
-                        onChange: (mode) {
-                          if (mode != null) setState(() => proxyMode = mode);
-                        },
-                      ),
-                      format: (mode) => mode.label,
-                      children: [
-                        for (final mode in ProxyMode.values)
-                          FSelectItem(title: Text(mode.label), value: mode),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    if (proxyMode == ProxyMode.manual)
-                      field(7, '代理地址（http://主机:端口）'),
-                    FCheckbox(
-                      label: const Text('AI 使用代理'),
-                      value: proxyAi,
-                      enabled: !locked,
-                      onChange: (v) => setState(() => proxyAi = v),
-                    ),
-                    const SizedBox(height: 12),
-                    FCheckbox(
-                      label: const Text('TMDB 使用代理'),
-                      value: proxyTmdb,
-                      enabled: !locked,
-                      onChange: (v) => setState(() => proxyTmdb = v),
-                    ),
-                    const SizedBox(height: 12),
-                    FCheckbox(
-                      label: const Text('WebDAV 使用代理'),
-                      value: proxyWebdav,
-                      enabled: !locked,
-                      onChange: (v) => setState(() => proxyWebdav = v),
-                    ),
-                  ]),
+                const SizedBox(height: 18),
+                FButton(
+                  variant: .outline,
+                  onPress: locked ? null : () => test(NetworkService.tmdb),
+                  child: const Text('测试 TMDB'),
                 ),
-                FTabEntry(
-                  label: const Text('关于'),
-                  child: section('关于', [
-                    const Row(
-                      children: [
-                        AzusaLogo(height: 40),
-                        SizedBox(width: 10),
-                        Text('Azusa'),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'This product uses the TMDB API but is not endorsed or certified by TMDB.',
-                    ),
-                    const SizedBox(height: 12),
-                    FButton(
-                      variant: .ghost,
-                      onPress: () => openDocumentation(
-                        context,
-                        'https://www.themoviedb.org',
-                      ),
-                      child: const Text('The Movie Database'),
-                    ),
-                    FButton(
-                      variant: .ghost,
-                      onPress: () => openDocumentation(
-                        context,
-                        'https://hyperos.mi.com/font',
-                      ),
-                      child: const Text('MiSans 字体许可'),
-                    ),
-                  ], editable: false),
+              ]),
+            ),
+            FTabEntry(
+              label: const Text('HTTP 代理'),
+              child: section('HTTP 代理', [
+                FSelect<ProxyMode>.rich(
+                  label: const Text('代理模式'),
+                  enabled: !locked,
+                  control: .lifted(
+                    value: proxyMode,
+                    onChange: (mode) {
+                      if (mode != null) setState(() => proxyMode = mode);
+                    },
+                  ),
+                  format: (mode) => mode.label,
+                  children: [
+                    for (final mode in ProxyMode.values)
+                      FSelectItem(title: Text(mode.label), value: mode),
+                  ],
                 ),
-              ],
+                const SizedBox(height: 18),
+                if (proxyMode == ProxyMode.manual)
+                  field(7, '代理地址（http://主机:端口）'),
+                FCheckbox(
+                  label: const Text('AI 使用代理'),
+                  value: proxyAi,
+                  enabled: !locked,
+                  onChange: (v) => setState(() => proxyAi = v),
+                ),
+                const SizedBox(height: 12),
+                FCheckbox(
+                  label: const Text('TMDB 使用代理'),
+                  value: proxyTmdb,
+                  enabled: !locked,
+                  onChange: (v) => setState(() => proxyTmdb = v),
+                ),
+                const SizedBox(height: 12),
+                FCheckbox(
+                  label: const Text('WebDAV 使用代理'),
+                  value: proxyWebdav,
+                  enabled: !locked,
+                  onChange: (v) => setState(() => proxyWebdav = v),
+                ),
+              ]),
+            ),
+            FTabEntry(
+              label: const Text('关于'),
+              child: section('关于', [
+                const Row(
+                  children: [
+                    AzusaLogo(height: 40),
+                    SizedBox(width: 10),
+                    Text('Azusa'),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'This product uses the TMDB API but is not endorsed or certified by TMDB.',
+                ),
+                const SizedBox(height: 12),
+                FButton(
+                  variant: .ghost,
+                  onPress: () =>
+                      openDocumentation(context, 'https://www.themoviedb.org'),
+                  child: const Text('The Movie Database'),
+                ),
+                FButton(
+                  variant: .ghost,
+                  onPress: () =>
+                      openDocumentation(context, 'https://hyperos.mi.com/font'),
+                  child: const Text('MiSans 字体许可'),
+                ),
+              ], editable: false),
             ),
           ],
         );

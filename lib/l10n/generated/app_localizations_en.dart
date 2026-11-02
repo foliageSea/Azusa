@@ -249,6 +249,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get language => 'Language';
 
   @override
+  String get namingLanguage => 'Naming language';
+
+  @override
   String get compactSidebar => 'Compact sidebar';
 
   @override
