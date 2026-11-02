@@ -253,6 +253,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get organizeSeries => '影视整理';
 
   @override
+  String get sortDirectory => '排序';
+
+  @override
+  String get sortNameAscending => '名称：升序';
+
+  @override
+  String get sortNameDescending => '名称：降序';
+
+  @override
+  String get sortModifiedDescending => '修改时间：最新在前';
+
+  @override
+  String get sortModifiedAscending => '修改时间：最早在前';
+
+  @override
+  String get sortSizeDescending => '大小：从大到小';
+
+  @override
+  String get sortSizeAscending => '大小：从小到大';
+
+  @override
+  String get sortSaveFailed => '保存排序设置失败，请重试';
+
+  @override
   String get executionHistory => '执行记录';
 
   @override

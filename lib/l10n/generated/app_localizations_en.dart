@@ -255,6 +255,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get organizeSeries => 'Organize media';
 
   @override
+  String get sortDirectory => 'Sort';
+
+  @override
+  String get sortNameAscending => 'Name: A to Z';
+
+  @override
+  String get sortNameDescending => 'Name: Z to A';
+
+  @override
+  String get sortModifiedDescending => 'Modified: newest first';
+
+  @override
+  String get sortModifiedAscending => 'Modified: oldest first';
+
+  @override
+  String get sortSizeDescending => 'Size: largest first';
+
+  @override
+  String get sortSizeAscending => 'Size: smallest first';
+
+  @override
+  String get sortSaveFailed => 'Could not save sort settings. Try again';
+
+  @override
   String get executionHistory => 'Execution history';
 
   @override

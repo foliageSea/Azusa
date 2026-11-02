@@ -9,6 +9,8 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/widgets.dart';
+import '../../core/settings/settings.dart';
+import '../../core/settings/directory_sort.dart';
 import '../../shared/localization.dart';
 import '../../shared/runtime_localization.dart';
 import '../../shared/responsive_button.dart';
@@ -16,6 +18,7 @@ import '../../shared/organizer_stepper.dart';
 import 'ai/ai_usage.dart';
 import 'connections/connection_settings.dart';
 import 'dav/dav_paths.dart';
+import 'dav/directory_sort.dart';
 import 'dav/directory_favorites.dart';
 import 'dav/directory_favorites_bar.dart';
 import 'organizer_state.dart';
@@ -44,6 +47,30 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
   final _fileScrollController = ScrollController();
   final _directoryScrollOffsets = <String, double>{};
   bool _savingFavorite = false;
+  bool _savingSort = false;
+
+  Future<void> _setSort(DirectorySort order) async {
+    if (_savingSort) return;
+    setState(() => _savingSort = true);
+    try {
+      await ref
+          .read(settingsProvider.notifier)
+          .update((settings) => settings.copyWith(directorySort: order));
+      if (!mounted) return;
+      _directoryScrollOffsets.clear();
+      if (_fileScrollController.hasClients) _fileScrollController.jumpTo(0);
+    } catch (_) {
+      if (mounted) {
+        notifyUser(
+          context,
+          context.l10n.sortSaveFailed,
+          type: NoticeType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _savingSort = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -575,12 +602,10 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     }
 
     final query = filter.text.trim().toLowerCase();
-    final sorted = [...state.entries]
-      ..sort(
-        (a, b) => a.directory != b.directory
-            ? (a.directory ? -1 : 1)
-            : a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-      );
+    final order = ref.watch(
+      settingsProvider.select((settings) => settings.directorySort),
+    );
+    final sorted = sortDirectoryEntries(state.entries, order);
     final visible = query.isEmpty
         ? sorted
         : sorted.where((e) => e.name.toLowerCase().contains(query)).toList();
@@ -630,6 +655,53 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                       ),
                     ),
                     const SizedBox(width: 12),
+                    if (connected) ...[
+                      FPopoverMenu(
+                        menuAnchor: Alignment.topRight,
+                        childAnchor: Alignment.bottomRight,
+                        menu: [
+                          FItemGroup(
+                            children: [
+                              for (final value in DirectorySort.values)
+                                FItem(
+                                  key: ValueKey('directory-sort-${value.name}'),
+                                  title: Text(switch (value) {
+                                    DirectorySort.nameAscending =>
+                                      context.l10n.sortNameAscending,
+                                    DirectorySort.nameDescending =>
+                                      context.l10n.sortNameDescending,
+                                    DirectorySort.modifiedDescending =>
+                                      context.l10n.sortModifiedDescending,
+                                    DirectorySort.modifiedAscending =>
+                                      context.l10n.sortModifiedAscending,
+                                    DirectorySort.sizeDescending =>
+                                      context.l10n.sortSizeDescending,
+                                    DirectorySort.sizeAscending =>
+                                      context.l10n.sortSizeAscending,
+                                  }),
+                                  suffix: value == order
+                                      ? const Icon(FLucideIcons.check)
+                                      : null,
+                                  onPress: locked || _savingSort
+                                      ? null
+                                      : () => _setSort(value),
+                                ),
+                            ],
+                          ),
+                        ],
+                        builder: (_, controller, _) => FButton.icon(
+                          key: const ValueKey('directory-sort'),
+                          variant: .outline,
+                          size: .sm,
+                          semanticsLabel: context.l10n.sortDirectory,
+                          onPress: locked || _savingSort
+                              ? null
+                              : controller.toggle,
+                          child: const Icon(FLucideIcons.arrowUpDown),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     FButton(
                       variant: connected ? .outline : .primary,
                       size: .sm,

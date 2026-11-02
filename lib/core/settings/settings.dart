@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../app_exception.dart';
 import '../logging.dart';
 import 'naming_language.dart';
+import 'directory_sort.dart';
 
 enum AppThemeColor { azusa, neutral, blue, green, violet, orange, rose }
 
@@ -15,6 +16,7 @@ class AppSettings {
     this.themeMode = ThemeMode.system,
     this.language = 'system',
     this.namingLanguage = NamingLanguage.simplifiedChinese,
+    this.directorySort = DirectorySort.nameAscending,
     this.compactSidebar = false,
     this.themeColor = AppThemeColor.azusa,
     this.radiusScale = 1,
@@ -24,6 +26,7 @@ class AppSettings {
   final ThemeMode themeMode;
   final String language;
   final NamingLanguage namingLanguage;
+  final DirectorySort directorySort;
   final bool compactSidebar;
   final AppThemeColor themeColor;
   final double radiusScale;
@@ -33,6 +36,7 @@ class AppSettings {
     ThemeMode? themeMode,
     String? language,
     NamingLanguage? namingLanguage,
+    DirectorySort? directorySort,
     bool? compactSidebar,
     AppThemeColor? themeColor,
     double? radiusScale,
@@ -41,6 +45,7 @@ class AppSettings {
     themeMode: themeMode ?? this.themeMode,
     language: language ?? this.language,
     namingLanguage: namingLanguage ?? this.namingLanguage,
+    directorySort: directorySort ?? this.directorySort,
     compactSidebar: compactSidebar ?? this.compactSidebar,
     themeColor: themeColor ?? this.themeColor,
     radiusScale: radiusScale ?? this.radiusScale,
@@ -50,6 +55,7 @@ class AppSettings {
     'theme': themeMode.name,
     'language': language,
     'namingLanguage': namingLanguage.code,
+    'directorySort': directorySort.name,
     'compactSidebar': compactSidebar,
     'themeColor': themeColor.name,
     'radiusScale': radiusScale,
@@ -64,6 +70,7 @@ class AppSettings {
         ? json['language'] as String
         : 'system',
     namingLanguage: NamingLanguage.fromCode(json['namingLanguage']),
+    directorySort: DirectorySort.fromName(json['directorySort']),
     compactSidebar: json['compactSidebar'] == true,
     themeColor: AppThemeColor.values.firstWhere(
       // 原默认中性色迁移为 Azusa 红；保留用户选择的其他主题色。

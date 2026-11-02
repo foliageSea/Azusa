@@ -584,6 +584,54 @@ abstract class AppLocalizations {
   /// **'Organize media'**
   String get organizeSeries;
 
+  /// No description provided for @sortDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get sortDirectory;
+
+  /// No description provided for @sortNameAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Name: A to Z'**
+  String get sortNameAscending;
+
+  /// No description provided for @sortNameDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Name: Z to A'**
+  String get sortNameDescending;
+
+  /// No description provided for @sortModifiedDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Modified: newest first'**
+  String get sortModifiedDescending;
+
+  /// No description provided for @sortModifiedAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Modified: oldest first'**
+  String get sortModifiedAscending;
+
+  /// No description provided for @sortSizeDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Size: largest first'**
+  String get sortSizeDescending;
+
+  /// No description provided for @sortSizeAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Size: smallest first'**
+  String get sortSizeAscending;
+
+  /// No description provided for @sortSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save sort settings. Try again'**
+  String get sortSaveFailed;
+
   /// No description provided for @executionHistory.
   ///
   /// In en, this message translates to:

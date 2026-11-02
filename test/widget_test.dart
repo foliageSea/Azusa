@@ -6,6 +6,7 @@ import 'package:azusa/app/router.dart';
 import 'package:azusa/core/database/app_database.dart';
 import 'package:azusa/core/window/desktop_window.dart';
 import 'package:azusa/core/settings/settings.dart';
+import 'package:azusa/core/settings/directory_sort.dart';
 import 'package:azusa/core/settings/naming_language.dart';
 import 'package:material_ui/material_ui.dart' show ThemeMode;
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
@@ -244,6 +245,51 @@ class FlattenOrganizer extends TestOrganizer {
 }
 
 void main() {
+  for (final width in [390.0, 1280.0]) {
+    testWidgets('NAS 排序菜单在 $width 宽度下即时重排并保存', (tester) async {
+      tester.view.physicalSize = Size(width, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repository = MemorySettings();
+      final window = NoWindow();
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(TestConnections.new),
+          organizerProvider.overrideWith(LongOrganizer.new),
+          settingsRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(window.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('directory-sort')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('directory-sort-nameDescending')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.value.directorySort, DirectorySort.nameDescending);
+      expect(
+        container.read(settingsProvider).directorySort,
+        DirectorySort.nameDescending,
+      );
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('/dav/episode9.mkv'))).dy,
+        lessThan(
+          tester.getTopLeft(find.byKey(const ValueKey('/dav/episode8.mkv'))).dy,
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets('只有单集文件夹时可进入整理，平铺预览可执行', (tester) async {
     final window = NoWindow();
     addTearDown(window.dispose);
@@ -1003,10 +1049,9 @@ void main() {
       find.descendant(of: test, matching: find.byType(FCircularProgress)),
       findsNothing,
     );
-    (container.read(connectionSettingsProvider.notifier)
-            as PendingTestConnections)
-        .pending
-        .complete();
+    (container.read(
+      connectionSettingsProvider.notifier,
+    ) as PendingTestConnections).pending.complete();
     await tester.pumpAndSettle();
     expect(tester.widget<LoadingButton>(save).loading, isFalse);
   });
