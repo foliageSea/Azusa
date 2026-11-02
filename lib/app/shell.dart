@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
@@ -10,6 +11,152 @@ import '../features/organizer/organizer_state.dart';
 import '../shared/azusa_logo.dart';
 import '../shared/widgets.dart';
 import '../shared/localization.dart';
+
+class _MacWindowControls extends StatefulWidget {
+  const _MacWindowControls({required this.window});
+
+  final DesktopWindowController window;
+
+  @override
+  State<_MacWindowControls> createState() => _MacWindowControlsState();
+}
+
+class _MacWindowControlsState extends State<_MacWindowControls> {
+  bool hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => hovered = true),
+        onExit: (_) => setState(() => hovered = false),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _MacWindowButton(
+              key: const ValueKey('mac-close'),
+              label: l.close,
+              color: const Color(0xffff5f57),
+              symbol: FLucideIcons.x,
+              showSymbol: hovered,
+              onPressed: widget.window.close,
+            ),
+            _MacWindowButton(
+              key: const ValueKey('mac-minimize'),
+              label: l.minimizeWindow,
+              color: const Color(0xffffbd2e),
+              symbol: FLucideIcons.minus,
+              showSymbol: hovered,
+              onPressed: widget.window.minimize,
+            ),
+            _MacWindowButton(
+              key: const ValueKey('mac-maximize'),
+              label: l.maximizeWindow,
+              color: const Color(0xff28c840),
+              symbol: FLucideIcons.chevronsUpDown,
+              showSymbol: hovered,
+              onPressed: widget.window.toggleMaximize,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MacWindowButton extends StatelessWidget {
+  const _MacWindowButton({
+    required this.label,
+    required this.color,
+    required this.symbol,
+    required this.showSymbol,
+    required this.onPressed,
+    super.key,
+  });
+
+  final String label;
+  final Color color;
+  final IconData symbol;
+  final bool showSymbol;
+  final Future<void> Function() onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    void invoke() {
+      onPressed().catchError((Object error) {
+        if (context.mounted) {
+          notifyUser(context, failureMessage(context, error));
+        }
+      });
+    }
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: FocusableActionDetector(
+        mouseCursor: SystemMouseCursors.basic,
+        shortcuts: const {
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        },
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              invoke();
+              return null;
+            },
+          ),
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: invoke,
+          child: SizedBox(
+            width: 20,
+            height: 24,
+            child: Center(
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: AnimatedOpacity(
+                    opacity: showSymbol ? 1 : 0,
+                    duration: const Duration(milliseconds: 100),
+                    child: symbol == FLucideIcons.chevronsUpDown
+                        ? CustomPaint(painter: _MacMaximizeSymbol())
+                        : Icon(symbol, size: 9, color: const Color(0xff503000)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MacMaximizeSymbol extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = const Color(0xff006500);
+    final path = Path()
+      ..moveTo(3, 3)
+      ..lineTo(8, 3)
+      ..lineTo(3, 8)
+      ..close()
+      ..moveTo(9, 9)
+      ..lineTo(4, 9)
+      ..lineTo(9, 4)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MacMaximizeSymbol oldDelegate) => false;
+}
 
 class AppShell extends ConsumerWidget {
   const AppShell({required this.shell, super.key});
@@ -63,17 +210,35 @@ class AppShell extends ConsumerWidget {
           builder: (context, _) => Column(
             children: [
               if (window.available && !window.fullScreen)
-                GestureDetector(
-                  onPanStart: (_) => window.drag(),
-                  onDoubleTap: window.toggleMaximize,
-                  child: ColoredBox(
-                    color: context.theme.colors.muted,
-                    child: SizedBox(
-                      height: 48,
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 20),
-                          const Expanded(child: Text('Azusa')),
+                ColoredBox(
+                  color: context.theme.colors.muted,
+                  child: SizedBox(
+                    height: 48,
+                    child: Row(
+                      children: [
+                        if (window.macOS) _MacWindowControls(window: window),
+                        Expanded(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onPanStart: (_) => window.drag(),
+                            onDoubleTap: window.toggleMaximize,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 20),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Azusa',
+                                  style: TextStyle(
+                                    color: window.focused
+                                        ? context.theme.colors.foreground
+                                        : context.theme.colors.mutedForeground,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (!window.macOS) ...[
                           FButton.icon(
                             variant: .ghost,
                             onPress: window.minimize,
@@ -93,7 +258,7 @@ class AppShell extends ConsumerWidget {
                             child: const Icon(FLucideIcons.x),
                           ),
                         ],
-                      ),
+                      ],
                     ),
                   ),
                 ),

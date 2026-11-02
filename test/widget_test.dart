@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'dart:async';
 
 import 'package:azusa/app/app.dart';
@@ -95,6 +96,20 @@ class NoWindow extends DesktopWindowController {
   Future<void> close() async {}
 }
 
+class MacWindow extends NoWindow {
+  int closes = 0, minimizes = 0, maximizes = 0;
+  @override
+  bool get available => true;
+  @override
+  bool get macOS => true;
+  @override
+  Future<void> close() async => closes++;
+  @override
+  Future<void> minimize() async => minimizes++;
+  @override
+  Future<void> toggleMaximize() async => maximizes++;
+}
+
 class FavoritesOrganizer extends TestOrganizer {
   void beginDirectoryLoad() {
     state = state.copyWith(busy: true, message: '');
@@ -186,6 +201,59 @@ void main() {
   tearDown(() {
     TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
         .clearLocalesTestValue();
+  });
+  testWidgets('macOS 标题栏绘制左侧窗口按钮并响应点击', (tester) async {
+    tester.view.physicalSize = const Size(1280, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final window = MacWindow();
+    addTearDown(window.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(TestOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final key in ['mac-close', 'mac-minimize', 'mac-maximize']) {
+      expect(find.byKey(ValueKey(key)), findsOneWidget);
+      expect(tester.getSize(find.byKey(ValueKey(key))), const Size(20, 24));
+    }
+    final symbols = find.descendant(
+      of: find.byKey(const ValueKey('mac-close')).first,
+      matching: find.byType(AnimatedOpacity),
+    );
+    expect(tester.widget<AnimatedOpacity>(symbols).opacity, 0);
+    final mouse = await tester.createGesture(kind: ui.PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(
+      tester.getCenter(find.byKey(const ValueKey('mac-close'))),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(symbols).opacity, 1);
+    await mouse.moveTo(const Offset(400, 100));
+    await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(symbols).opacity, 0);
+    await mouse.removePointer();
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('mac-close'))).dx,
+      lessThan(30),
+    );
+    await tester.tap(find.byKey(const ValueKey('mac-minimize')));
+    await tester.tap(find.byKey(const ValueKey('mac-maximize')));
+    await tester.tap(find.byKey(const ValueKey('mac-close')));
+    expect(window.minimizes, 1);
+    expect(window.maximizes, 1);
+    expect(window.closes, 1);
   });
   for (final width in [390.0, 1280.0]) {
     testWidgets('步骤跳转和快速返回在 $width 宽度不叠加透明页面', (tester) async {
