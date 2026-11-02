@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/logging.dart';
@@ -22,6 +24,7 @@ class OrganizerState {
     this.plan = const [],
     this.busy = false,
     this.executing = false,
+    this.analyzing = false,
     this.progress = '',
     this.message = '',
     this.aiUsage,
@@ -32,6 +35,7 @@ class OrganizerState {
   final List<DavEntry> analysisEntries;
   final List<RenameItem> plan;
   final bool busy, executing;
+  final bool analyzing;
   final AiUsage? aiUsage;
   final ModelPricing? pricing;
 
@@ -47,6 +51,7 @@ class OrganizerState {
     List<RenameItem>? plan,
     bool? busy,
     bool? executing,
+    bool? analyzing,
     AiUsage? aiUsage,
     ModelPricing? pricing,
     bool clearAnalysis = false,
@@ -59,6 +64,7 @@ class OrganizerState {
     plan: plan ?? this.plan,
     busy: busy ?? this.busy,
     executing: executing ?? this.executing,
+    analyzing: analyzing ?? this.analyzing,
     progress: progress ?? this.progress,
     message: message ?? this.message,
     aiUsage: clearAnalysis ? null : aiUsage ?? this.aiUsage,
@@ -73,12 +79,19 @@ final webDavFactoryProvider =
     Provider<WebDavClient Function(ConnectionSettings)>(
       (ref) => WebDavClient.new,
     );
+final modelPricingLookupProvider =
+    Provider<Future<ModelPricing?> Function(ConnectionSettings)>(
+      (ref) => ModelPricingCatalog.lookup,
+    );
 final executionHistoryProvider = FutureProvider<List<String>>(
   (ref) => ref.watch(executionHistoryRepositoryProvider).load(),
 );
 
 class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   int _analysisGeneration = 0;
+  void Function()? _cancelAnalysis;
+
+  void cancelSuggestions() => _cancelAnalysis?.call();
 
   @override
   OrganizerState build() => const OrganizerState();
@@ -130,8 +143,15 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     final directory = state.directory;
     String? model;
     var succeeded = false;
+    var cancelled = false;
+    final cancellation = Completer<void>();
+    Future<T> interruptible<T>(Future<T> future) => Future.any([
+      future,
+      cancellation.future.then<T>((_) => throw StateError('AI 建议已中断')),
+    ]);
     state = state.copyWith(
       busy: true,
+      analyzing: true,
       plan: [],
       message: '正在查询影视资料…',
       clearAnalysis: true,
@@ -140,10 +160,23 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     WebDavClient? dav;
     TmdbClient? tmdb;
     RenameAgent? agent;
+    void cancel() {
+      if (cancelled) return;
+      cancelled = true;
+      succeeded = false;
+      _analysisGeneration++;
+      state = state.copyWith(plan: [], message: 'AI 建议已中断');
+      cancellation.complete();
+      agent?.close();
+      tmdb?.close();
+      dav?.close();
+    }
+
+    _cancelAnalysis = cancel;
     try {
       final settings = config;
       model = settings.model;
-      pricing = ModelPricingCatalog.lookup(settings).then((value) {
+      pricing = ref.read(modelPricingLookupProvider)(settings).then((value) {
         if (generation == _analysisGeneration) {
           state = state.copyWith(pricing: value);
         }
@@ -156,18 +189,25 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         namingLanguage: ref.read(settingsProvider).namingLanguage,
       );
       agent = RenameAgent(settings, dav, tmdb);
-      final fresh = await dav.list(state.directory);
+      final fresh = await interruptible(dav.list(state.directory));
       final analysisEntries = <DavEntry>[...fresh];
       for (final folder in fresh.where((entry) => entry.directory)) {
-        analysisEntries.addAll(await dav.list(folder.path));
+        analysisEntries.addAll(await interruptible(dav.list(folder.path)));
       }
-      final plan = await agent.propose(
-        state.directory,
-        analysisEntries,
-        instruction: instruction,
-        onStatus: (message) => state = state.copyWith(message: message),
-        onUsage: (usage) => state = state.copyWith(aiUsage: usage),
+      final plan = await interruptible(
+        agent.propose(
+          state.directory,
+          analysisEntries,
+          instruction: instruction,
+          onStatus: (message) {
+            if (!cancelled) state = state.copyWith(message: message);
+          },
+          onUsage: (usage) {
+            if (!cancelled) state = state.copyWith(aiUsage: usage);
+          },
+        ),
       );
+      if (cancelled) return;
       succeeded = true;
       state = state.copyWith(
         entries: fresh,
@@ -176,12 +216,20 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         message: plan.isEmpty ? '未找到可靠的重命名建议，请补充片名和年份或剧名和季数后重试' : '建议已生成',
       );
     } catch (e) {
-      state = state.copyWith(message: '生成建议失败：${serviceError(e)}');
+      state = state.copyWith(
+        message: cancelled ? 'AI 建议已中断' : '生成建议失败：${serviceError(e)}',
+      );
     } finally {
       agent?.close();
       tmdb?.close();
       dav?.close();
-      if (pricing != null) await pricing;
+      if (pricing != null && !cancelled) {
+        try {
+          await interruptible(pricing);
+        } catch (_) {
+          if (cancelled) state = state.copyWith(message: 'AI 建议已中断', plan: []);
+        }
+      }
       final usage = state.aiUsage;
       if (usage != null && usage.responses > 0 && model != null) {
         try {
@@ -204,7 +252,8 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
           state = state.copyWith(message: '${state.message}；保存 AI 用量失败');
         }
       }
-      state = state.copyWith(busy: false);
+      _cancelAnalysis = null;
+      state = state.copyWith(busy: false, analyzing: false);
     }
   }
 

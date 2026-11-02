@@ -261,6 +261,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewOnTmdb => 'View on TMDB';
 
   @override
+  String get stopSuggestions => 'Stop generating';
+
+  @override
+  String get suggestionsCancelled => 'AI suggestions cancelled';
+
+  @override
   String get sortName => 'Name';
 
   @override

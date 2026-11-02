@@ -83,6 +83,8 @@
   "organizeSeries": "Organize media",
   "sortDirectory": "Sort",
   "viewOnTmdb": "View on TMDB",
+  "stopSuggestions": "Stop generating",
+  "suggestionsCancelled": "AI suggestions cancelled",
   "sortName": "Name",
   "sortModified": "Modified",
   "sortSize": "Size",

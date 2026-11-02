@@ -13,6 +13,7 @@ class LangChainHttpClient extends http.BaseClient {
   final void Function(Map<String, dynamic> body, Duration elapsed)?
   onChatResponse;
   bool _closed = false;
+  final _cancelToken = CancelToken();
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
@@ -22,6 +23,7 @@ class LangChainHttpClient extends http.BaseClient {
     final watch = Stopwatch()..start();
     final response = await dio.requestUri<ResponseBody>(
       request.url,
+      cancelToken: _cancelToken,
       data: request.finalize(),
       options: Options(
         method: request.method,
@@ -74,6 +76,7 @@ class LangChainHttpClient extends http.BaseClient {
   void close() {
     if (_closed) return;
     _closed = true;
+    _cancelToken.cancel('AI 客户端已关闭');
     dio.close(force: true);
     super.close();
   }

@@ -30,6 +30,7 @@ String localizeRuntimeMessage(AppLocalizations l, String message) {
     zh.databaseVersionTooNew: l.databaseVersionTooNew,
     zh.targetFileExists: l.targetFileExists,
     zh.queryingMetadata: l.queryingMetadata,
+    zh.suggestionsCancelled: l.suggestionsCancelled,
     zh.suggestionsGenerated: l.suggestionsGenerated,
     zh.noReliableSuggestions: l.noReliableSuggestions,
     zh.usageSaveFailed: l.usageSaveFailed,

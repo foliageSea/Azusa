@@ -139,6 +139,7 @@ class RenameAgent {
           onUsage?.call(usage);
         },
         onChatRequest: () {
+          if (_closed) throw StateError('AI 客户端已关闭');
           if (++modelCalls > 8) throw StateError('AI 工具调用次数超过限制');
           onStatus?.call('AI 分析中（$modelCalls/8）');
         },
@@ -162,6 +163,7 @@ class RenameAgent {
         inputJsonSchema: schema,
         getInputFromJson: (json) => json,
         func: (input) async {
+          if (_closed) throw StateError('AI 客户端已关闭');
           if (++toolCalls > 128) throw StateError('AI 工具调用次数超过限制');
           onStatus?.call('查询：$name');
           try {
@@ -280,6 +282,7 @@ class RenameAgent {
           'instruction': instruction,
         }),
       });
+      if (_closed) throw StateError('AI 客户端已关闭');
       final content = result['output'];
       if (content is! String ||
           !content.trimLeft().startsWith(RegExp(r'[\{`]'))) {

@@ -259,6 +259,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewOnTmdb => '在 TMDB 查看';
 
   @override
+  String get stopSuggestions => '停止生成';
+
+  @override
+  String get suggestionsCancelled => 'AI 建议已中断';
+
+  @override
   String get sortName => '名称';
 
   @override

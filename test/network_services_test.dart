@@ -43,6 +43,22 @@ String listing(String href, {bool collection = false, int status = 200}) =>
 </d:prop><d:status>HTTP/1.1 $status OK</d:status></d:propstat></d:response>''';
 
 void main() {
+  test('关闭 AI 传输会取消尚未响应的网络请求', () async {
+    final started = Completer<void>();
+    final dio = Dio()
+      ..httpClientAdapter = TestAdapter((_) {
+        started.complete();
+        return Completer<ResponseBody>().future;
+      });
+    final client = LangChainHttpClient(dio);
+    final request = client.get(
+      Uri.parse('https://ai.test/v1/chat/completions'),
+    );
+    final assertion = expectLater(request, throwsA(isA<DioException>()));
+    await started.future;
+    client.close();
+    await assertion.timeout(const Duration(seconds: 1));
+  });
   for (final language in NamingLanguage.values) {
     test('TMDB 搜索和季查询使用命名语言 ${language.code}', () async {
       final paths = <String>[];

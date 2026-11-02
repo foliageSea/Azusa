@@ -85,6 +85,20 @@ class EmptyDirectoryOrganizer extends OrganizerController {
   OrganizerState build() => const OrganizerState(directory: '/dav/');
 }
 
+class AnalyzingOrganizer extends OrganizerController {
+  @override
+  OrganizerState build() => const OrganizerState(
+    directory: '/dav/',
+    busy: true,
+    analyzing: true,
+    entries: [DavEntry('/dav/a.mkv', false)],
+  );
+  @override
+  void cancelSuggestions() {
+    state = state.copyWith(busy: false, analyzing: false, message: 'AI 建议已中断');
+  }
+}
+
 class NoWindow extends DesktopWindowController {
   @override
   bool get available => false;
@@ -252,6 +266,33 @@ class FlattenOrganizer extends TestOrganizer {
 }
 
 void main() {
+  testWidgets('AI 生成期间可点击停止并恢复生成按钮', (tester) async {
+    final window = NoWindow();
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(AnalyzingOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(window.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    container.read(routerProvider).go('/organize/assistant');
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('停止生成'));
+    await tester.pumpAndSettle();
+    expect(container.read(organizerProvider).busy, isFalse);
+    expect(find.text('AI 生成重命名建议'), findsOneWidget);
+  });
   for (final width in [390.0, 1280.0]) {
     testWidgets('空目录提示在 $width 宽度下位于列表区域中心', (tester) async {
       tester.view.physicalSize = Size(width, 1000);

@@ -596,6 +596,18 @@ abstract class AppLocalizations {
   /// **'View on TMDB'**
   String get viewOnTmdb;
 
+  /// No description provided for @stopSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop generating'**
+  String get stopSuggestions;
+
+  /// No description provided for @suggestionsCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'AI suggestions cancelled'**
+  String get suggestionsCancelled;
+
   /// No description provided for @sortName.
   ///
   /// In en, this message translates to:

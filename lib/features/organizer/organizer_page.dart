@@ -911,9 +911,19 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
           const SizedBox(height: 12),
           FButton(
             builder: responsiveButtonContent,
-            prefix: const Icon(FLucideIcons.sparkles),
-            onPress: canPropose ? _propose : null,
-            child: Text(context.l10n.generateSuggestions),
+            prefix: Icon(
+              state.analyzing ? FLucideIcons.square : FLucideIcons.sparkles,
+            ),
+            onPress: state.analyzing
+                ? _controller.cancelSuggestions
+                : canPropose
+                ? _propose
+                : null,
+            child: Text(
+              state.analyzing
+                  ? context.l10n.stopSuggestions
+                  : context.l10n.generateSuggestions,
+            ),
           ),
           if (state.plan.isNotEmpty) ...[
             const SizedBox(height: 12),
