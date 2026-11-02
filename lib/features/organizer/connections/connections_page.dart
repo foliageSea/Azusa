@@ -6,6 +6,7 @@ import 'package:forui/forui.dart';
 import '../../../shared/azusa_logo.dart';
 import '../../../shared/widgets.dart';
 import '../../../shared/localization.dart';
+import '../../../shared/runtime_localization.dart';
 import '../../../core/settings/settings.dart';
 import '../../../core/settings/naming_language.dart';
 import '../../settings/settings_page.dart';
@@ -70,11 +71,21 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
       await ref.read(connectionSettingsProvider.notifier).save(value);
       ref.invalidate(organizerProvider);
       if (mounted) {
-        notifyUser(context, '配置已保存', type: NoticeType.success);
+        notifyUser(
+          context,
+          context.l10n.configurationSaved,
+          type: NoticeType.success,
+        );
       }
     } catch (e) {
       if (mounted) {
-        notifyUser(context, '保存失败：${serviceError(e)}', type: NoticeType.error);
+        notifyUser(
+          context,
+          context.l10n.saveFailed(
+            localizeRuntimeMessage(context.l10n, serviceError(e)),
+          ),
+          type: NoticeType.error,
+        );
       }
     } finally {
       if (mounted) setState(() => busy = false);
@@ -120,13 +131,23 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
       if (mounted) {
         notifyUser(
           context,
-          '连接成功 · ${usesProxy(value, service) ? value.proxyMode.label : '直连'}',
+          context.l10n.connectionSucceeded(
+            usesProxy(value, service)
+                ? _proxyLabel(context, value.proxyMode)
+                : context.l10n.directConnection,
+          ),
           type: NoticeType.success,
         );
       }
     } catch (e) {
       if (mounted) {
-        notifyUser(context, '连接失败：${serviceError(e)}', type: NoticeType.error);
+        notifyUser(
+          context,
+          context.l10n.connectionFailed(
+            localizeRuntimeMessage(context.l10n, serviceError(e)),
+          ),
+          type: NoticeType.error,
+        );
       }
     } finally {
       ai?.close(force: true);
@@ -138,6 +159,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     final appSettings = ref.watch(settingsProvider);
     final settings = ref.watch(connectionSettingsProvider);
     final organizer = ref.watch(organizerProvider);
@@ -174,7 +196,10 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
             ...children,
             if (editable) ...[
               const SizedBox(height: 16),
-              FButton(onPress: locked ? null : save, child: const Text('保存配置')),
+              FButton(
+                onPress: locked ? null : save,
+                child: Text(l.saveConfiguration),
+              ),
               if (busy)
                 const Padding(
                   padding: EdgeInsets.only(top: 16),
@@ -189,10 +214,14 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
       loading: () => const Center(child: FCircularProgress()),
       error: (e, _) => PageContent(
         children: [
-          Text('读取配置失败：${serviceError(e)}'),
+          Text(
+            l.configurationLoadFailed(
+              localizeRuntimeMessage(l, serviceError(e)),
+            ),
+          ),
           FButton(
             onPress: () => ref.invalidate(connectionSettingsProvider),
-            child: const Text('重试'),
+            child: Text(l.retry),
           ),
         ],
       ),
@@ -222,26 +251,26 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
             FTabEntry(
               label: const Text('WebDAV'),
               child: section('WebDAV', [
-                field(0, 'WebDAV 地址'),
-                field(1, '用户名'),
-                field(2, '密码'),
+                field(0, l.webdavUrl),
+                field(1, l.username),
+                field(2, l.password),
                 FButton(
                   variant: .outline,
                   onPress: locked ? null : () => test(NetworkService.webdav),
-                  child: const Text('测试 WebDAV'),
+                  child: Text(l.testWebdav),
                 ),
               ]),
             ),
             FTabEntry(
               label: const Text('AI Agent'),
               child: section('AI Agent', [
-                field(3, 'OpenAI 兼容 API 基础地址'),
-                field(4, '模型名称'),
+                field(3, l.aiBaseUrl),
+                field(4, l.modelName),
                 field(5, 'API Key'),
                 FButton(
                   variant: .outline,
                   onPress: locked ? null : () => test(NetworkService.ai),
-                  child: const Text('测试 AI'),
+                  child: Text(l.testAi),
                 ),
               ]),
             ),
@@ -257,7 +286,8 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                   control: .lifted(
                     value: appSettings.namingLanguage,
                     onChange: (value) async {
-                      if (value == null || value == appSettings.namingLanguage) {
+                      if (value == null ||
+                          value == appSettings.namingLanguage) {
                         return;
                       }
                       setState(() => savingNamingLanguage = true);
@@ -269,7 +299,12 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                         if (context.mounted) {
                           notifyUser(
                             context,
-                            '保存失败：${serviceError(e)}',
+                            context.l10n.saveFailed(
+                              localizeRuntimeMessage(
+                                context.l10n,
+                                serviceError(e),
+                              ),
+                            ),
                             type: NoticeType.error,
                           );
                         }
@@ -289,15 +324,15 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                 FButton(
                   variant: .outline,
                   onPress: locked ? null : () => test(NetworkService.tmdb),
-                  child: const Text('测试 TMDB'),
+                  child: Text(l.testTmdb),
                 ),
               ]),
             ),
             FTabEntry(
-              label: const Text('HTTP 代理'),
-              child: section('HTTP 代理', [
+              label: Text(l.httpProxy),
+              child: section(l.httpProxy, [
                 FSelect<ProxyMode>.rich(
-                  label: const Text('代理模式'),
+                  label: Text(l.proxyMode),
                   enabled: !locked,
                   control: .lifted(
                     value: proxyMode,
@@ -305,31 +340,33 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                       if (mode != null) setState(() => proxyMode = mode);
                     },
                   ),
-                  format: (mode) => mode.label,
+                  format: (mode) => _proxyLabel(context, mode),
                   children: [
                     for (final mode in ProxyMode.values)
-                      FSelectItem(title: Text(mode.label), value: mode),
+                      FSelectItem(
+                        title: Text(_proxyLabel(context, mode)),
+                        value: mode,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 18),
-                if (proxyMode == ProxyMode.manual)
-                  field(7, '代理地址（http://主机:端口）'),
+                if (proxyMode == ProxyMode.manual) field(7, l.proxyAddress),
                 FCheckbox(
-                  label: const Text('AI 使用代理'),
+                  label: Text(l.proxyAi),
                   value: proxyAi,
                   enabled: !locked,
                   onChange: (v) => setState(() => proxyAi = v),
                 ),
                 const SizedBox(height: 12),
                 FCheckbox(
-                  label: const Text('TMDB 使用代理'),
+                  label: Text(l.proxyTmdb),
                   value: proxyTmdb,
                   enabled: !locked,
                   onChange: (v) => setState(() => proxyTmdb = v),
                 ),
                 const SizedBox(height: 12),
                 FCheckbox(
-                  label: const Text('WebDAV 使用代理'),
+                  label: Text(l.proxyWebdav),
                   value: proxyWebdav,
                   enabled: !locked,
                   onChange: (v) => setState(() => proxyWebdav = v),
@@ -337,8 +374,8 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
               ]),
             ),
             FTabEntry(
-              label: const Text('关于'),
-              child: section('关于', [
+              label: Text(l.appAbout),
+              child: section(l.appAbout, [
                 const Row(
                   children: [
                     AzusaLogo(height: 40),
@@ -347,9 +384,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'This product uses the TMDB API but is not endorsed or certified by TMDB.',
-                ),
+                Text(l.tmdbDisclaimer),
                 const SizedBox(height: 12),
                 FButton(
                   variant: .ghost,
@@ -361,7 +396,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                   variant: .ghost,
                   onPress: () =>
                       openDocumentation(context, 'https://hyperos.mi.com/font'),
-                  child: const Text('MiSans 字体许可'),
+                  child: Text(l.misansLicense),
                 ),
               ], editable: false),
             ),
@@ -371,3 +406,9 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
     );
   }
 }
+
+String _proxyLabel(BuildContext context, ProxyMode mode) => switch (mode) {
+  ProxyMode.direct => context.l10n.directConnection,
+  ProxyMode.system => context.l10n.systemProxyMode,
+  ProxyMode.manual => context.l10n.manualProxyMode,
+};

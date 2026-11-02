@@ -4,6 +4,7 @@ import 'package:forui/forui.dart';
 import 'package:material_ui/material_ui.dart' show SelectableText;
 
 import '../../../shared/widgets.dart';
+import '../../../shared/localization.dart';
 import '../../../shared/status_badge.dart';
 import 'history_entry.dart';
 import '../organizer_state.dart';
@@ -16,22 +17,25 @@ class HistoryPage extends ConsumerWidget {
     return PageContent(
       children: [
         history.when(
-          loading: () => const Surface(child: Text('加载中…')),
-          error: (e, _) => Surface(child: Text('读取记录失败：$e')),
+          loading: () => Surface(child: Text(context.l10n.loading)),
+          error: (e, _) =>
+              Surface(child: Text(context.l10n.historyLoadFailed('$e'))),
           data: (items) {
             final entries = HistoryEntry.fromRecords(items);
             if (entries.isEmpty) {
-              return const Surface(child: Text('暂无执行记录'));
+              return Surface(child: Text(context.l10n.noExecutionHistory));
             }
             final groups = <String, List<HistoryEntry>>{};
             for (final entry in entries) {
-              groups.putIfAbsent(_date(entry.time), () => []).add(entry);
+              groups
+                  .putIfAbsent(_date(context, entry.time), () => [])
+                  .add(entry);
             }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  '${entries.length} 项操作',
+                  context.l10n.operationCount(entries.length),
                   style: context.theme.typography.body.sm.copyWith(
                     color: context.theme.colors.mutedForeground,
                   ),
@@ -76,14 +80,16 @@ class HistoryPage extends ConsumerWidget {
   }
 }
 
-String _date(DateTime? time) {
-  if (time == null) return '其他记录';
+String _date(BuildContext context, DateTime? time) {
+  if (time == null) return context.l10n.otherRecords;
   final local = time.toLocal();
   final today = DateTime.now();
   final date = DateTime(local.year, local.month, local.day);
   final now = DateTime(today.year, today.month, today.day);
-  if (date == now) return '今天';
-  if (date == DateTime(now.year, now.month, now.day - 1)) return '昨天';
+  if (date == now) return context.l10n.today;
+  if (date == DateTime(now.year, now.month, now.day - 1)) {
+    return context.l10n.yesterday;
+  }
   return '${local.year}-${_two(local.month)}-${_two(local.day)}';
 }
 
@@ -132,7 +138,14 @@ class _HistoryRowState extends State<_HistoryRow> {
               Icon(icon, size: 18, color: theme.colors.mutedForeground),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(entry.title, style: theme.typography.body.md),
+                child: Text(switch (entry.action) {
+                  '重命名' => context.l10n.renameAction,
+                  'move' => context.l10n.moveAction,
+                  'upload' => context.l10n.uploadAction,
+                  'delete' => context.l10n.delete,
+                  'mkdir' => context.l10n.createDirectory,
+                  _ => context.l10n.operationRecord,
+                }, style: theme.typography.body.md),
               ),
               if (entry.completed != null)
                 StatusBadge(
@@ -147,7 +160,11 @@ class _HistoryRowState extends State<_HistoryRow> {
                         size: 12,
                       ),
                       const SizedBox(width: 4),
-                      Text(entry.completed! ? '已完成' : '已发起'),
+                      Text(
+                        entry.completed!
+                            ? context.l10n.completed
+                            : context.l10n.initiated,
+                      ),
                     ],
                   ),
                 ),
@@ -155,7 +172,9 @@ class _HistoryRowState extends State<_HistoryRow> {
               FButton.icon(
                 variant: .ghost,
                 size: .sm,
-                semanticsLabel: expanded ? '收起记录详情' : '展开记录详情',
+                semanticsLabel: expanded
+                    ? context.l10n.collapseHistory
+                    : context.l10n.expandHistory,
                 onPress: () => setState(() => expanded = !expanded),
                 child: Icon(
                   expanded ? FLucideIcons.chevronUp : FLucideIcons.chevronDown,
@@ -212,7 +231,10 @@ class _HistoryRowState extends State<_HistoryRow> {
           if (expanded) ...[
             const SizedBox(height: 12),
             if (entry.startedAt != null) ...[
-              Text('开始于 ${_clock(entry.startedAt!)}', style: muted),
+              Text(
+                context.l10n.startedAtTime(_clock(entry.startedAt!)),
+                style: muted,
+              ),
               const SizedBox(height: 8),
             ],
             SelectableText(entry.raw, style: muted),

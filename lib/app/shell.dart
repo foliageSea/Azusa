@@ -9,6 +9,7 @@ import '../core/window/desktop_window.dart';
 import '../features/organizer/organizer_state.dart';
 import '../shared/azusa_logo.dart';
 import '../shared/widgets.dart';
+import '../shared/localization.dart';
 
 class AppShell extends ConsumerWidget {
   const AppShell({required this.shell, super.key});
@@ -37,11 +38,17 @@ class AppShell extends ConsumerWidget {
       ThemeMode.system =>
         MediaQuery.platformBrightnessOf(context) == Brightness.dark,
     };
-    final themeAction = dark ? '切换亮色模式' : '切换暗色模式';
+    final l = context.l10n;
+    final themeAction = dark ? l.switchLight : l.switchDark;
     final showBack =
         shell.currentIndex == 0 &&
         GoRouterState.of(context).uri.path.startsWith('/organize/assistant');
-    const labels = ['剧集整理', '执行记录', 'AI 用量', '设置'];
+    final labels = [
+      l.organizeSeries,
+      l.executionHistory,
+      l.aiUsage,
+      l.settings,
+    ];
     const icons = [
       FLucideIcons.folderPen,
       FLucideIcons.history,
@@ -70,19 +77,19 @@ class AppShell extends ConsumerWidget {
                           FButton.icon(
                             variant: .ghost,
                             onPress: window.minimize,
-                            semanticsLabel: '最小化',
+                            semanticsLabel: l.minimizeWindow,
                             child: const Icon(FLucideIcons.minus),
                           ),
                           FButton.icon(
                             variant: .ghost,
                             onPress: window.toggleMaximize,
-                            semanticsLabel: '最大化 / 还原',
+                            semanticsLabel: l.maximizeWindow,
                             child: const Icon(FLucideIcons.square),
                           ),
                           FButton.icon(
                             variant: .ghost,
                             onPress: window.close,
-                            semanticsLabel: '关闭',
+                            semanticsLabel: l.close,
                             child: const Icon(FLucideIcons.x),
                           ),
                         ],
@@ -232,7 +239,7 @@ class AppShell extends ConsumerWidget {
                                         if (showBack) ...[
                                           FButton.icon(
                                             variant: .ghost,
-                                            semanticsLabel: '返回上一步',
+                                            semanticsLabel: l.previousStep,
                                             onPress:
                                                 organizer.busy ||
                                                     organizer.executing
@@ -272,7 +279,7 @@ class AppShell extends ConsumerWidget {
                                                 if (context.mounted) {
                                                   notifyUser(
                                                     context,
-                                                    '保存主题设置失败，请重试',
+                                                    l.saveThemeFailed,
                                                     type: NoticeType.error,
                                                   );
                                                 }

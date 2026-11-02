@@ -163,6 +163,99 @@ class LongOrganizer extends OrganizerController {
 }
 
 void main() {
+  setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized()
+        .platformDispatcher
+        .localesTestValue = const [
+      Locale('zh'),
+    ];
+  });
+  tearDown(() {
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
+        .clearLocalesTestValue();
+  });
+  for (final width in [390.0, 1280.0]) {
+    testWidgets('English 界面在 $width 宽度下即时切换且不影响命名语言', (tester) async {
+      tester.view.physicalSize = Size(width, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repository = MemorySettings();
+      final window = NoWindow();
+      addTearDown(window.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(TestConnections.new),
+          organizerProvider.overrideWith(TestOrganizer.new),
+          settingsRepositoryProvider.overrideWithValue(repository),
+          executionHistoryProvider.overrideWith((ref) async => []),
+          aiUsageHistoryProvider.overrideWith((ref) async => []),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      container.read(routerProvider).go('/settings');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('language-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('English').last);
+      await tester.pumpAndSettle();
+      expect(find.text('General'), findsOneWidget);
+      expect(find.text('Language'), findsOneWidget);
+      expect(find.text('Settings'), findsWidgets);
+      expect(find.text('设置'), findsNothing);
+      expect(repository.value.language, 'en');
+      expect(repository.value.namingLanguage, NamingLanguage.simplifiedChinese);
+      await tester.ensureVisible(find.text('WebDAV').first);
+      await tester.tap(find.text('WebDAV').first);
+      await tester.pumpAndSettle();
+      expect(find.text('WebDAV URL'), findsOneWidget);
+      expect(find.text('Username'), findsOneWidget);
+      expect(find.text('Save configuration'), findsOneWidget);
+      await tester.ensureVisible(find.text('HTTP proxy').first);
+      await tester.tap(find.text('HTTP proxy').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Proxy mode'), findsOneWidget);
+      expect(find.text('Use proxy for AI'), findsOneWidget);
+      await tester.ensureVisible(find.text('TMDB').first);
+      await tester.tap(find.text('TMDB').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Naming language'), findsOneWidget);
+      container.read(routerProvider).go('/organize');
+      await tester.pumpAndSettle();
+      expect(find.text('Disconnect'), findsOneWidget);
+      expect(find.text('Organize this directory'), findsOneWidget);
+      container.read(routerProvider).go('/organize/assistant');
+      await tester.pumpAndSettle();
+      expect(find.text('Generate rename suggestions'), findsOneWidget);
+      expect(find.text('Organizing requirements (optional)'), findsOneWidget);
+      container.read(routerProvider).go('/organize/assistant/preview');
+      await tester.pumpAndSettle();
+      expect(find.text('Confirm and execute'), findsOneWidget);
+      expect(find.text('New file name'), findsOneWidget);
+      container.read(routerProvider).go('/history');
+      await tester.pumpAndSettle();
+      expect(find.text('No execution history yet'), findsOneWidget);
+      container.read(routerProvider).go('/ai-usage');
+      await tester.pumpAndSettle();
+      expect(find.text('No AI analysis usage yet'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await container
+          .read(settingsProvider.notifier)
+          .update((s) => s.copyWith(language: 'zh'));
+      await tester.pumpAndSettle();
+      expect(find.text('暂无 AI 分析用量'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+  }
   for (final width in [390.0, 1280.0]) {
     testWidgets('命名语言在 $width 宽度可独立选择并保存', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
@@ -610,7 +703,14 @@ void main() {
       expect(tester.getRect(button), before);
       expect(tester.getRect(breadcrumb), breadcrumbBefore);
       expect(
-        find.ancestor(of: breadcrumb, matching: find.byType(Scrollable)),
+        find.ancestor(
+          of: breadcrumb,
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Scrollable &&
+                axisDirectionToAxis(widget.axisDirection) == Axis.vertical,
+          ),
+        ),
         findsNothing,
       );
       expect(

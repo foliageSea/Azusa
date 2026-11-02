@@ -578,6 +578,1248 @@ abstract class AppLocalizations {
   /// **'Naming language'**
   String get namingLanguage;
 
+  /// No description provided for @organizeSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize series'**
+  String get organizeSeries;
+
+  /// No description provided for @executionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution history'**
+  String get executionHistory;
+
+  /// No description provided for @aiUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'AI usage'**
+  String get aiUsage;
+
+  /// No description provided for @switchLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to light mode'**
+  String get switchLight;
+
+  /// No description provided for @switchDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to dark mode'**
+  String get switchDark;
+
+  /// No description provided for @minimizeWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimize'**
+  String get minimizeWindow;
+
+  /// No description provided for @maximizeWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximize / Restore'**
+  String get maximizeWindow;
+
+  /// No description provided for @previousStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to previous step'**
+  String get previousStep;
+
+  /// No description provided for @saveThemeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save theme. Please try again.'**
+  String get saveThemeFailed;
+
+  /// No description provided for @webdavUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV URL'**
+  String get webdavUrl;
+
+  /// No description provided for @username.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get username;
+
+  /// No description provided for @password.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get password;
+
+  /// No description provided for @aiBaseUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'OpenAI-compatible API base URL'**
+  String get aiBaseUrl;
+
+  /// No description provided for @modelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Model name'**
+  String get modelName;
+
+  /// No description provided for @testWebdav.
+  ///
+  /// In en, this message translates to:
+  /// **'Test WebDAV'**
+  String get testWebdav;
+
+  /// No description provided for @testAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Test AI'**
+  String get testAi;
+
+  /// No description provided for @testTmdb.
+  ///
+  /// In en, this message translates to:
+  /// **'Test TMDB'**
+  String get testTmdb;
+
+  /// No description provided for @saveConfiguration.
+  ///
+  /// In en, this message translates to:
+  /// **'Save configuration'**
+  String get saveConfiguration;
+
+  /// No description provided for @configurationSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration saved'**
+  String get configurationSaved;
+
+  /// No description provided for @httpProxy.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP proxy'**
+  String get httpProxy;
+
+  /// No description provided for @proxyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy mode'**
+  String get proxyMode;
+
+  /// No description provided for @directConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct'**
+  String get directConnection;
+
+  /// No description provided for @systemProxyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'System proxy'**
+  String get systemProxyMode;
+
+  /// No description provided for @manualProxyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual proxy'**
+  String get manualProxyMode;
+
+  /// No description provided for @proxyAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy URL (http://host:port)'**
+  String get proxyAddress;
+
+  /// No description provided for @proxyAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Use proxy for AI'**
+  String get proxyAi;
+
+  /// No description provided for @proxyTmdb.
+  ///
+  /// In en, this message translates to:
+  /// **'Use proxy for TMDB'**
+  String get proxyTmdb;
+
+  /// No description provided for @proxyWebdav.
+  ///
+  /// In en, this message translates to:
+  /// **'Use proxy for WebDAV'**
+  String get proxyWebdav;
+
+  /// No description provided for @appAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get appAbout;
+
+  /// No description provided for @misansLicense.
+  ///
+  /// In en, this message translates to:
+  /// **'MiSans font license'**
+  String get misansLicense;
+
+  /// No description provided for @tmdbDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'This product uses the TMDB API but is not endorsed or certified by TMDB.'**
+  String get tmdbDisclaimer;
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save: {error}'**
+  String saveFailed(String error);
+
+  /// No description provided for @connectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed: {error}'**
+  String connectionFailed(String error);
+
+  /// No description provided for @configurationLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load configuration: {error}'**
+  String configurationLoadFailed(String error);
+
+  /// No description provided for @connectionSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected · {route}'**
+  String connectionSucceeded(String route);
+
+  /// No description provided for @warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get warning;
+
+  /// No description provided for @information.
+  ///
+  /// In en, this message translates to:
+  /// **'Information'**
+  String get information;
+
+  /// No description provided for @noticeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get noticeError;
+
+  /// No description provided for @favoriteSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save favorites. Please try again.'**
+  String get favoriteSaveFailed;
+
+  /// No description provided for @favorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favorites;
+
+  /// No description provided for @favoritesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load favorites'**
+  String get favoritesLoadFailed;
+
+  /// No description provided for @noFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite directories'**
+  String get noFavorites;
+
+  /// No description provided for @removeFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove favorite {path}'**
+  String removeFavorite(String path);
+
+  /// No description provided for @confirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirmAction;
+
+  /// No description provided for @analyzeDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Send this directory to AI for analysis?'**
+  String get analyzeDirectory;
+
+  /// No description provided for @analyzeDirectoryDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected directory path and file names will be sent to your configured AI service. File contents will not be uploaded.'**
+  String get analyzeDirectoryDetail;
+
+  /// No description provided for @startAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Start analysis'**
+  String get startAnalysis;
+
+  /// No description provided for @executeRenames.
+  ///
+  /// In en, this message translates to:
+  /// **'Execute selected renames?'**
+  String get executeRenames;
+
+  /// No description provided for @executeRenamesDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Files on the NAS will be renamed one by one as previewed. Execution stops on failure and never overwrites existing files.'**
+  String get executeRenamesDetail;
+
+  /// No description provided for @startExecution.
+  ///
+  /// In en, this message translates to:
+  /// **'Start execution'**
+  String get startExecution;
+
+  /// No description provided for @configureConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure connection'**
+  String get configureConnection;
+
+  /// No description provided for @noConnectionConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'No NAS connection configured. Set up WebDAV, AI, and TMDB credentials first.'**
+  String get noConnectionConfigured;
+
+  /// No description provided for @executionSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename one by one, stop on failure, and never overwrite existing files.'**
+  String get executionSafety;
+
+  /// No description provided for @confirmAndExecute.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm and execute'**
+  String get confirmAndExecute;
+
+  /// No description provided for @organizeDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize this directory'**
+  String get organizeDirectory;
+
+  /// No description provided for @parentDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent directory'**
+  String get parentDirectory;
+
+  /// No description provided for @refreshDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh directory'**
+  String get refreshDirectory;
+
+  /// No description provided for @unfavoriteDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Unfavorite current directory'**
+  String get unfavoriteDirectory;
+
+  /// No description provided for @favoriteDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite current directory'**
+  String get favoriteDirectory;
+
+  /// No description provided for @nasDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'NAS directory'**
+  String get nasDirectory;
+
+  /// No description provided for @organizingRequirements.
+  ///
+  /// In en, this message translates to:
+  /// **'Organizing requirements'**
+  String get organizingRequirements;
+
+  /// No description provided for @renamePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename preview'**
+  String get renamePreview;
+
+  /// No description provided for @renaming.
+  ///
+  /// In en, this message translates to:
+  /// **'Renaming files'**
+  String get renaming;
+
+  /// No description provided for @processing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing…'**
+  String get processing;
+
+  /// No description provided for @rootDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Root'**
+  String get rootDirectory;
+
+  /// No description provided for @directoryCounts.
+  ///
+  /// In en, this message translates to:
+  /// **'{folders} folders · {files} files'**
+  String directoryCounts(int folders, int files);
+
+  /// No description provided for @disconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get disconnect;
+
+  /// No description provided for @connectNas.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect NAS'**
+  String get connectNas;
+
+  /// No description provided for @filterByName.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by name'**
+  String get filterByName;
+
+  /// No description provided for @browseNasHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to your NAS to browse and open the series directory you want to organize.'**
+  String get browseNasHint;
+
+  /// No description provided for @directoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'This directory is empty'**
+  String get directoryEmpty;
+
+  /// No description provided for @noNameMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No items contain “{query}”'**
+  String noNameMatches(String query);
+
+  /// No description provided for @openSeriesDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to your NAS and open a series directory first.'**
+  String get openSeriesDirectory;
+
+  /// No description provided for @openNonemptyDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'This directory has no files. Open a directory containing episode files.'**
+  String get openNonemptyDirectory;
+
+  /// No description provided for @aiSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'AI organizing suggestions'**
+  String get aiSuggestions;
+
+  /// No description provided for @optionalRequirements.
+  ///
+  /// In en, this message translates to:
+  /// **'Organizing requirements (optional)'**
+  String get optionalRequirements;
+
+  /// No description provided for @requirementsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Series name, season, TMDB ID, or naming preferences'**
+  String get requirementsHint;
+
+  /// No description provided for @generateSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate rename suggestions'**
+  String get generateSuggestions;
+
+  /// No description provided for @viewRenamePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'View rename preview'**
+  String get viewRenamePreview;
+
+  /// No description provided for @noPendingChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending changes'**
+  String get noPendingChanges;
+
+  /// No description provided for @backToRequirements.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to requirements'**
+  String get backToRequirements;
+
+  /// No description provided for @selectedChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'{selected} / {total} selected · {changes} changes'**
+  String selectedChanges(int selected, int total, int changes);
+
+  /// No description provided for @deselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get deselectAll;
+
+  /// No description provided for @selectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get selectAll;
+
+  /// No description provided for @cannotExecute.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot execute yet'**
+  String get cannotExecute;
+
+  /// No description provided for @inputTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Input tokens'**
+  String get inputTokens;
+
+  /// No description provided for @outputTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Output tokens'**
+  String get outputTokens;
+
+  /// No description provided for @averageTps.
+  ///
+  /// In en, this message translates to:
+  /// **'Average TPS'**
+  String get averageTps;
+
+  /// No description provided for @estimatedCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated cost'**
+  String get estimatedCost;
+
+  /// No description provided for @analysisUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'AI analysis usage'**
+  String get analysisUsage;
+
+  /// No description provided for @folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder'**
+  String get folder;
+
+  /// No description provided for @openEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {name}'**
+  String openEntry(String name);
+
+  /// No description provided for @pendingRenameShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get pendingRenameShort;
+
+  /// No description provided for @pendingRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending rename'**
+  String get pendingRename;
+
+  /// No description provided for @unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Unchanged'**
+  String get unchanged;
+
+  /// No description provided for @newFileName.
+  ///
+  /// In en, this message translates to:
+  /// **'New file name'**
+  String get newFileName;
+
+  /// No description provided for @usageLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load AI usage'**
+  String get usageLoadFailed;
+
+  /// No description provided for @analysisCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyses'**
+  String get analysisCount;
+
+  /// No description provided for @modelRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Model requests'**
+  String get modelRequests;
+
+  /// No description provided for @totalInputTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Total input tokens'**
+  String get totalInputTokens;
+
+  /// No description provided for @totalOutputTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Total output tokens'**
+  String get totalOutputTokens;
+
+  /// No description provided for @totalEstimatedCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated total cost (USD)'**
+  String get totalEstimatedCost;
+
+  /// No description provided for @analysisHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis history'**
+  String get analysisHistory;
+
+  /// No description provided for @incompleteUsageCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} with incomplete usage'**
+  String incompleteUsageCount(int count);
+
+  /// No description provided for @unknownCostCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} with unknown cost'**
+  String unknownCostCount(int count);
+
+  /// No description provided for @noAiUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'No AI analysis usage yet'**
+  String get noAiUsage;
+
+  /// No description provided for @failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get failed;
+
+  /// No description provided for @usageInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Input {tokens} tokens'**
+  String usageInput(String tokens);
+
+  /// No description provided for @usageOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Output {tokens} tokens'**
+  String usageOutput(String tokens);
+
+  /// No description provided for @unknownCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost —'**
+  String get unknownCost;
+
+  /// No description provided for @modelRequestCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} model requests'**
+  String modelRequestCount(int count);
+
+  /// No description provided for @historyLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load history: {error}'**
+  String historyLoadFailed(String error);
+
+  /// No description provided for @noExecutionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No execution history yet'**
+  String get noExecutionHistory;
+
+  /// No description provided for @operationCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} operations'**
+  String operationCount(int count);
+
+  /// No description provided for @otherRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Other records'**
+  String get otherRecords;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @initiated.
+  ///
+  /// In en, this message translates to:
+  /// **'Started'**
+  String get initiated;
+
+  /// No description provided for @collapseHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse record details'**
+  String get collapseHistory;
+
+  /// No description provided for @expandHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand record details'**
+  String get expandHistory;
+
+  /// No description provided for @startedAtTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Started at {time}'**
+  String startedAtTime(String time);
+
+  /// No description provided for @renameAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renameAction;
+
+  /// No description provided for @moveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move / Rename'**
+  String get moveAction;
+
+  /// No description provided for @uploadAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload file'**
+  String get uploadAction;
+
+  /// No description provided for @createDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'New folder'**
+  String get createDirectory;
+
+  /// No description provided for @operationRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation record'**
+  String get operationRecord;
+
+  /// No description provided for @invalidDirectoryPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid directory path'**
+  String get invalidDirectoryPath;
+
+  /// No description provided for @favoriteOutsideRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'The favorite directory is outside the NAS root'**
+  String get favoriteOutsideRoot;
+
+  /// No description provided for @webdavUrlParameters.
+  ///
+  /// In en, this message translates to:
+  /// **'The WebDAV URL cannot contain query parameters'**
+  String get webdavUrlParameters;
+
+  /// No description provided for @pathOutsideConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'The path is outside the WebDAV connection directory'**
+  String get pathOutsideConnection;
+
+  /// No description provided for @invalidWebdavProperties.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV did not return valid file properties'**
+  String get invalidWebdavProperties;
+
+  /// No description provided for @unknownFileStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not determine file status. Check WebDAV permissions'**
+  String get unknownFileStatus;
+
+  /// No description provided for @moveUnconfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Move was not confirmed. Refresh the directory to verify'**
+  String get moveUnconfirmed;
+
+  /// No description provided for @directoryCreationUnconfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Directory creation was not confirmed'**
+  String get directoryCreationUnconfirmed;
+
+  /// No description provided for @deleteUnconfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletion was not confirmed. Refresh the directory to verify'**
+  String get deleteUnconfirmed;
+
+  /// No description provided for @uploadUnconfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload was not confirmed. Refresh the directory to verify'**
+  String get uploadUnconfirmed;
+
+  /// No description provided for @absoluteWebdavPathRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV paths must be absolute'**
+  String get absoluteWebdavPathRequired;
+
+  /// No description provided for @unsafeWebdavPath.
+  ///
+  /// In en, this message translates to:
+  /// **'The WebDAV path contains unsafe characters'**
+  String get unsafeWebdavPath;
+
+  /// No description provided for @networkClientClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Network client is closed'**
+  String get networkClientClosed;
+
+  /// No description provided for @systemProxyTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the system proxy timed out'**
+  String get systemProxyTimeout;
+
+  /// No description provided for @invalidSystemProxy.
+  ///
+  /// In en, this message translates to:
+  /// **'The system proxy returned no valid configuration'**
+  String get invalidSystemProxy;
+
+  /// No description provided for @systemProxyUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the system proxy is not supported on this platform'**
+  String get systemProxyUnsupported;
+
+  /// No description provided for @systemProxyReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the system proxy'**
+  String get systemProxyReadFailed;
+
+  /// No description provided for @environmentProxyUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Environment proxies must be unauthenticated HTTP proxies'**
+  String get environmentProxyUnsupported;
+
+  /// No description provided for @systemProxyTypeUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'The system proxy type is unsupported. Only unauthenticated HTTP proxies are supported'**
+  String get systemProxyTypeUnsupported;
+
+  /// No description provided for @databaseClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Database is closed'**
+  String get databaseClosed;
+
+  /// No description provided for @databaseVersionTooNew.
+  ///
+  /// In en, this message translates to:
+  /// **'The database version is too new'**
+  String get databaseVersionTooNew;
+
+  /// No description provided for @targetFileExists.
+  ///
+  /// In en, this message translates to:
+  /// **'The target file already exists'**
+  String get targetFileExists;
+
+  /// No description provided for @queryingMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking up series metadata…'**
+  String get queryingMetadata;
+
+  /// No description provided for @suggestionsGenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions generated'**
+  String get suggestionsGenerated;
+
+  /// No description provided for @noReliableSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'No reliable rename suggestions found. Add a series name and season, then try again.'**
+  String get noReliableSuggestions;
+
+  /// No description provided for @usageSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save AI usage'**
+  String get usageSaveFailed;
+
+  /// No description provided for @operationCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation completed'**
+  String get operationCompleted;
+
+  /// No description provided for @downloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get downloading;
+
+  /// No description provided for @downloadCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Download complete'**
+  String get downloadCompleted;
+
+  /// No description provided for @preparingExecution.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing execution'**
+  String get preparingExecution;
+
+  /// No description provided for @directoryReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read directory: {error}'**
+  String directoryReadFailed(String error);
+
+  /// No description provided for @suggestionsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not generate suggestions: {error}'**
+  String suggestionsFailed(String error);
+
+  /// No description provided for @downloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed: {error}'**
+  String downloadFailed(String error);
+
+  /// No description provided for @fileOperationStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'File operation stopped: {error}; refresh the directory to verify the results'**
+  String fileOperationStopped(String error);
+
+  /// No description provided for @executionStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution stopped: {error}; refresh the directory to verify the results'**
+  String executionStopped(String error);
+
+  /// No description provided for @remainingExecutionStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped: {error}. Verify the results before confirming the remaining changes'**
+  String remainingExecutionStopped(String error);
+
+  /// No description provided for @completedItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed {count} items'**
+  String completedItemCount(int count);
+
+  /// No description provided for @aiAnalyzing.
+  ///
+  /// In en, this message translates to:
+  /// **'AI analysis ({count}/8)'**
+  String aiAnalyzing(int count);
+
+  /// No description provided for @queryingTool.
+  ///
+  /// In en, this message translates to:
+  /// **'Querying: {name}'**
+  String queryingTool(String name);
+
+  /// No description provided for @matchEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Match: season {season}, episode {episode} · {title}\nTMDB {id}'**
+  String matchEvidence(String season, String episode, String title, String id);
+
+  /// No description provided for @authenticationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed or access denied (HTTP {code})'**
+  String authenticationFailed(String code);
+
+  /// No description provided for @proxyAuthenticationUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'The proxy requires authentication. Only unauthenticated HTTP proxies are supported'**
+  String get proxyAuthenticationUnsupported;
+
+  /// No description provided for @remoteFileChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The file changed or the target exists. Refresh the directory to verify'**
+  String get remoteFileChanged;
+
+  /// No description provided for @rateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Please try again later'**
+  String get rateLimited;
+
+  /// No description provided for @networkConnectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed or timed out. Check the service URL and HTTP proxy'**
+  String get networkConnectionFailed;
+
+  /// No description provided for @httpStatusError.
+  ///
+  /// In en, this message translates to:
+  /// **'The service returned HTTP {code}'**
+  String httpStatusError(String code);
+
+  /// No description provided for @operationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation failed. Please try again'**
+  String get operationFailed;
+
+  /// No description provided for @invalidServiceUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid HTTPS URL (WebDAV also supports HTTP)'**
+  String get invalidServiceUrl;
+
+  /// No description provided for @invalidProxyUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy URL must use http://host:port'**
+  String get invalidProxyUrl;
+
+  /// No description provided for @proxyUrlRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a proxy URL'**
+  String get proxyUrlRequired;
+
+  /// No description provided for @invalidAiModels.
+  ///
+  /// In en, this message translates to:
+  /// **'AI /models did not return valid JSON'**
+  String get invalidAiModels;
+
+  /// No description provided for @aiClientClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'AI client is closed'**
+  String get aiClientClosed;
+
+  /// No description provided for @aiAlreadyRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'AI analysis is already running'**
+  String get aiAlreadyRunning;
+
+  /// No description provided for @modelNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an AI model name'**
+  String get modelNameRequired;
+
+  /// No description provided for @tooManyFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'This directory contains more than 500 files. Select a smaller directory'**
+  String get tooManyFiles;
+
+  /// No description provided for @aiCallLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'AI tool call limit exceeded'**
+  String get aiCallLimit;
+
+  /// No description provided for @invalidAiSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'AI returned no valid suggestions or reached its execution limit'**
+  String get invalidAiSuggestions;
+
+  /// No description provided for @missingTmdbEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'AI suggestions lack valid TMDB episode evidence. Please try again'**
+  String get missingTmdbEvidence;
+
+  /// No description provided for @tmdbTokenRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure a TMDB token'**
+  String get tmdbTokenRequired;
+
+  /// No description provided for @invalidSeriesQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid series query'**
+  String get invalidSeriesQuery;
+
+  /// No description provided for @invalidSeasonNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid series or season number'**
+  String get invalidSeasonNumber;
+
+  /// No description provided for @duplicateSource.
+  ///
+  /// In en, this message translates to:
+  /// **'The same source file appears more than once'**
+  String get duplicateSource;
+
+  /// No description provided for @sourceAttributesChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Source file attributes changed. Generate suggestions again'**
+  String get sourceAttributesChanged;
+
+  /// No description provided for @targetConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'The target conflicts with another pending file'**
+  String get targetConflict;
+
+  /// No description provided for @taskAlreadyRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'An organizing task is already running'**
+  String get taskAlreadyRunning;
+
+  /// No description provided for @sourceMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The source file no longer exists'**
+  String get sourceMissing;
+
+  /// No description provided for @sourceChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Source file attributes changed'**
+  String get sourceChanged;
+
+  /// No description provided for @targetExists.
+  ///
+  /// In en, this message translates to:
+  /// **'The target already exists'**
+  String get targetExists;
+
+  /// No description provided for @rootModificationForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot modify the WebDAV root directory'**
+  String get rootModificationForbidden;
+
+  /// No description provided for @moveIntoSelfForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot move a directory inside itself'**
+  String get moveIntoSelfForbidden;
+
+  /// No description provided for @unsupportedFileOperation.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported file operation'**
+  String get unsupportedFileOperation;
+
+  /// No description provided for @invalidFileNameEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid file name: the name cannot be empty'**
+  String get invalidFileNameEmpty;
+
+  /// No description provided for @invalidFileNameControl.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid file name: control characters are not allowed'**
+  String get invalidFileNameControl;
+
+  /// No description provided for @invalidFileNameEnding.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid file name: cannot end with a space or period'**
+  String get invalidFileNameEnding;
+
+  /// No description provided for @invalidFileNameCharacters.
+  ///
+  /// In en, this message translates to:
+  /// **'The file name contains invalid characters'**
+  String get invalidFileNameCharacters;
+
+  /// No description provided for @sourcePathChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Source file changed: {path}'**
+  String sourcePathChanged(String path);
+
+  /// No description provided for @extensionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the original extension: {extension}'**
+  String extensionRequired(String extension);
+
+  /// No description provided for @duplicateTargetName.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate target file name: {name}'**
+  String duplicateTargetName(String name);
+
+  /// No description provided for @targetNameExists.
+  ///
+  /// In en, this message translates to:
+  /// **'Target already exists: {name}'**
+  String targetNameExists(String name);
+
+  /// No description provided for @invalidFileNameReserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid file name: “{name}” is not allowed'**
+  String invalidFileNameReserved(String name);
+
+  /// No description provided for @invalidFileNameReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid file name: replace “{character}” with “{replacement}” or “-”'**
+  String invalidFileNameReplace(String character, String replacement);
+
   /// No description provided for @compactSidebar.
   ///
   /// In en, this message translates to:

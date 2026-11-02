@@ -8,6 +8,9 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/widgets.dart';
+import '../../shared/localization.dart';
+import '../../shared/runtime_localization.dart';
+import '../../shared/responsive_button.dart';
 import 'ai/ai_usage.dart';
 import 'connections/connection_settings.dart';
 import 'dav/dav_paths.dart';
@@ -63,7 +66,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
   Future<bool> _confirm(
     String title, {
     String? detail,
-    String action = '确认',
+    String? action,
     bool destructive = false,
   }) async =>
       await showFDialog<bool>(
@@ -89,7 +92,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                   ],
                   const SizedBox(height: 24),
                   _DialogActions(
-                    action: action,
+                    action: action ?? context.l10n.confirmAction,
                     destructive: destructive,
                     onConfirm: () => Navigator.of(context).pop(true),
                   ),
@@ -127,7 +130,11 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       if (mounted) ref.invalidate(directoryFavoritesProvider(scope));
     } catch (_) {
       if (mounted) {
-        notifyUser(context, '保存收藏失败，请重试', type: NoticeType.error);
+        notifyUser(
+          context,
+          context.l10n.favoriteSaveFailed,
+          type: NoticeType.error,
+        );
       }
     } finally {
       if (mounted) setState(() => _savingFavorite = false);
@@ -136,9 +143,9 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
 
   Future<void> _propose() async {
     if (await _confirm(
-          '将此目录发送给 AI 分析？',
-          detail: '所选目录路径和文件名将发送至你配置的 AI 服务，文件内容不会上传。',
-          action: '开始分析',
+          context.l10n.analyzeDirectory,
+          detail: context.l10n.analyzeDirectoryDetail,
+          action: context.l10n.startAnalysis,
         ) &&
         mounted) {
       await _controller.propose(instruction: instruction.text.trim());
@@ -150,9 +157,9 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
 
   Future<void> _execute() async {
     if (await _confirm(
-          '执行已选择的重命名？',
-          detail: '将按预览逐项修改 NAS 文件名，遇到失败立即停止，不覆盖已有文件。',
-          action: '开始执行',
+          context.l10n.executeRenames,
+          detail: context.l10n.executeRenamesDetail,
+          action: context.l10n.startExecution,
         ) &&
         mounted) {
       await _controller.execute();
@@ -175,12 +182,12 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       return PageContent(
         children: [
           EmptyNotice(
-            '尚未配置 NAS 连接。请先填写 WebDAV 地址、AI 服务与 TMDB 凭据。',
+            context.l10n.noConnectionConfigured,
             child: FButton(
               mainAxisSize: MainAxisSize.min,
               prefix: const Icon(FLucideIcons.settings2),
               onPress: () => context.go('/connections'),
-              child: const Text('配置连接'),
+              child: Text(context.l10n.configureConnection),
             ),
           ),
         ],
@@ -316,7 +323,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 children: [
                   if (preview) ...[
                     Text(
-                      '逐项修改，遇到失败立即停止，不覆盖已有文件。',
+                      context.l10n.executionSafety,
                       style: context.theme.typography.body.sm.copyWith(
                         color: context.theme.colors.mutedForeground,
                       ),
@@ -325,9 +332,10 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                   ],
                   if (preview)
                     FButton(
+                      builder: responsiveButtonContent,
                       prefix: const Icon(FLucideIcons.play),
                       onPress: canExecute ? _execute : null,
-                      child: const Text('确认并执行'),
+                      child: Text(context.l10n.confirmAndExecute),
                     )
                   else
                     Row(
@@ -344,13 +352,14 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                         ],
                         Expanded(
                           child: FButton(
+                            builder: responsiveButtonContent,
                             prefix: const Icon(FLucideIcons.arrowRight),
                             onPress:
                                 locked ||
                                     !state.entries.any((e) => !e.directory)
                                 ? null
                                 : () => context.go('/organize/assistant'),
-                            child: const Text('整理此目录'),
+                            child: Text(context.l10n.organizeDirectory),
                           ),
                         ),
                       ],
@@ -394,19 +403,21 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       children: [
         tool(
           FLucideIcons.arrowUp,
-          '返回上级',
+          context.l10n.parentDirectory,
           locked || parent == null ? null : () => _openParent(root),
         ),
         const SizedBox(width: 8),
         tool(
           FLucideIcons.refreshCw,
-          '刷新目录',
+          context.l10n.refreshDirectory,
           locked ? null : () => _controller.open(state.directory),
         ),
         const SizedBox(width: 8),
         tool(
           FLucideIcons.star,
-          selected ? '取消收藏当前目录' : '收藏当前目录',
+          selected
+              ? context.l10n.unfavoriteDirectory
+              : context.l10n.favoriteDirectory,
           locked || _savingFavorite || paths == null
               ? null
               : () =>
@@ -416,7 +427,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
         const SizedBox(width: 8),
         tool(
           FLucideIcons.list,
-          '收藏列表',
+          context.l10n.favorites,
           locked ? null : () => _favorites(scope, state.directory),
         ),
       ],
@@ -428,26 +439,32 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     runSpacing: 12,
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
-      FBreadcrumb(
-        children: [
-          FBreadcrumbItem(
-            current: widget.step == OrganizerStep.browse,
-            onPress: locked || widget.step == OrganizerStep.browse
-                ? null
-                : () => context.go('/organize'),
-            child: const Text('NAS 目录'),
-          ),
-          if (widget.step != OrganizerStep.browse)
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: FBreadcrumb(
+          children: [
             FBreadcrumbItem(
-              current: widget.step == OrganizerStep.assistant,
-              onPress: locked || widget.step == OrganizerStep.assistant
+              current: widget.step == OrganizerStep.browse,
+              onPress: locked || widget.step == OrganizerStep.browse
                   ? null
-                  : () => context.go('/organize/assistant'),
-              child: const Text('整理要求'),
+                  : () => context.go('/organize'),
+              child: Text(context.l10n.nasDirectory),
             ),
-          if (widget.step == OrganizerStep.preview)
-            const FBreadcrumbItem(current: true, child: Text('修改预览')),
-        ],
+            if (widget.step != OrganizerStep.browse)
+              FBreadcrumbItem(
+                current: widget.step == OrganizerStep.assistant,
+                onPress: locked || widget.step == OrganizerStep.assistant
+                    ? null
+                    : () => context.go('/organize/assistant'),
+                child: Text(context.l10n.organizingRequirements),
+              ),
+            if (widget.step == OrganizerStep.preview)
+              FBreadcrumbItem(
+                current: true,
+                child: Text(context.l10n.renamePreview),
+              ),
+          ],
+        ),
       ),
     ],
   );
@@ -466,10 +483,10 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
         if (done != null && total != null && total > 0) value = done / total;
       }
       final label = state.executing
-          ? '正在执行重命名'
+          ? context.l10n.renaming
           : state.message.isEmpty
-          ? '正在处理…'
-          : state.message;
+          ? context.l10n.processing
+          : localizeRuntimeMessage(context.l10n, state.message);
       return Surface(
         padding: 16,
         child: Column(
@@ -480,7 +497,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 Expanded(child: Text(label)),
                 if (state.executing && state.progress.isNotEmpty)
                   Text(
-                    state.progress,
+                    localizeRuntimeMessage(context.l10n, state.progress),
                     style: theme.typography.body.sm.copyWith(
                       color: theme.colors.mutedForeground,
                     ),
@@ -499,7 +516,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     return FAlert(
       variant: .destructive,
       icon: const Icon(FLucideIcons.circleAlert),
-      title: Text(state.message),
+      title: Text(localizeRuntimeMessage(context.l10n, state.message)),
     );
   }
 
@@ -515,7 +532,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
 
     final crumbs = <(String, String)>[];
     if (state.directory.startsWith(root)) {
-      crumbs.add(('根目录', root));
+      crumbs.add((context.l10n.rootDirectory, root));
       var path = root;
       for (final segment
           in state.directory
@@ -570,10 +587,13 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('NAS 目录', style: theme.typography.body.lg),
+                          Text(
+                            context.l10n.nasDirectory,
+                            style: theme.typography.body.lg,
+                          ),
                           if (connected)
                             Text(
-                              '$folders 个文件夹 · $files 个文件',
+                              context.l10n.directoryCounts(folders, files),
                               style: theme.typography.body.xs.copyWith(
                                 color: theme.colors.mutedForeground,
                               ),
@@ -594,7 +614,11 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                       prefix: Icon(
                         connected ? FLucideIcons.unplug : FLucideIcons.plugZap,
                       ),
-                      child: Text(connected ? '断开连接' : '连接 NAS'),
+                      child: Text(
+                        connected
+                            ? context.l10n.disconnect
+                            : context.l10n.connectNas,
+                      ),
                     ),
                   ],
                 ),
@@ -636,7 +660,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                         controller: filter,
                         onChange: (_) => setState(() {}),
                       ),
-                      hint: '按名称筛选',
+                      hint: context.l10n.filterByName,
                     ),
                   ),
               ],
@@ -657,21 +681,23 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                         : visible.length,
                     itemBuilder: (context, index) {
                       if (!connected) {
-                        return const _Placeholder(
+                        return _Placeholder(
                           icon: FLucideIcons.hardDrive,
-                          message: '连接 NAS 后，在这里浏览并打开要整理的剧集目录。',
+                          message: context.l10n.browseNasHint,
                         );
                       }
                       if (state.entries.isEmpty) {
-                        return const _Placeholder(
+                        return _Placeholder(
                           icon: FLucideIcons.folderOpen,
-                          message: '此目录为空',
+                          message: context.l10n.directoryEmpty,
                         );
                       }
                       if (visible.isEmpty) {
                         return _Placeholder(
                           icon: FLucideIcons.search,
-                          message: '没有名称包含“${filter.text.trim()}”的项目',
+                          message: context.l10n.noNameMatches(
+                            filter.text.trim(),
+                          ),
                         );
                       }
                       final entry = visible[index];
@@ -703,9 +729,9 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     final hasFiles = state.entries.any((e) => !e.directory);
     final canPropose = !locked && state.directory.isNotEmpty && hasFiles;
     final hint = state.directory.isEmpty
-        ? '请先连接 NAS 并打开剧集所在目录。'
+        ? context.l10n.openSeriesDirectory
         : !hasFiles
-        ? '当前目录没有文件，请打开包含剧集文件的目录。'
+        ? context.l10n.openNonemptyDirectory
         : null;
     return Surface(
       padding: 20,
@@ -720,7 +746,12 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 color: theme.colors.mutedForeground,
               ),
               const SizedBox(width: 10),
-              Expanded(child: Text('AI 整理建议', style: theme.typography.body.lg)),
+              Expanded(
+                child: Text(
+                  context.l10n.aiSuggestions,
+                  style: theme.typography.body.lg,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -731,16 +762,17 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
           const SizedBox(height: 16),
           FTextField(
             control: .managed(controller: instruction),
-            label: const Text('整理要求（可选）'),
-            hint: '剧名、季数、TMDB ID 或命名偏好',
+            label: Text(context.l10n.optionalRequirements),
+            hint: context.l10n.requirementsHint,
             enabled: !locked,
             onSubmit: canPropose ? (_) => _propose() : null,
           ),
           const SizedBox(height: 12),
           FButton(
+            builder: responsiveButtonContent,
             prefix: const Icon(FLucideIcons.sparkles),
             onPress: canPropose ? _propose : null,
-            child: const Text('AI 生成重命名建议'),
+            child: Text(context.l10n.generateSuggestions),
           ),
           if (state.plan.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -749,7 +781,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
               onPress: locked
                   ? null
                   : () => context.go('/organize/assistant/preview'),
-              child: const Text('查看修改预览'),
+              child: Text(context.l10n.viewRenamePreview),
             ),
           ],
           if (hint != null) ...[
@@ -789,16 +821,19 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                   color: theme.colors.mutedForeground,
                 ),
                 const SizedBox(width: 10),
-                Text('修改预览', style: theme.typography.body.lg),
+                Text(
+                  context.l10n.renamePreview,
+                  style: theme.typography.body.lg,
+                ),
               ],
             ),
             const SizedBox(height: 6),
-            Text('暂无待执行的修改', style: muted),
+            Text(context.l10n.noPendingChanges, style: muted),
             const SizedBox(height: 12),
             FButton(
               variant: .outline,
               onPress: locked ? null : () => context.go('/organize/assistant'),
-              child: const Text('返回整理要求'),
+              child: Text(context.l10n.backToRequirements),
             ),
           ],
         ),
@@ -829,9 +864,16 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('修改预览', style: theme.typography.body.lg),
                       Text(
-                        '已选 $selected / ${state.plan.length} 项 · $changes 项将被修改',
+                        context.l10n.renamePreview,
+                        style: theme.typography.body.lg,
+                      ),
+                      Text(
+                        context.l10n.selectedChanges(
+                          selected,
+                          state.plan.length,
+                          changes,
+                        ),
                         style: theme.typography.body.xs.copyWith(
                           color: theme.colors.mutedForeground,
                         ),
@@ -847,7 +889,11 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                   onPress: locked
                       ? null
                       : () => _controller.setAllEnabled(!allSelected),
-                  child: Text(allSelected ? '全不选' : '全选'),
+                  child: Text(
+                    allSelected
+                        ? context.l10n.deselectAll
+                        : context.l10n.selectAll,
+                  ),
                 ),
               ],
             ),
@@ -871,8 +917,8 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
               child: FAlert(
                 variant: .destructive,
                 icon: const Icon(FLucideIcons.circleAlert),
-                title: const Text('暂时无法执行'),
-                subtitle: Text(error),
+                title: Text(context.l10n.cannotExecute),
+                subtitle: Text(localizeRuntimeMessage(context.l10n, error)),
               ),
             ),
           ],
@@ -895,17 +941,20 @@ class AiUsagePanel extends StatelessWidget {
     final tps = usage.tokensPerSecond;
     final cost = pricing?.estimate(usage);
     final metrics = [
-      ('输入 Tok', available ? '${usage.inputTokens}' : '—'),
-      ('输出 Tok', available ? '${usage.outputTokens}' : '—'),
-      ('平均 TPS', tps?.toStringAsFixed(1) ?? '—'),
-      ('预估花费', cost == null ? '—' : '\$${cost.toStringAsFixed(6)}'),
+      (context.l10n.inputTokens, available ? '${usage.inputTokens}' : '—'),
+      (context.l10n.outputTokens, available ? '${usage.outputTokens}' : '—'),
+      (context.l10n.averageTps, tps?.toStringAsFixed(1) ?? '—'),
+      (
+        context.l10n.estimatedCost,
+        cost == null ? '—' : '\$${cost.toStringAsFixed(6)}',
+      ),
     ];
     return Surface(
       padding: 20,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('AI 分析用量', style: theme.typography.body.lg),
+          Text(context.l10n.analysisUsage, style: theme.typography.body.lg),
           const SizedBox(height: 16),
           Wrap(
             spacing: 32,
@@ -954,7 +1003,7 @@ class _DialogActions extends StatelessWidget {
         variant: .outline,
         mainAxisSize: MainAxisSize.min,
         onPress: () => Navigator.of(context).pop(),
-        child: const Text('取消'),
+        child: Text(context.l10n.cancel),
       ),
       FButton(
         variant: destructive ? .destructive : .primary,
@@ -1061,13 +1110,15 @@ class _EntryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.theme;
     final details = [
-      if (entry.directory) '文件夹',
+      if (entry.directory) context.l10n.folder,
       if (!entry.directory && entry.size != null) _formatSize(entry.size!),
       if (!compact || entry.directory) ?_formatModified(entry.modified),
     ].join(' · ');
     return FTappable(
       onPress: entry.directory && !locked ? onOpen : null,
-      semanticsLabel: entry.directory ? '打开 ${entry.name}' : entry.name,
+      semanticsLabel: entry.directory
+          ? context.l10n.openEntry(entry.name)
+          : entry.name,
       builder: (context, variants, child) => AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -1119,7 +1170,14 @@ class _EntryRow extends StatelessWidget {
             ),
             if (planned) ...[
               const SizedBox(width: 8),
-              FBadge(variant: .secondary, child: Text(compact ? '待改' : '待重命名')),
+              FBadge(
+                variant: .secondary,
+                child: Text(
+                  compact
+                      ? context.l10n.pendingRenameShort
+                      : context.l10n.pendingRename,
+                ),
+              ),
             ],
             const SizedBox(width: 4),
             if (entry.directory)
@@ -1212,7 +1270,10 @@ class _RenameRowState extends State<_RenameRow> {
                       ),
                       if (unchanged) ...[
                         const SizedBox(width: 8),
-                        FBadge(variant: .outline, child: const Text('未变化')),
+                        FBadge(
+                          variant: .outline,
+                          child: Text(context.l10n.unchanged),
+                        ),
                       ],
                     ],
                   ),
@@ -1223,12 +1284,12 @@ class _RenameRowState extends State<_RenameRow> {
                       onChange: (value) => widget.onName(value.text),
                     ),
                     enabled: !widget.disabled,
-                    hint: '新文件名',
+                    hint: context.l10n.newFileName,
                   ),
                   if (issue != null) ...[
                     const SizedBox(height: 6),
                     Text(
-                      issue,
+                      localizeRuntimeMessage(context.l10n, issue),
                       style: theme.typography.body.xs.copyWith(
                         color: theme.colors.destructive,
                       ),
@@ -1237,7 +1298,7 @@ class _RenameRowState extends State<_RenameRow> {
                   if (item.reason.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
-                      item.reason,
+                      localizeRuntimeMessage(context.l10n, item.reason),
                       style: theme.typography.body.xs.copyWith(
                         color: theme.colors.mutedForeground,
                       ),

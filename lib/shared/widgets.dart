@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_exception.dart';
 import 'localization.dart';
+import 'runtime_localization.dart';
 
 /// The width below which the application switches to its mobile layout.
 const mobileBreakpoint = 600.0;
@@ -219,29 +220,29 @@ void notifyUser(
     NoticeType.success => (
       FLucideIcons.circleCheck,
       dark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
-      '成功',
+      context.l10n.success,
     ),
     NoticeType.error => (
       FLucideIcons.circleX,
       context.theme.colors.destructive,
-      '错误',
+      context.l10n.noticeError,
     ),
     NoticeType.warning => (
       FLucideIcons.triangleAlert,
       dark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-      '警告',
+      context.l10n.warning,
     ),
     NoticeType.info => (
       FLucideIcons.info,
       dark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
-      '信息',
+      context.l10n.information,
     ),
   };
   showFToast(
     context: context,
     variant: type == NoticeType.error ? .destructive : .primary,
     icon: Icon(icon, color: color, semanticLabel: label),
-    title: Text(message),
+    title: Text(localizeRuntimeMessage(context.l10n, message)),
     alignment: FToastAlignment.topCenter,
   );
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 
 import '../../../shared/widgets.dart';
+import '../../../shared/localization.dart';
 import 'dav_paths.dart';
 import 'directory_favorites.dart';
 
@@ -44,7 +45,7 @@ class _FavoritesDialogState extends ConsumerState<_FavoritesDialog> {
       await repository.remove(widget.scope, path);
       if (mounted) ref.invalidate(directoryFavoritesProvider(widget.scope));
     } catch (_) {
-      if (mounted) setState(() => error = '保存收藏失败，请重试');
+      if (mounted) setState(() => error = context.l10n.favoriteSaveFailed);
     } finally {
       if (mounted) setState(() => saving = false);
     }
@@ -63,25 +64,25 @@ class _FavoritesDialogState extends ConsumerState<_FavoritesDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('收藏列表', style: context.theme.typography.body.lg),
+          Text(context.l10n.favorites, style: context.theme.typography.body.lg),
           const SizedBox(height: 16),
           if (error != null) ...[Text(error!), const SizedBox(height: 12)],
           Flexible(
             child: favorites.when(
-              loading: () => const Text('加载中…'),
+              loading: () => Text(context.l10n.loading),
               error: (_, _) => Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('读取收藏失败'),
+                  Text(context.l10n.favoritesLoadFailed),
                   FButton(
                     variant: .outline,
                     onPress: () => ref.invalidate(provider),
-                    child: const Text('重试'),
+                    child: Text(context.l10n.retry),
                   ),
                 ],
               ),
               data: (items) => items.isEmpty
-                  ? const Text('暂无收藏目录')
+                  ? Text(context.l10n.noFavorites)
                   : SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -113,8 +114,9 @@ class _FavoritesDialogState extends ConsumerState<_FavoritesDialog> {
                                   FButton.icon(
                                     variant: .destructive,
                                     size: .sm,
-                                    semanticsLabel:
-                                        '移除收藏 ${displayDavPath(path)}',
+                                    semanticsLabel: context.l10n.removeFavorite(
+                                      displayDavPath(path),
+                                    ),
                                     onPress: saving
                                         ? null
                                         : () => _remove(path),

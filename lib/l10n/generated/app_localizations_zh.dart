@@ -250,6 +250,699 @@ class AppLocalizationsZh extends AppLocalizations {
   String get namingLanguage => '命名语言';
 
   @override
+  String get organizeSeries => '剧集整理';
+
+  @override
+  String get executionHistory => '执行记录';
+
+  @override
+  String get aiUsage => 'AI 用量';
+
+  @override
+  String get switchLight => '切换亮色模式';
+
+  @override
+  String get switchDark => '切换暗色模式';
+
+  @override
+  String get minimizeWindow => '最小化';
+
+  @override
+  String get maximizeWindow => '最大化 / 还原';
+
+  @override
+  String get previousStep => '返回上一步';
+
+  @override
+  String get saveThemeFailed => '保存主题设置失败，请重试';
+
+  @override
+  String get webdavUrl => 'WebDAV 地址';
+
+  @override
+  String get username => '用户名';
+
+  @override
+  String get password => '密码';
+
+  @override
+  String get aiBaseUrl => 'OpenAI 兼容 API 基础地址';
+
+  @override
+  String get modelName => '模型名称';
+
+  @override
+  String get testWebdav => '测试 WebDAV';
+
+  @override
+  String get testAi => '测试 AI';
+
+  @override
+  String get testTmdb => '测试 TMDB';
+
+  @override
+  String get saveConfiguration => '保存配置';
+
+  @override
+  String get configurationSaved => '配置已保存';
+
+  @override
+  String get httpProxy => 'HTTP 代理';
+
+  @override
+  String get proxyMode => '代理模式';
+
+  @override
+  String get directConnection => '直连';
+
+  @override
+  String get systemProxyMode => '系统代理';
+
+  @override
+  String get manualProxyMode => '手动代理';
+
+  @override
+  String get proxyAddress => '代理地址（http://主机:端口）';
+
+  @override
+  String get proxyAi => 'AI 使用代理';
+
+  @override
+  String get proxyTmdb => 'TMDB 使用代理';
+
+  @override
+  String get proxyWebdav => 'WebDAV 使用代理';
+
+  @override
+  String get appAbout => '关于';
+
+  @override
+  String get misansLicense => 'MiSans 字体许可';
+
+  @override
+  String get tmdbDisclaimer =>
+      'This product uses the TMDB API but is not endorsed or certified by TMDB.';
+
+  @override
+  String saveFailed(String error) {
+    return '保存失败：$error';
+  }
+
+  @override
+  String connectionFailed(String error) {
+    return '连接失败：$error';
+  }
+
+  @override
+  String configurationLoadFailed(String error) {
+    return '读取配置失败：$error';
+  }
+
+  @override
+  String connectionSucceeded(String route) {
+    return '连接成功 · $route';
+  }
+
+  @override
+  String get warning => '警告';
+
+  @override
+  String get information => '信息';
+
+  @override
+  String get noticeError => '错误';
+
+  @override
+  String get favoriteSaveFailed => '保存收藏失败，请重试';
+
+  @override
+  String get favorites => '收藏列表';
+
+  @override
+  String get favoritesLoadFailed => '读取收藏失败';
+
+  @override
+  String get noFavorites => '暂无收藏目录';
+
+  @override
+  String removeFavorite(String path) {
+    return '移除收藏 $path';
+  }
+
+  @override
+  String get confirmAction => '确认';
+
+  @override
+  String get analyzeDirectory => '将此目录发送给 AI 分析？';
+
+  @override
+  String get analyzeDirectoryDetail => '所选目录路径和文件名将发送至你配置的 AI 服务，文件内容不会上传。';
+
+  @override
+  String get startAnalysis => '开始分析';
+
+  @override
+  String get executeRenames => '执行已选择的重命名？';
+
+  @override
+  String get executeRenamesDetail => '将按预览逐项修改 NAS 文件名，遇到失败立即停止，不覆盖已有文件。';
+
+  @override
+  String get startExecution => '开始执行';
+
+  @override
+  String get configureConnection => '配置连接';
+
+  @override
+  String get noConnectionConfigured =>
+      '尚未配置 NAS 连接。请先填写 WebDAV 地址、AI 服务与 TMDB 凭据。';
+
+  @override
+  String get executionSafety => '逐项修改，遇到失败立即停止，不覆盖已有文件。';
+
+  @override
+  String get confirmAndExecute => '确认并执行';
+
+  @override
+  String get organizeDirectory => '整理此目录';
+
+  @override
+  String get parentDirectory => '返回上级';
+
+  @override
+  String get refreshDirectory => '刷新目录';
+
+  @override
+  String get unfavoriteDirectory => '取消收藏当前目录';
+
+  @override
+  String get favoriteDirectory => '收藏当前目录';
+
+  @override
+  String get nasDirectory => 'NAS 目录';
+
+  @override
+  String get organizingRequirements => '整理要求';
+
+  @override
+  String get renamePreview => '修改预览';
+
+  @override
+  String get renaming => '正在执行重命名';
+
+  @override
+  String get processing => '正在处理…';
+
+  @override
+  String get rootDirectory => '根目录';
+
+  @override
+  String directoryCounts(int folders, int files) {
+    return '$folders 个文件夹 · $files 个文件';
+  }
+
+  @override
+  String get disconnect => '断开连接';
+
+  @override
+  String get connectNas => '连接 NAS';
+
+  @override
+  String get filterByName => '按名称筛选';
+
+  @override
+  String get browseNasHint => '连接 NAS 后，在这里浏览并打开要整理的剧集目录。';
+
+  @override
+  String get directoryEmpty => '此目录为空';
+
+  @override
+  String noNameMatches(String query) {
+    return '没有名称包含“$query”的项目';
+  }
+
+  @override
+  String get openSeriesDirectory => '请先连接 NAS 并打开剧集所在目录。';
+
+  @override
+  String get openNonemptyDirectory => '当前目录没有文件，请打开包含剧集文件的目录。';
+
+  @override
+  String get aiSuggestions => 'AI 整理建议';
+
+  @override
+  String get optionalRequirements => '整理要求（可选）';
+
+  @override
+  String get requirementsHint => '剧名、季数、TMDB ID 或命名偏好';
+
+  @override
+  String get generateSuggestions => 'AI 生成重命名建议';
+
+  @override
+  String get viewRenamePreview => '查看修改预览';
+
+  @override
+  String get noPendingChanges => '暂无待执行的修改';
+
+  @override
+  String get backToRequirements => '返回整理要求';
+
+  @override
+  String selectedChanges(int selected, int total, int changes) {
+    return '已选 $selected / $total 项 · $changes 项将被修改';
+  }
+
+  @override
+  String get deselectAll => '全不选';
+
+  @override
+  String get selectAll => '全选';
+
+  @override
+  String get cannotExecute => '暂时无法执行';
+
+  @override
+  String get inputTokens => '输入 Tok';
+
+  @override
+  String get outputTokens => '输出 Tok';
+
+  @override
+  String get averageTps => '平均 TPS';
+
+  @override
+  String get estimatedCost => '预估花费';
+
+  @override
+  String get analysisUsage => 'AI 分析用量';
+
+  @override
+  String get folder => '文件夹';
+
+  @override
+  String openEntry(String name) {
+    return '打开 $name';
+  }
+
+  @override
+  String get pendingRenameShort => '待改';
+
+  @override
+  String get pendingRename => '待重命名';
+
+  @override
+  String get unchanged => '未变化';
+
+  @override
+  String get newFileName => '新文件名';
+
+  @override
+  String get usageLoadFailed => '读取 AI 用量失败';
+
+  @override
+  String get analysisCount => '分析次数';
+
+  @override
+  String get modelRequests => '模型请求';
+
+  @override
+  String get totalInputTokens => '累计输入 Tok';
+
+  @override
+  String get totalOutputTokens => '累计输出 Tok';
+
+  @override
+  String get totalEstimatedCost => '预估总花费（USD）';
+
+  @override
+  String get analysisHistory => '分析记录';
+
+  @override
+  String incompleteUsageCount(int count) {
+    return '$count 次用量不完整';
+  }
+
+  @override
+  String unknownCostCount(int count) {
+    return '$count 次花费未知';
+  }
+
+  @override
+  String get noAiUsage => '暂无 AI 分析用量';
+
+  @override
+  String get failed => '失败';
+
+  @override
+  String usageInput(String tokens) {
+    return '输入 $tokens Tok';
+  }
+
+  @override
+  String usageOutput(String tokens) {
+    return '输出 $tokens Tok';
+  }
+
+  @override
+  String get unknownCost => '花费 —';
+
+  @override
+  String modelRequestCount(int count) {
+    return '$count 次模型请求';
+  }
+
+  @override
+  String historyLoadFailed(String error) {
+    return '读取记录失败：$error';
+  }
+
+  @override
+  String get noExecutionHistory => '暂无执行记录';
+
+  @override
+  String operationCount(int count) {
+    return '$count 项操作';
+  }
+
+  @override
+  String get otherRecords => '其他记录';
+
+  @override
+  String get today => '今天';
+
+  @override
+  String get yesterday => '昨天';
+
+  @override
+  String get initiated => '已发起';
+
+  @override
+  String get collapseHistory => '收起记录详情';
+
+  @override
+  String get expandHistory => '展开记录详情';
+
+  @override
+  String startedAtTime(String time) {
+    return '开始于 $time';
+  }
+
+  @override
+  String get renameAction => '重命名';
+
+  @override
+  String get moveAction => '移动 / 重命名';
+
+  @override
+  String get uploadAction => '上传文件';
+
+  @override
+  String get createDirectory => '新建文件夹';
+
+  @override
+  String get operationRecord => '操作记录';
+
+  @override
+  String get invalidDirectoryPath => '目录路径无效';
+
+  @override
+  String get favoriteOutsideRoot => '收藏目录超出 NAS 根目录';
+
+  @override
+  String get webdavUrlParameters => 'WebDAV 地址不能包含参数';
+
+  @override
+  String get pathOutsideConnection => '路径不在 WebDAV 连接目录内';
+
+  @override
+  String get invalidWebdavProperties => 'WebDAV 未返回有效属性';
+
+  @override
+  String get unknownFileStatus => '无法确定文件状态，请检查 WebDAV 权限';
+
+  @override
+  String get moveUnconfirmed => '移动未确认成功，请刷新目录核对';
+
+  @override
+  String get directoryCreationUnconfirmed => '创建目录未确认成功';
+
+  @override
+  String get deleteUnconfirmed => '删除未确认成功，请刷新目录核对';
+
+  @override
+  String get uploadUnconfirmed => '上传未确认成功，请刷新目录核对';
+
+  @override
+  String get absoluteWebdavPathRequired => 'WebDAV 路径必须为绝对路径';
+
+  @override
+  String get unsafeWebdavPath => 'WebDAV 路径包含不安全的字符';
+
+  @override
+  String get networkClientClosed => '网络客户端已关闭';
+
+  @override
+  String get systemProxyTimeout => '读取系统代理超时';
+
+  @override
+  String get invalidSystemProxy => '系统代理未返回有效配置';
+
+  @override
+  String get systemProxyUnsupported => '当前平台不支持读取系统代理';
+
+  @override
+  String get systemProxyReadFailed => '读取系统代理失败';
+
+  @override
+  String get environmentProxyUnsupported => '系统环境代理仅支持无认证 HTTP 代理';
+
+  @override
+  String get systemProxyTypeUnsupported => '系统代理包含不支持的类型，仅支持无认证 HTTP 代理';
+
+  @override
+  String get databaseClosed => '数据库已关闭';
+
+  @override
+  String get databaseVersionTooNew => '数据库版本过高';
+
+  @override
+  String get targetFileExists => '目标文件已存在';
+
+  @override
+  String get queryingMetadata => '正在查询剧集资料…';
+
+  @override
+  String get suggestionsGenerated => '建议已生成';
+
+  @override
+  String get noReliableSuggestions => '未找到可靠的重命名建议，请补充剧名和季数后重试';
+
+  @override
+  String get usageSaveFailed => '保存 AI 用量失败';
+
+  @override
+  String get operationCompleted => '操作完成';
+
+  @override
+  String get downloading => '正在下载…';
+
+  @override
+  String get downloadCompleted => '下载完成';
+
+  @override
+  String get preparingExecution => '准备执行';
+
+  @override
+  String directoryReadFailed(String error) {
+    return '读取目录失败：$error';
+  }
+
+  @override
+  String suggestionsFailed(String error) {
+    return '生成建议失败：$error';
+  }
+
+  @override
+  String downloadFailed(String error) {
+    return '下载失败：$error';
+  }
+
+  @override
+  String fileOperationStopped(String error) {
+    return '文件操作已停止：$error；请刷新目录核对结果';
+  }
+
+  @override
+  String executionStopped(String error) {
+    return '执行已停止：$error；请刷新目录核对结果';
+  }
+
+  @override
+  String remainingExecutionStopped(String error) {
+    return '已停止：$error。请核对后再次确认执行剩余项';
+  }
+
+  @override
+  String completedItemCount(int count) {
+    return '已完成 $count 项';
+  }
+
+  @override
+  String aiAnalyzing(int count) {
+    return 'AI 分析中（$count/8）';
+  }
+
+  @override
+  String queryingTool(String name) {
+    return '查询：$name';
+  }
+
+  @override
+  String matchEvidence(String season, String episode, String title, String id) {
+    return '匹配结果：第 $season 季第 $episode 集 · $title\nTMDB $id';
+  }
+
+  @override
+  String authenticationFailed(String code) {
+    return '认证失败或没有访问权限（HTTP $code）';
+  }
+
+  @override
+  String get proxyAuthenticationUnsupported => '代理要求认证，当前仅支持无认证 HTTP 代理';
+
+  @override
+  String get remoteFileChanged => '文件已变化或目标已存在，请刷新目录核对';
+
+  @override
+  String get rateLimited => '请求过于频繁，请稍后再试';
+
+  @override
+  String get networkConnectionFailed => '网络连接失败或超时，请检查服务地址与 HTTP 代理';
+
+  @override
+  String httpStatusError(String code) {
+    return '服务返回 HTTP $code';
+  }
+
+  @override
+  String get operationFailed => '操作失败，请重试';
+
+  @override
+  String get invalidServiceUrl => '请输入有效的 HTTPS 地址（WebDAV 可使用 HTTP）';
+
+  @override
+  String get invalidProxyUrl => '代理地址应为 http://主机:端口';
+
+  @override
+  String get proxyUrlRequired => '请输入代理地址';
+
+  @override
+  String get invalidAiModels => 'AI /models 未返回有效 JSON';
+
+  @override
+  String get aiClientClosed => 'AI 客户端已关闭';
+
+  @override
+  String get aiAlreadyRunning => 'AI 正在分析';
+
+  @override
+  String get modelNameRequired => '请填写 AI 模型名称';
+
+  @override
+  String get tooManyFiles => '当前目录文件超过 500 个，请选择更小的剧集目录';
+
+  @override
+  String get aiCallLimit => 'AI 工具调用次数超过限制';
+
+  @override
+  String get invalidAiSuggestions => 'AI 未返回有效建议或已达到执行限制';
+
+  @override
+  String get missingTmdbEvidence => 'AI 建议缺少有效 TMDB 集数依据，请重试';
+
+  @override
+  String get tmdbTokenRequired => '请配置 TMDB Token';
+
+  @override
+  String get invalidSeriesQuery => '剧集查询无效';
+
+  @override
+  String get invalidSeasonNumber => '剧集或季编号无效';
+
+  @override
+  String get duplicateSource => '同一源文件出现多次';
+
+  @override
+  String get sourceAttributesChanged => '源文件属性已变化，请重新生成建议';
+
+  @override
+  String get targetConflict => '目标与待处理文件冲突';
+
+  @override
+  String get taskAlreadyRunning => '整理任务正在执行';
+
+  @override
+  String get sourceMissing => '源文件已不存在';
+
+  @override
+  String get sourceChanged => '源文件属性已变化';
+
+  @override
+  String get targetExists => '目标已存在';
+
+  @override
+  String get rootModificationForbidden => '不能修改 WebDAV 根目录';
+
+  @override
+  String get moveIntoSelfForbidden => '不能移动目录到自身内部';
+
+  @override
+  String get unsupportedFileOperation => '不支持的文件操作';
+
+  @override
+  String get invalidFileNameEmpty => '文件名无效：文件名不能为空';
+
+  @override
+  String get invalidFileNameControl => '文件名无效：不能包含控制字符';
+
+  @override
+  String get invalidFileNameEnding => '文件名无效：不能以空格或句点结尾';
+
+  @override
+  String get invalidFileNameCharacters => '文件名包含非法字符';
+
+  @override
+  String sourcePathChanged(String path) {
+    return '源文件已变化：$path';
+  }
+
+  @override
+  String extensionRequired(String extension) {
+    return '必须保留扩展名：$extension';
+  }
+
+  @override
+  String duplicateTargetName(String name) {
+    return '目标文件名重复：$name';
+  }
+
+  @override
+  String targetNameExists(String name) {
+    return '目标已存在：$name';
+  }
+
+  @override
+  String invalidFileNameReserved(String name) {
+    return '文件名无效：不能使用“$name”';
+  }
+
+  @override
+  String invalidFileNameReplace(String character, String replacement) {
+    return '文件名无效：不能包含“$character”，请替换为“$replacement”或“-”';
+  }
+
+  @override
   String get compactSidebar => '紧凑侧栏';
 
   @override

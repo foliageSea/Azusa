@@ -4,6 +4,7 @@ import 'package:forui/forui.dart';
 import 'package:intl/intl.dart';
 
 import '../../../shared/widgets.dart';
+import '../../../shared/localization.dart';
 import '../../../shared/status_badge.dart';
 import 'ai_usage_history.dart';
 import '../dav/dav_paths.dart';
@@ -22,13 +23,13 @@ class AiUsagePage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('读取 AI 用量失败'),
+                Text(context.l10n.usageLoadFailed),
                 const SizedBox(height: 12),
                 FButton(
                   variant: .outline,
                   mainAxisSize: MainAxisSize.min,
                   onPress: () => ref.invalidate(aiUsageHistoryProvider),
-                  child: const Text('重试'),
+                  child: Text(context.l10n.retry),
                 ),
               ],
             ),
@@ -48,15 +49,21 @@ class AiUsagePage extends ConsumerWidget {
               children: [
                 _MetricsGrid(
                   children: [
-                    _Metric('分析次数', '${summary.analyses}'),
-                    _Metric('模型请求', '${summary.responses}'),
-                    _Metric('累计输入 Tok', '$partial${summary.inputTokens}'),
-                    _Metric('累计输出 Tok', '$partial${summary.outputTokens}'),
+                    _Metric(context.l10n.analysisCount, '${summary.analyses}'),
+                    _Metric(context.l10n.modelRequests, '${summary.responses}'),
                     _Metric(
-                      '平均 TPS',
+                      context.l10n.totalInputTokens,
+                      '$partial${summary.inputTokens}',
+                    ),
+                    _Metric(
+                      context.l10n.totalOutputTokens,
+                      '$partial${summary.outputTokens}',
+                    ),
+                    _Metric(
+                      context.l10n.averageTps,
                       summary.tokensPerSecond?.toStringAsFixed(1) ?? '—',
                     ),
-                    _Metric('预估总花费（USD）', cost),
+                    _Metric(context.l10n.totalEstimatedCost, cost),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -64,24 +71,33 @@ class AiUsagePage extends ConsumerWidget {
                   spacing: 12,
                   runSpacing: 8,
                   children: [
-                    Text('分析记录', style: context.theme.typography.body.lg),
+                    Text(
+                      context.l10n.analysisHistory,
+                      style: context.theme.typography.body.lg,
+                    ),
                     if (summary.missingUsage > 0)
                       StatusBadge(
                         tone: StatusTone.warning,
-                        child: Text('${summary.missingUsage} 次用量不完整'),
+                        child: Text(
+                          context.l10n.incompleteUsageCount(
+                            summary.missingUsage,
+                          ),
+                        ),
                       ),
                     if (summary.pricedAnalyses < summary.analyses)
                       StatusBadge(
                         tone: StatusTone.warning,
                         child: Text(
-                          '${summary.analyses - summary.pricedAnalyses} 次花费未知',
+                          context.l10n.unknownCostCount(
+                            summary.analyses - summary.pricedAnalyses,
+                          ),
                         ),
                       ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 if (sorted.isEmpty)
-                  const Surface(child: Text('暂无 AI 分析用量'))
+                  Surface(child: Text(context.l10n.noAiUsage))
                 else
                   for (final record in sorted) ...[
                     _RecordCard(record),
@@ -169,7 +185,11 @@ class _RecordCard extends StatelessWidget {
               const SizedBox(width: 12),
               StatusBadge(
                 tone: record.succeeded ? StatusTone.success : StatusTone.error,
-                child: Text(record.succeeded ? '已完成' : '失败'),
+                child: Text(
+                  record.succeeded
+                      ? context.l10n.completed
+                      : context.l10n.failed,
+                ),
               ),
             ],
           ),
@@ -183,12 +203,12 @@ class _RecordCard extends StatelessWidget {
             spacing: 20,
             runSpacing: 8,
             children: [
-              Text('输入 $partial${usage.inputTokens} Tok'),
-              Text('输出 $partial${usage.outputTokens} Tok'),
+              Text(context.l10n.usageInput('$partial${usage.inputTokens}')),
+              Text(context.l10n.usageOutput('$partial${usage.outputTokens}')),
               Text('${usage.tokensPerSecond?.toStringAsFixed(1) ?? '—'} TPS'),
               Text(
                 record.estimatedCost == null
-                    ? '花费 —'
+                    ? context.l10n.unknownCost
                     : _money(record.estimatedCost!),
               ),
             ],
@@ -206,7 +226,7 @@ class _RecordCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '${usage.responses} 次模型请求',
+                context.l10n.modelRequestCount(usage.responses),
                 style: theme.typography.body.xs.copyWith(
                   color: theme.colors.mutedForeground,
                 ),

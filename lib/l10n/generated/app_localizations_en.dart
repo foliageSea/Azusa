@@ -252,6 +252,734 @@ class AppLocalizationsEn extends AppLocalizations {
   String get namingLanguage => 'Naming language';
 
   @override
+  String get organizeSeries => 'Organize series';
+
+  @override
+  String get executionHistory => 'Execution history';
+
+  @override
+  String get aiUsage => 'AI usage';
+
+  @override
+  String get switchLight => 'Switch to light mode';
+
+  @override
+  String get switchDark => 'Switch to dark mode';
+
+  @override
+  String get minimizeWindow => 'Minimize';
+
+  @override
+  String get maximizeWindow => 'Maximize / Restore';
+
+  @override
+  String get previousStep => 'Back to previous step';
+
+  @override
+  String get saveThemeFailed => 'Could not save theme. Please try again.';
+
+  @override
+  String get webdavUrl => 'WebDAV URL';
+
+  @override
+  String get username => 'Username';
+
+  @override
+  String get password => 'Password';
+
+  @override
+  String get aiBaseUrl => 'OpenAI-compatible API base URL';
+
+  @override
+  String get modelName => 'Model name';
+
+  @override
+  String get testWebdav => 'Test WebDAV';
+
+  @override
+  String get testAi => 'Test AI';
+
+  @override
+  String get testTmdb => 'Test TMDB';
+
+  @override
+  String get saveConfiguration => 'Save configuration';
+
+  @override
+  String get configurationSaved => 'Configuration saved';
+
+  @override
+  String get httpProxy => 'HTTP proxy';
+
+  @override
+  String get proxyMode => 'Proxy mode';
+
+  @override
+  String get directConnection => 'Direct';
+
+  @override
+  String get systemProxyMode => 'System proxy';
+
+  @override
+  String get manualProxyMode => 'Manual proxy';
+
+  @override
+  String get proxyAddress => 'Proxy URL (http://host:port)';
+
+  @override
+  String get proxyAi => 'Use proxy for AI';
+
+  @override
+  String get proxyTmdb => 'Use proxy for TMDB';
+
+  @override
+  String get proxyWebdav => 'Use proxy for WebDAV';
+
+  @override
+  String get appAbout => 'About';
+
+  @override
+  String get misansLicense => 'MiSans font license';
+
+  @override
+  String get tmdbDisclaimer =>
+      'This product uses the TMDB API but is not endorsed or certified by TMDB.';
+
+  @override
+  String saveFailed(String error) {
+    return 'Could not save: $error';
+  }
+
+  @override
+  String connectionFailed(String error) {
+    return 'Connection failed: $error';
+  }
+
+  @override
+  String configurationLoadFailed(String error) {
+    return 'Could not load configuration: $error';
+  }
+
+  @override
+  String connectionSucceeded(String route) {
+    return 'Connected · $route';
+  }
+
+  @override
+  String get warning => 'Warning';
+
+  @override
+  String get information => 'Information';
+
+  @override
+  String get noticeError => 'Error';
+
+  @override
+  String get favoriteSaveFailed =>
+      'Could not save favorites. Please try again.';
+
+  @override
+  String get favorites => 'Favorites';
+
+  @override
+  String get favoritesLoadFailed => 'Could not load favorites';
+
+  @override
+  String get noFavorites => 'No favorite directories';
+
+  @override
+  String removeFavorite(String path) {
+    return 'Remove favorite $path';
+  }
+
+  @override
+  String get confirmAction => 'Confirm';
+
+  @override
+  String get analyzeDirectory => 'Send this directory to AI for analysis?';
+
+  @override
+  String get analyzeDirectoryDetail =>
+      'The selected directory path and file names will be sent to your configured AI service. File contents will not be uploaded.';
+
+  @override
+  String get startAnalysis => 'Start analysis';
+
+  @override
+  String get executeRenames => 'Execute selected renames?';
+
+  @override
+  String get executeRenamesDetail =>
+      'Files on the NAS will be renamed one by one as previewed. Execution stops on failure and never overwrites existing files.';
+
+  @override
+  String get startExecution => 'Start execution';
+
+  @override
+  String get configureConnection => 'Configure connection';
+
+  @override
+  String get noConnectionConfigured =>
+      'No NAS connection configured. Set up WebDAV, AI, and TMDB credentials first.';
+
+  @override
+  String get executionSafety =>
+      'Rename one by one, stop on failure, and never overwrite existing files.';
+
+  @override
+  String get confirmAndExecute => 'Confirm and execute';
+
+  @override
+  String get organizeDirectory => 'Organize this directory';
+
+  @override
+  String get parentDirectory => 'Parent directory';
+
+  @override
+  String get refreshDirectory => 'Refresh directory';
+
+  @override
+  String get unfavoriteDirectory => 'Unfavorite current directory';
+
+  @override
+  String get favoriteDirectory => 'Favorite current directory';
+
+  @override
+  String get nasDirectory => 'NAS directory';
+
+  @override
+  String get organizingRequirements => 'Organizing requirements';
+
+  @override
+  String get renamePreview => 'Rename preview';
+
+  @override
+  String get renaming => 'Renaming files';
+
+  @override
+  String get processing => 'Processing…';
+
+  @override
+  String get rootDirectory => 'Root';
+
+  @override
+  String directoryCounts(int folders, int files) {
+    return '$folders folders · $files files';
+  }
+
+  @override
+  String get disconnect => 'Disconnect';
+
+  @override
+  String get connectNas => 'Connect NAS';
+
+  @override
+  String get filterByName => 'Filter by name';
+
+  @override
+  String get browseNasHint =>
+      'Connect to your NAS to browse and open the series directory you want to organize.';
+
+  @override
+  String get directoryEmpty => 'This directory is empty';
+
+  @override
+  String noNameMatches(String query) {
+    return 'No items contain “$query”';
+  }
+
+  @override
+  String get openSeriesDirectory =>
+      'Connect to your NAS and open a series directory first.';
+
+  @override
+  String get openNonemptyDirectory =>
+      'This directory has no files. Open a directory containing episode files.';
+
+  @override
+  String get aiSuggestions => 'AI organizing suggestions';
+
+  @override
+  String get optionalRequirements => 'Organizing requirements (optional)';
+
+  @override
+  String get requirementsHint =>
+      'Series name, season, TMDB ID, or naming preferences';
+
+  @override
+  String get generateSuggestions => 'Generate rename suggestions';
+
+  @override
+  String get viewRenamePreview => 'View rename preview';
+
+  @override
+  String get noPendingChanges => 'No pending changes';
+
+  @override
+  String get backToRequirements => 'Back to requirements';
+
+  @override
+  String selectedChanges(int selected, int total, int changes) {
+    return '$selected / $total selected · $changes changes';
+  }
+
+  @override
+  String get deselectAll => 'Deselect all';
+
+  @override
+  String get selectAll => 'Select all';
+
+  @override
+  String get cannotExecute => 'Cannot execute yet';
+
+  @override
+  String get inputTokens => 'Input tokens';
+
+  @override
+  String get outputTokens => 'Output tokens';
+
+  @override
+  String get averageTps => 'Average TPS';
+
+  @override
+  String get estimatedCost => 'Estimated cost';
+
+  @override
+  String get analysisUsage => 'AI analysis usage';
+
+  @override
+  String get folder => 'Folder';
+
+  @override
+  String openEntry(String name) {
+    return 'Open $name';
+  }
+
+  @override
+  String get pendingRenameShort => 'Pending';
+
+  @override
+  String get pendingRename => 'Pending rename';
+
+  @override
+  String get unchanged => 'Unchanged';
+
+  @override
+  String get newFileName => 'New file name';
+
+  @override
+  String get usageLoadFailed => 'Could not load AI usage';
+
+  @override
+  String get analysisCount => 'Analyses';
+
+  @override
+  String get modelRequests => 'Model requests';
+
+  @override
+  String get totalInputTokens => 'Total input tokens';
+
+  @override
+  String get totalOutputTokens => 'Total output tokens';
+
+  @override
+  String get totalEstimatedCost => 'Estimated total cost (USD)';
+
+  @override
+  String get analysisHistory => 'Analysis history';
+
+  @override
+  String incompleteUsageCount(int count) {
+    return '$count with incomplete usage';
+  }
+
+  @override
+  String unknownCostCount(int count) {
+    return '$count with unknown cost';
+  }
+
+  @override
+  String get noAiUsage => 'No AI analysis usage yet';
+
+  @override
+  String get failed => 'Failed';
+
+  @override
+  String usageInput(String tokens) {
+    return 'Input $tokens tokens';
+  }
+
+  @override
+  String usageOutput(String tokens) {
+    return 'Output $tokens tokens';
+  }
+
+  @override
+  String get unknownCost => 'Cost —';
+
+  @override
+  String modelRequestCount(int count) {
+    return '$count model requests';
+  }
+
+  @override
+  String historyLoadFailed(String error) {
+    return 'Could not load history: $error';
+  }
+
+  @override
+  String get noExecutionHistory => 'No execution history yet';
+
+  @override
+  String operationCount(int count) {
+    return '$count operations';
+  }
+
+  @override
+  String get otherRecords => 'Other records';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get initiated => 'Started';
+
+  @override
+  String get collapseHistory => 'Collapse record details';
+
+  @override
+  String get expandHistory => 'Expand record details';
+
+  @override
+  String startedAtTime(String time) {
+    return 'Started at $time';
+  }
+
+  @override
+  String get renameAction => 'Rename';
+
+  @override
+  String get moveAction => 'Move / Rename';
+
+  @override
+  String get uploadAction => 'Upload file';
+
+  @override
+  String get createDirectory => 'New folder';
+
+  @override
+  String get operationRecord => 'Operation record';
+
+  @override
+  String get invalidDirectoryPath => 'Invalid directory path';
+
+  @override
+  String get favoriteOutsideRoot =>
+      'The favorite directory is outside the NAS root';
+
+  @override
+  String get webdavUrlParameters =>
+      'The WebDAV URL cannot contain query parameters';
+
+  @override
+  String get pathOutsideConnection =>
+      'The path is outside the WebDAV connection directory';
+
+  @override
+  String get invalidWebdavProperties =>
+      'WebDAV did not return valid file properties';
+
+  @override
+  String get unknownFileStatus =>
+      'Could not determine file status. Check WebDAV permissions';
+
+  @override
+  String get moveUnconfirmed =>
+      'Move was not confirmed. Refresh the directory to verify';
+
+  @override
+  String get directoryCreationUnconfirmed =>
+      'Directory creation was not confirmed';
+
+  @override
+  String get deleteUnconfirmed =>
+      'Deletion was not confirmed. Refresh the directory to verify';
+
+  @override
+  String get uploadUnconfirmed =>
+      'Upload was not confirmed. Refresh the directory to verify';
+
+  @override
+  String get absoluteWebdavPathRequired => 'WebDAV paths must be absolute';
+
+  @override
+  String get unsafeWebdavPath => 'The WebDAV path contains unsafe characters';
+
+  @override
+  String get networkClientClosed => 'Network client is closed';
+
+  @override
+  String get systemProxyTimeout => 'Reading the system proxy timed out';
+
+  @override
+  String get invalidSystemProxy =>
+      'The system proxy returned no valid configuration';
+
+  @override
+  String get systemProxyUnsupported =>
+      'Reading the system proxy is not supported on this platform';
+
+  @override
+  String get systemProxyReadFailed => 'Could not read the system proxy';
+
+  @override
+  String get environmentProxyUnsupported =>
+      'Environment proxies must be unauthenticated HTTP proxies';
+
+  @override
+  String get systemProxyTypeUnsupported =>
+      'The system proxy type is unsupported. Only unauthenticated HTTP proxies are supported';
+
+  @override
+  String get databaseClosed => 'Database is closed';
+
+  @override
+  String get databaseVersionTooNew => 'The database version is too new';
+
+  @override
+  String get targetFileExists => 'The target file already exists';
+
+  @override
+  String get queryingMetadata => 'Looking up series metadata…';
+
+  @override
+  String get suggestionsGenerated => 'Suggestions generated';
+
+  @override
+  String get noReliableSuggestions =>
+      'No reliable rename suggestions found. Add a series name and season, then try again.';
+
+  @override
+  String get usageSaveFailed => 'Could not save AI usage';
+
+  @override
+  String get operationCompleted => 'Operation completed';
+
+  @override
+  String get downloading => 'Downloading…';
+
+  @override
+  String get downloadCompleted => 'Download complete';
+
+  @override
+  String get preparingExecution => 'Preparing execution';
+
+  @override
+  String directoryReadFailed(String error) {
+    return 'Could not read directory: $error';
+  }
+
+  @override
+  String suggestionsFailed(String error) {
+    return 'Could not generate suggestions: $error';
+  }
+
+  @override
+  String downloadFailed(String error) {
+    return 'Download failed: $error';
+  }
+
+  @override
+  String fileOperationStopped(String error) {
+    return 'File operation stopped: $error; refresh the directory to verify the results';
+  }
+
+  @override
+  String executionStopped(String error) {
+    return 'Execution stopped: $error; refresh the directory to verify the results';
+  }
+
+  @override
+  String remainingExecutionStopped(String error) {
+    return 'Stopped: $error. Verify the results before confirming the remaining changes';
+  }
+
+  @override
+  String completedItemCount(int count) {
+    return 'Completed $count items';
+  }
+
+  @override
+  String aiAnalyzing(int count) {
+    return 'AI analysis ($count/8)';
+  }
+
+  @override
+  String queryingTool(String name) {
+    return 'Querying: $name';
+  }
+
+  @override
+  String matchEvidence(String season, String episode, String title, String id) {
+    return 'Match: season $season, episode $episode · $title\nTMDB $id';
+  }
+
+  @override
+  String authenticationFailed(String code) {
+    return 'Authentication failed or access denied (HTTP $code)';
+  }
+
+  @override
+  String get proxyAuthenticationUnsupported =>
+      'The proxy requires authentication. Only unauthenticated HTTP proxies are supported';
+
+  @override
+  String get remoteFileChanged =>
+      'The file changed or the target exists. Refresh the directory to verify';
+
+  @override
+  String get rateLimited => 'Too many requests. Please try again later';
+
+  @override
+  String get networkConnectionFailed =>
+      'Connection failed or timed out. Check the service URL and HTTP proxy';
+
+  @override
+  String httpStatusError(String code) {
+    return 'The service returned HTTP $code';
+  }
+
+  @override
+  String get operationFailed => 'Operation failed. Please try again';
+
+  @override
+  String get invalidServiceUrl =>
+      'Enter a valid HTTPS URL (WebDAV also supports HTTP)';
+
+  @override
+  String get invalidProxyUrl => 'Proxy URL must use http://host:port';
+
+  @override
+  String get proxyUrlRequired => 'Enter a proxy URL';
+
+  @override
+  String get invalidAiModels => 'AI /models did not return valid JSON';
+
+  @override
+  String get aiClientClosed => 'AI client is closed';
+
+  @override
+  String get aiAlreadyRunning => 'AI analysis is already running';
+
+  @override
+  String get modelNameRequired => 'Enter an AI model name';
+
+  @override
+  String get tooManyFiles =>
+      'This directory contains more than 500 files. Select a smaller directory';
+
+  @override
+  String get aiCallLimit => 'AI tool call limit exceeded';
+
+  @override
+  String get invalidAiSuggestions =>
+      'AI returned no valid suggestions or reached its execution limit';
+
+  @override
+  String get missingTmdbEvidence =>
+      'AI suggestions lack valid TMDB episode evidence. Please try again';
+
+  @override
+  String get tmdbTokenRequired => 'Configure a TMDB token';
+
+  @override
+  String get invalidSeriesQuery => 'Invalid series query';
+
+  @override
+  String get invalidSeasonNumber => 'Invalid series or season number';
+
+  @override
+  String get duplicateSource => 'The same source file appears more than once';
+
+  @override
+  String get sourceAttributesChanged =>
+      'Source file attributes changed. Generate suggestions again';
+
+  @override
+  String get targetConflict => 'The target conflicts with another pending file';
+
+  @override
+  String get taskAlreadyRunning => 'An organizing task is already running';
+
+  @override
+  String get sourceMissing => 'The source file no longer exists';
+
+  @override
+  String get sourceChanged => 'Source file attributes changed';
+
+  @override
+  String get targetExists => 'The target already exists';
+
+  @override
+  String get rootModificationForbidden =>
+      'Cannot modify the WebDAV root directory';
+
+  @override
+  String get moveIntoSelfForbidden => 'Cannot move a directory inside itself';
+
+  @override
+  String get unsupportedFileOperation => 'Unsupported file operation';
+
+  @override
+  String get invalidFileNameEmpty =>
+      'Invalid file name: the name cannot be empty';
+
+  @override
+  String get invalidFileNameControl =>
+      'Invalid file name: control characters are not allowed';
+
+  @override
+  String get invalidFileNameEnding =>
+      'Invalid file name: cannot end with a space or period';
+
+  @override
+  String get invalidFileNameCharacters =>
+      'The file name contains invalid characters';
+
+  @override
+  String sourcePathChanged(String path) {
+    return 'Source file changed: $path';
+  }
+
+  @override
+  String extensionRequired(String extension) {
+    return 'Keep the original extension: $extension';
+  }
+
+  @override
+  String duplicateTargetName(String name) {
+    return 'Duplicate target file name: $name';
+  }
+
+  @override
+  String targetNameExists(String name) {
+    return 'Target already exists: $name';
+  }
+
+  @override
+  String invalidFileNameReserved(String name) {
+    return 'Invalid file name: “$name” is not allowed';
+  }
+
+  @override
+  String invalidFileNameReplace(String character, String replacement) {
+    return 'Invalid file name: replace “$character” with “$replacement” or “-”';
+  }
+
+  @override
   String get compactSidebar => 'Compact sidebar';
 
   @override
