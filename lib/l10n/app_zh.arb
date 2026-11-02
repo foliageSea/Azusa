@@ -82,6 +82,7 @@
   "namingLanguage": "命名语言",
   "organizeSeries": "影视整理",
   "sortDirectory": "排序",
+  "viewOnTmdb": "在 TMDB 查看",
   "sortName": "名称",
   "sortModified": "修改时间",
   "sortSize": "大小",

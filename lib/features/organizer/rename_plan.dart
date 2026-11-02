@@ -2,6 +2,8 @@ import 'dav/webdav.dart';
 import 'dav/dav_paths.dart';
 import 'connections/http_clients.dart';
 
+enum TmdbMediaType { tv, movie }
+
 class RenameItem {
   const RenameItem({
     required this.source,
@@ -11,11 +13,19 @@ class RenameItem {
     this.fingerprint,
     this.etag,
     this.targetDirectory,
+    this.tmdbId,
+    this.tmdbMediaType,
   });
   final String source, targetName, reason;
   final String? fingerprint, etag;
   final String? targetDirectory;
   final bool enabled;
+  final int? tmdbId;
+  final TmdbMediaType? tmdbMediaType;
+
+  Uri? get tmdbUrl => tmdbId != null && tmdbId! > 0 && tmdbMediaType != null
+      ? Uri.https('www.themoviedb.org', '/${tmdbMediaType!.name}/$tmdbId')
+      : null;
 
   String get parent => source.substring(0, source.lastIndexOf('/') + 1);
   String get target =>
@@ -29,6 +39,8 @@ class RenameItem {
     fingerprint: fingerprint,
     etag: etag,
     targetDirectory: targetDirectory,
+    tmdbId: tmdbId,
+    tmdbMediaType: tmdbMediaType,
   );
 }
 

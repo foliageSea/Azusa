@@ -258,6 +258,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortDirectory => 'Sort';
 
   @override
+  String get viewOnTmdb => 'View on TMDB';
+
+  @override
   String get sortName => 'Name';
 
   @override

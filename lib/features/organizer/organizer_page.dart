@@ -1595,6 +1595,22 @@ class _RenameRowState extends State<_RenameRow> {
                       ),
                     ),
                   ],
+                  if (item.tmdbUrl case final url?) ...[
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FButton(
+                        key: ValueKey('tmdb-link-${item.source}'),
+                        variant: .ghost,
+                        size: .sm,
+                        mainAxisSize: MainAxisSize.min,
+                        prefix: const Icon(FLucideIcons.externalLink),
+                        onPress: () =>
+                            openDocumentation(context, url.toString()),
+                        child: Text(context.l10n.viewOnTmdb),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -69,11 +69,9 @@ void main() {
         ..httpClientAdapter = TestAdapter((options) async {
           requests++;
           final stream = options.data as Stream<List<int>>;
-          final body =
-              jsonDecode(
-                    utf8.decode(await stream.expand((bytes) => bytes).toList()),
-                  )
-                  as Map;
+          final body = jsonDecode(
+            utf8.decode(await stream.expand((bytes) => bytes).toList()),
+          ) as Map;
           final messages = (body['messages'] as List).cast<Map>();
           final system = messages.firstWhere((m) => m['role'] == 'system');
           expect(
@@ -433,9 +431,8 @@ void main() {
         final data = options.data;
         final body = data is Stream<List<int>>
             ? jsonDecode(
-                    utf8.decode(await data.expand((bytes) => bytes).toList()),
-                  )
-                  as Map
+                utf8.decode(await data.expand((bytes) => bytes).toList()),
+              ) as Map
             : data as Map;
         expect(body['model'], 'custom-model');
         final messages = body['messages'] as List;
@@ -510,6 +507,10 @@ void main() {
       const DavEntry('/dav/a.mkv', false),
     ]);
     expect(plan.single.reason, contains('TMDB 1396'));
+    expect(
+      plan.single.tmdbUrl.toString(),
+      'https://www.themoviedb.org/tv/1396',
+    );
     expect(plan.single.targetName, '绝命毒师 - S01E01.mkv');
     expect(round, 2);
   });
@@ -521,9 +522,8 @@ void main() {
         final data = options.data;
         final body = data is Stream<List<int>>
             ? jsonDecode(
-                    utf8.decode(await data.expand((bytes) => bytes).toList()),
-                  )
-                  as Map
+                utf8.decode(await data.expand((bytes) => bytes).toList()),
+              ) as Map
             : data as Map;
         if (round++ == 0) {
           final message = (body['messages'] as List).last.toString();
@@ -610,8 +610,7 @@ void main() {
           'choices': [
             {
               'message': {
-                'content':
-                    '{"items":[{"source":"/dav/a.mkv","targetName":"new.mkv","series_id":1,"season_number":1,"episode_number":1}]}',
+                'content': '{"items":[{"source":"/dav/a.mkv","targetName":"new.mkv","series_id":1,"season_number":1,"episode_number":1}]}',
               },
             },
           ],

@@ -590,6 +590,12 @@ abstract class AppLocalizations {
   /// **'Sort'**
   String get sortDirectory;
 
+  /// No description provided for @viewOnTmdb.
+  ///
+  /// In en, this message translates to:
+  /// **'View on TMDB'**
+  String get viewOnTmdb;
+
   /// No description provided for @sortName.
   ///
   /// In en, this message translates to:

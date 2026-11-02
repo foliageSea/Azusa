@@ -362,6 +362,8 @@ class RenameAgent {
         RenameItem(
           source: source,
           targetName: target,
+          tmdbId: isMovie ? item['movie_id'] as int : item['series_id'] as int,
+          tmdbMediaType: isMovie ? TmdbMediaType.movie : TmdbMediaType.tv,
           targetDirectory: targetDirectory,
           fingerprint: entry.fingerprint,
           etag: entry.etag,
@@ -425,6 +427,10 @@ class RenameAgent {
             output.add(
               RenameItem(
                 source: subtitle.path,
+                tmdbId: isMovie
+                    ? item['movie_id'] as int
+                    : item['series_id'] as int,
+                tmdbMediaType: isMovie ? TmdbMediaType.movie : TmdbMediaType.tv,
                 targetDirectory: targetDirectory,
                 targetName: _subtitleName(subtitle, entry, target),
                 fingerprint: subtitle.fingerprint,

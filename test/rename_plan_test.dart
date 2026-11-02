@@ -41,6 +41,34 @@ class MemoryDav extends WebDavClient {
 }
 
 void main() {
+  test('TMDB 链接使用明确媒体类型和正整数 ID，编辑后仍保留', () {
+    for (final type in TmdbMediaType.values) {
+      final item = RenameItem(
+        source: '/dav/a.mkv',
+        targetName: 'new.mkv',
+        tmdbId: 1396,
+        tmdbMediaType: type,
+      );
+      expect(
+        item.tmdbUrl.toString(),
+        'https://www.themoviedb.org/${type.name}/1396',
+      );
+      expect(
+        item.copyWith(targetName: 'edited.mkv', enabled: false).tmdbUrl,
+        item.tmdbUrl,
+      );
+    }
+    expect(const RenameItem(source: '/dav/a', targetName: 'b').tmdbUrl, isNull);
+    expect(
+      const RenameItem(
+        source: '/dav/a',
+        targetName: 'b',
+        tmdbId: -1,
+        tmdbMediaType: TmdbMediaType.tv,
+      ).tmdbUrl,
+      isNull,
+    );
+  });
   const entries = [
     DavEntry('/dav/a.mkv', false),
     DavEntry('/dav/b.mkv', false),
@@ -230,9 +258,8 @@ void main() {
   test('写入准备日志失败时不执行 NAS 修改', () async {
     final dav = MemoryDav({for (final e in entries) e.path: e});
     addTearDown(dav.close);
-    final result = await RenameExecutor(
-      dav,
-    ).execute([first], onStarting: (_) async => throw StateError('存储失败'));
+    final result = await RenameExecutor(dav)
+        .execute([first], onStarting: (_) async => throw StateError('存储失败'));
     expect(result.error, contains('存储失败'));
     expect(dav.moved, isEmpty);
   });

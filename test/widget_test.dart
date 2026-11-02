@@ -73,6 +73,8 @@ class TestOrganizer extends OrganizerController {
         source: '/dav/a.mkv',
         targetName: '剧集 - S01E01.mkv',
         reason: 'TMDB 1396 / S1E1',
+        tmdbId: 1396,
+        tmdbMediaType: TmdbMediaType.tv,
       ),
     ],
   );
@@ -245,6 +247,33 @@ class FlattenOrganizer extends TestOrganizer {
 }
 
 void main() {
+  testWidgets('修改预览显示已核验匹配的 TMDB 跳转入口', (tester) async {
+    final window = NoWindow();
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(TestOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(window.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    container.read(routerProvider).go('/organize/assistant/preview');
+    await tester.pumpAndSettle();
+    expect(find.text('在 TMDB 查看'), findsOneWidget);
+    final button = tester.widget<FButton>(
+      find.byKey(const ValueKey('tmdb-link-/dav/a.mkv')),
+    );
+    expect(button.onPress, isNotNull);
+    expect(tester.takeException(), isNull);
+  });
   for (final width in [390.0, 800.0, 1280.0]) {
     testWidgets('长目录面包屑在 $width 宽度省略并支持上级跳转', (tester) async {
       tester.view.physicalSize = Size(width, 1000);

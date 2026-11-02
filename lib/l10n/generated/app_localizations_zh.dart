@@ -256,6 +256,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortDirectory => '排序';
 
   @override
+  String get viewOnTmdb => '在 TMDB 查看';
+
+  @override
   String get sortName => '名称';
 
   @override

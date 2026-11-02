@@ -147,6 +147,11 @@ void main() {
     expect(plan.first.targetName, '毒液：最后一舞 (2024).MKV');
     expect(plan.first.reason, '电影匹配：毒液：最后一舞 · 2024-10-22\nTMDB 912649');
     expect(plan.first.etag, 'v1');
+    expect(
+      plan.first.tmdbUrl.toString(),
+      'https://www.themoviedb.org/movie/912649',
+    );
+    expect(plan.last.tmdbUrl, plan.first.tmdbUrl);
     expect(plan.first.fingerprint, entries.first.fingerprint);
     expect(plan.last.targetName, '毒液：最后一舞 (2024).zh-Hans.srt');
     expect(validatePlan(plan, entries), isNull);
