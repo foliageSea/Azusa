@@ -590,6 +590,36 @@ abstract class AppLocalizations {
   /// **'Sort'**
   String get sortDirectory;
 
+  /// No description provided for @sortName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get sortName;
+
+  /// No description provided for @sortModified.
+  ///
+  /// In en, this message translates to:
+  /// **'Modified'**
+  String get sortModified;
+
+  /// No description provided for @sortSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get sortSize;
+
+  /// No description provided for @sortAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Ascending'**
+  String get sortAscending;
+
+  /// No description provided for @sortDescending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending'**
+  String get sortDescending;
+
   /// No description provided for @parentDirectories.
   ///
   /// In en, this message translates to:

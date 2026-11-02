@@ -13,6 +13,17 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 
 void main() {
+  test('排序方向切换保留字段，并且反转两次恢复原值', () {
+    for (final order in DirectorySort.values) {
+      expect(order.reversed.reversed, order);
+      expect(order.sameField(order.reversed), isTrue);
+      expect(order.reversed.ascending, !order.ascending);
+    }
+    expect(
+      DirectorySort.nameAscending.sameField(DirectorySort.sizeAscending),
+      isFalse,
+    );
+  });
   const entries = [
     DavEntry(
       '/dav/b.mkv',

@@ -326,8 +326,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('directory-sort')));
       await tester.pumpAndSettle();
+      expect(find.text('名称：升序'), findsNothing);
+      expect(find.text('名称：降序'), findsNothing);
+      expect(find.byIcon(FLucideIcons.arrowUp), findsWidgets);
       await tester.tap(
-        find.byKey(const ValueKey('directory-sort-nameDescending')),
+        find.byKey(const ValueKey('directory-sort-nameAscending')),
       );
       await tester.pumpAndSettle();
       expect(repository.value.directorySort, DirectorySort.nameDescending);
@@ -341,6 +344,19 @@ void main() {
           tester.getTopLeft(find.byKey(const ValueKey('/dav/episode8.mkv'))).dy,
         ),
       );
+      final selectedItem = find.byKey(
+        const ValueKey('directory-sort-nameAscending'),
+      );
+      expect(
+        find.descendant(
+          of: selectedItem,
+          matching: find.byIcon(FLucideIcons.arrowDown),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(selectedItem);
+      await tester.pumpAndSettle();
+      expect(repository.value.directorySort, DirectorySort.nameAscending);
       expect(tester.takeException(), isNull);
     });
   }

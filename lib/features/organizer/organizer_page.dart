@@ -662,29 +662,41 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                         menu: [
                           FItemGroup(
                             children: [
-                              for (final value in DirectorySort.values)
+                              for (final (value, label) in [
+                                (
+                                  DirectorySort.nameAscending,
+                                  context.l10n.sortName,
+                                ),
+                                (
+                                  DirectorySort.modifiedDescending,
+                                  context.l10n.sortModified,
+                                ),
+                                (
+                                  DirectorySort.sizeDescending,
+                                  context.l10n.sortSize,
+                                ),
+                              ])
                                 FItem(
                                   key: ValueKey('directory-sort-${value.name}'),
-                                  title: Text(switch (value) {
-                                    DirectorySort.nameAscending =>
-                                      context.l10n.sortNameAscending,
-                                    DirectorySort.nameDescending =>
-                                      context.l10n.sortNameDescending,
-                                    DirectorySort.modifiedDescending =>
-                                      context.l10n.sortModifiedDescending,
-                                    DirectorySort.modifiedAscending =>
-                                      context.l10n.sortModifiedAscending,
-                                    DirectorySort.sizeDescending =>
-                                      context.l10n.sortSizeDescending,
-                                    DirectorySort.sizeAscending =>
-                                      context.l10n.sortSizeAscending,
-                                  }),
-                                  suffix: value == order
-                                      ? const Icon(FLucideIcons.check)
+                                  title: Text(label),
+                                  semanticsLabel: order.sameField(value)
+                                      ? '$label · ${order.ascending ? context.l10n.sortAscending : context.l10n.sortDescending}'
+                                      : label,
+                                  semanticsChecked: order.sameField(value),
+                                  suffix: order.sameField(value)
+                                      ? Icon(
+                                          order.ascending
+                                              ? FLucideIcons.arrowUp
+                                              : FLucideIcons.arrowDown,
+                                        )
                                       : null,
                                   onPress: locked || _savingSort
                                       ? null
-                                      : () => _setSort(value),
+                                      : () => _setSort(
+                                          order.sameField(value)
+                                              ? order.reversed
+                                              : value,
+                                        ),
                                 ),
                             ],
                           ),

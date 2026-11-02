@@ -256,6 +256,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortDirectory => '排序';
 
   @override
+  String get sortName => '名称';
+
+  @override
+  String get sortModified => '修改时间';
+
+  @override
+  String get sortSize => '大小';
+
+  @override
+  String get sortAscending => '升序';
+
+  @override
+  String get sortDescending => '降序';
+
+  @override
   String get parentDirectories => '上级目录';
 
   @override
