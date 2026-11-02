@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:azusa/app/app.dart';
 import 'package:azusa/app/router.dart';
 import 'package:azusa/core/database/app_database.dart';
@@ -15,6 +17,7 @@ import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
 import 'package:azusa/shared/azusa_logo.dart';
 import 'package:azusa/shared/widgets.dart';
+import 'package:azusa/shared/loading_button.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -33,6 +36,16 @@ class TestConnections extends ConnectionSettingsController {
 class SavableTestConnections extends TestConnections {
   @override
   Future<void> save(ConnectionSettings value) async {
+    state = AsyncData(value);
+  }
+}
+
+class PendingTestConnections extends TestConnections {
+  final pending = Completer<void>();
+
+  @override
+  Future<void> save(ConnectionSettings value) async {
+    await pending.future;
     state = AsyncData(value);
   }
 }
@@ -632,6 +645,53 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('保存期间进度显示在保存按钮内并禁用测试按钮', (tester) async {
+    tester.view.physicalSize = const Size(1280, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final window = NoWindow();
+    addTearDown(window.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(PendingTestConnections.new),
+        organizerProvider.overrideWith(TestOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    container.read(routerProvider).go('/connections');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('WebDAV').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存配置'));
+    await tester.pump();
+    final save = find.widgetWithText(LoadingButton, '保存配置');
+    final test = find.widgetWithText(LoadingButton, '测试 WebDAV');
+    expect(tester.widget<LoadingButton>(save).loading, isTrue);
+    expect(tester.widget<LoadingButton>(test).onPress, isNull);
+    expect(
+      find.descendant(of: save, matching: find.byType(FCircularProgress)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: test, matching: find.byType(FCircularProgress)),
+      findsNothing,
+    );
+    (container.read(
+      connectionSettingsProvider.notifier,
+    ) as PendingTestConnections).pending.complete();
+    await tester.pumpAndSettle();
+    expect(tester.widget<LoadingButton>(save).loading, isFalse);
   });
 
   testWidgets('亮暗模式快捷切换并保存设置', (tester) async {

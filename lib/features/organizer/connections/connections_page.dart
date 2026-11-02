@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 
 import '../../../shared/azusa_logo.dart';
+import '../../../shared/loading_button.dart';
 import '../../../shared/widgets.dart';
 import '../../../shared/localization.dart';
 import '../../../shared/runtime_localization.dart';
@@ -17,6 +18,8 @@ import '../organizer_state.dart';
 import '../ai/tmdb.dart';
 import '../dav/webdav.dart';
 
+enum _ConnectionAction { save, webdav, ai, tmdb }
+
 class ConnectionsPage extends ConsumerStatefulWidget {
   const ConnectionsPage({super.key});
   @override
@@ -25,7 +28,9 @@ class ConnectionsPage extends ConsumerStatefulWidget {
 
 class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
   final fields = List.generate(8, (_) => TextEditingController());
-  bool loaded = false, busy = false;
+  bool loaded = false;
+  _ConnectionAction? activeAction;
+  bool get busy => activeAction != null;
   bool savingNamingLanguage = false;
   bool proxyAi = true, proxyTmdb = true, proxyWebdav = false;
   ProxyMode proxyMode = ProxyMode.direct;
@@ -55,7 +60,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
 
   Future<void> save() async {
     if (busy) return;
-    setState(() => busy = true);
+    setState(() => activeAction = _ConnectionAction.save);
     try {
       final value = current;
       if (value.webdavUrl.isNotEmpty) {
@@ -91,13 +96,19 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
         );
       }
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (mounted) setState(() => activeAction = null);
     }
   }
 
   Future<void> test(NetworkService service) async {
     if (busy) return;
-    setState(() => busy = true);
+    setState(
+      () => activeAction = switch (service) {
+        NetworkService.webdav => _ConnectionAction.webdav,
+        NetworkService.ai => _ConnectionAction.ai,
+        NetworkService.tmdb => _ConnectionAction.tmdb,
+      },
+    );
     final value = current;
     Dio? ai;
     WebDavClient? dav;
@@ -156,7 +167,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
       ai?.close(force: true);
       dav?.close();
       tmdb?.close();
-      if (mounted) setState(() => busy = false);
+      if (mounted) setState(() => activeAction = null);
     }
   }
 
@@ -199,19 +210,27 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
             ...children,
             if (editable) ...[
               const SizedBox(height: 16),
-              FButton(
+              LoadingButton(
+                label: l.saveConfiguration,
+                loading: activeAction == _ConnectionAction.save,
                 onPress: locked ? null : save,
-                child: Text(l.saveConfiguration),
               ),
-              if (busy)
-                const Padding(
-                  padding: EdgeInsets.only(top: 16),
-                  child: Center(child: FCircularProgress()),
-                ),
             ],
           ],
         ),
       ),
+    );
+    Widget testButton(NetworkService service, String label) => LoadingButton(
+      label: label,
+      variant: .outline,
+      loading:
+          activeAction ==
+          switch (service) {
+            NetworkService.webdav => _ConnectionAction.webdav,
+            NetworkService.ai => _ConnectionAction.ai,
+            NetworkService.tmdb => _ConnectionAction.tmdb,
+          },
+      onPress: locked ? null : () => test(service),
     );
     return settings.when(
       loading: () => const Center(child: FCircularProgress()),
@@ -257,11 +276,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                 field(0, l.webdavUrl),
                 field(1, l.username),
                 field(2, l.password),
-                FButton(
-                  variant: .outline,
-                  onPress: locked ? null : () => test(NetworkService.webdav),
-                  child: Text(l.testWebdav),
-                ),
+                testButton(NetworkService.webdav, l.testWebdav),
               ]),
             ),
             FTabEntry(
@@ -270,11 +285,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                 field(3, l.aiBaseUrl),
                 field(4, l.modelName),
                 field(5, 'API Key'),
-                FButton(
-                  variant: .outline,
-                  onPress: locked ? null : () => test(NetworkService.ai),
-                  child: Text(l.testAi),
-                ),
+                testButton(NetworkService.ai, l.testAi),
               ]),
             ),
             FTabEntry(
@@ -324,11 +335,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                FButton(
-                  variant: .outline,
-                  onPress: locked ? null : () => test(NetworkService.tmdb),
-                  child: Text(l.testTmdb),
-                ),
+                testButton(NetworkService.tmdb, l.testTmdb),
               ]),
             ),
             FTabEntry(
