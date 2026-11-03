@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
+import 'icon_action.dart';
+
 /// A trailing icon action without a button surface or an exterior focus ring.
 class TextFieldAction extends StatelessWidget {
   const TextFieldAction({
@@ -21,33 +23,11 @@ class TextFieldAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: style.obscureButtonPadding,
-    child: FTappable(
-      style: const .delta(
-        motion: .delta(bounceTween: FTappableMotion.noBounceTween),
-      ),
-      focusedOutlineStyle: null,
-      semanticsLabel: label,
-      semanticsTooltip: label,
-      onPress: loading ? null : onPress,
-      builder: (context, variants, child) {
-        final colors = context.theme.colors;
-        final color = variants.contains(FTappableVariant.disabled)
-            ? colors.disable(colors.mutedForeground)
-            : variants.contains(FTappableVariant.focused)
-            ? colors.primary
-            : variants.contains(FTappableVariant.hovered) ||
-                  variants.contains(FTappableVariant.pressed)
-            ? colors.foreground
-            : colors.mutedForeground;
-        return SizedBox.square(
-          dimension: 28,
-          child: Center(
-            child: loading
-                ? const FCircularProgress(size: .sm)
-                : Icon(icon, size: 18, color: color),
-          ),
-        );
-      },
+    child: IconAction(
+      label: label,
+      icon: icon,
+      loading: loading,
+      onPress: onPress,
     ),
   );
 }

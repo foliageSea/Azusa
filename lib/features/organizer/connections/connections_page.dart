@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/azusa_logo.dart';
 import '../../../shared/loading_button.dart';
+import '../../../shared/icon_action.dart';
 import '../../../shared/secret_text_field.dart';
 import '../../../shared/text_field_action.dart';
 import '../../../shared/widgets.dart';
@@ -411,17 +412,12 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                     children: [
                       Text(l.namingFormat),
                       const SizedBox(width: 4),
-                      FButton.icon(
+                      IconAction(
                         key: const ValueKey('naming-format-help'),
-                        variant: .ghost,
-                        size: .sm,
-                        semanticsLabel: l.namingFormatExamples,
-                        semanticsTooltip: l.namingFormatExamples,
+                        label: l.namingFormatExamples,
+                        icon: FLucideIcons.circleQuestionMark,
+                        iconSize: 16,
                         onPress: () => showNamingFormatExamples(context),
-                        child: const Icon(
-                          FLucideIcons.circleQuestionMark,
-                          size: 16,
-                        ),
                       ),
                     ],
                   ),

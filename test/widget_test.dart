@@ -1112,6 +1112,24 @@ void main() {
       expect(find.text('命名格式'), findsOneWidget);
       final help = find.byKey(const ValueKey('naming-format-help'));
       await tester.ensureVisible(help);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(tester.getCenter(help));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: help, matching: find.byType(FButton)),
+        findsNothing,
+      );
+      final helpTappable = find.descendant(
+        of: help,
+        matching: find.byWidgetPredicate((widget) => widget is FTappable),
+      );
+      expect(
+        tester.widget<FTappable>(helpTappable).focusedOutlineStyle,
+        isNull,
+      );
+      expect(tester.getSize(helpTappable), const Size(28, 28));
+      await mouse.removePointer();
       await tester.tap(help);
       await tester.pumpAndSettle();
       expect(find.text('命名格式示例'), findsOneWidget);
