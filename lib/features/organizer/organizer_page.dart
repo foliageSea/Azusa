@@ -1226,12 +1226,39 @@ class _RenameEntryDialog extends StatefulWidget {
 }
 
 class _RenameEntryDialogState extends State<_RenameEntryDialog> {
-  late final name = TextEditingController(text: widget.entry.name);
+  late final TextEditingController name;
+  late final TextEditingController extension;
   String? issue;
+
+  @override
+  void initState() {
+    super.initState();
+    final original = widget.entry.name;
+    final dot = original.lastIndexOf('.');
+    final split =
+        !widget.entry.directory && dot > 0 && dot < original.length - 1;
+    name = TextEditingController(
+      text: split ? original.substring(0, dot) : original,
+    );
+    extension = TextEditingController(
+      text: split ? original.substring(dot + 1) : '',
+    );
+  }
+
+  String get targetName => widget.entry.directory || extension.text.isEmpty
+      ? name.text
+      : '${name.text}.${extension.text}';
+
+  void _validate() => setState(() {
+    issue = name.text.trim().isEmpty
+        ? fileNameError(name.text)
+        : fileNameError(targetName);
+  });
 
   @override
   void dispose() {
     name.dispose();
+    extension.dispose();
     super.dispose();
   }
 
@@ -1252,11 +1279,19 @@ class _RenameEntryDialogState extends State<_RenameEntryDialog> {
           FTextField(
             key: const ValueKey('rename-entry-name'),
             label: Text(context.l10n.newFileName),
-            control: .managed(
-              controller: name,
-              onChange: (_) => setState(() => issue = fileNameError(name.text)),
-            ),
+            control: .managed(controller: name, onChange: (_) => _validate()),
           ),
+          if (!widget.entry.directory) ...[
+            const SizedBox(height: 12),
+            FTextField(
+              key: const ValueKey('rename-entry-extension'),
+              label: Text(context.l10n.fileExtension),
+              control: .managed(
+                controller: extension,
+                onChange: (_) => _validate(),
+              ),
+            ),
+          ],
           if (issue != null) ...[
             const SizedBox(height: 8),
             Text(
@@ -1278,9 +1313,9 @@ class _RenameEntryDialogState extends State<_RenameEntryDialog> {
               ),
               FButton(
                 mainAxisSize: MainAxisSize.min,
-                onPress: issue != null || name.text == widget.entry.name
+                onPress: issue != null || targetName == widget.entry.name
                     ? null
-                    : () => Navigator.of(context).pop(name.text),
+                    : () => Navigator.of(context).pop(targetName),
                 child: Text(context.l10n.renameEntry),
               ),
             ],

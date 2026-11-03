@@ -208,6 +208,7 @@
   "pendingRename": "Pending rename",
   "unchanged": "Unchanged",
   "newFileName": "New file name",
+  "fileExtension": "Extension",
   "renameEntry": "Rename",
   "entryActions": "More actions for {name}",
   "@entryActions": {"placeholders": {"name": {"type": "String"}}},

@@ -1286,6 +1286,12 @@ abstract class AppLocalizations {
   /// **'New file name'**
   String get newFileName;
 
+  /// No description provided for @fileExtension.
+  ///
+  /// In en, this message translates to:
+  /// **'Extension'**
+  String get fileExtension;
+
   /// No description provided for @renameEntry.
   ///
   /// In en, this message translates to:

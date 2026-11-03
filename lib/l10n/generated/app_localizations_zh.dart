@@ -628,6 +628,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get newFileName => '新文件名';
 
   @override
+  String get fileExtension => '扩展名';
+
+  @override
   String get renameEntry => '重命名';
 
   @override

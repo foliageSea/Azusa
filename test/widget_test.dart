@@ -101,6 +101,15 @@ class EntryInteractionOrganizer extends TestOrganizer {
   }
 }
 
+class RenamePartsOrganizer extends EntryInteractionOrganizer {
+  RenamePartsOrganizer(this.entry);
+  final DavEntry entry;
+
+  @override
+  OrganizerState build() =>
+      OrganizerState(directory: '/dav/', entries: [entry]);
+}
+
 class EmptyDirectoryOrganizer extends OrganizerController {
   @override
   OrganizerState build() => const OrganizerState(directory: '/dav/');
@@ -1269,7 +1278,10 @@ void main() {
         expect(selected, findsOneWidget);
         await tester.sendKeyEvent(LogicalKeyboardKey.f2);
         await tester.pumpAndSettle();
-        expect(tester.widget<EditableText>(input).controller.text, name);
+        expect(
+          tester.widget<EditableText>(input).controller.text,
+          name == 'a.mkv' ? 'a' : name,
+        );
         await tester.sendKeyEvent(LogicalKeyboardKey.f2);
         await tester.pumpAndSettle();
         expect(input, findsOneWidget);
@@ -1308,6 +1320,85 @@ void main() {
       expect(input, findsNothing);
       expect(tester.takeException(), isNull);
       debugDefaultTargetPlatformOverride = null;
+    });
+  }
+
+  for (final (original, directory, base, suffix) in [
+    ('episode.zh.srt', false, 'episode.zh', 'srt'),
+    ('README', false, 'README', ''),
+    ('.env', false, '.env', ''),
+    ('.config.json', false, '.config', 'json'),
+    ('Season.01', true, 'Season.01', ''),
+  ]) {
+    testWidgets('重命名分别编辑文件名和扩展名：$original', (tester) async {
+      final window = NoWindow();
+      addTearDown(window.dispose);
+      final entry = DavEntry(
+        '/dav/$original${directory ? '/' : ''}',
+        directory,
+      );
+      final controller = RenamePartsOrganizer(entry);
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(TestConnections.new),
+          organizerProvider.overrideWith(() => controller),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('$original 的更多操作'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('重命名'));
+      await tester.pumpAndSettle();
+      final name = find.descendant(
+        of: find.byKey(const ValueKey('rename-entry-name')),
+        matching: find.byType(EditableText),
+      );
+      final extension = find.descendant(
+        of: find.byKey(const ValueKey('rename-entry-extension')),
+        matching: find.byType(EditableText),
+      );
+      expect(tester.widget<EditableText>(name).controller.text, base);
+      final submit = find.widgetWithText(FButton, '重命名');
+      expect(tester.widget<FButton>(submit).onPress, isNull);
+      if (!directory) {
+        expect(tester.widget<EditableText>(extension).controller.text, suffix);
+        await tester.enterText(extension, 'bad/ext');
+        await tester.pumpAndSettle();
+        expect(tester.widget<FButton>(submit).onPress, isNull);
+        await tester.enterText(extension, 'mp4');
+        await tester.pumpAndSettle();
+        expect(tester.widget<FButton>(submit).onPress, isNotNull);
+        await tester.enterText(extension, suffix);
+        await tester.pumpAndSettle();
+        expect(tester.widget<FButton>(submit).onPress, isNull);
+        await tester.enterText(extension, '');
+        await tester.pumpAndSettle();
+        expect(tester.widget<EditableText>(name).controller.text, base);
+      } else {
+        expect(extension, findsNothing);
+      }
+      await tester.enterText(name, '');
+      await tester.pumpAndSettle();
+      expect(tester.widget<FButton>(submit).onPress, isNull);
+      if (!directory) {
+        await tester.enterText(extension, 'mkv');
+        await tester.pumpAndSettle();
+        expect(tester.widget<FButton>(submit).onPress, isNull);
+      }
+      await tester.enterText(name, '新名称');
+      await tester.pumpAndSettle();
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+      expect(controller.renamed, [(entry.path, directory ? '新名称' : '新名称.mkv')]);
+      expect(tester.takeException(), isNull);
     });
   }
 
@@ -1351,7 +1442,10 @@ void main() {
         of: find.byKey(const ValueKey('rename-entry-name')),
         matching: find.byType(EditableText),
       );
-      expect(tester.widget<EditableText>(input).controller.text, entry);
+      expect(
+        tester.widget<EditableText>(input).controller.text,
+        entry == 'a.mkv' ? 'a' : entry,
+      );
       await tester.enterText(input, 'bad/name');
       await tester.pumpAndSettle();
       expect(find.textContaining('文件名无效'), findsOneWidget);
