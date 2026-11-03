@@ -815,7 +815,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 6),
                 if (state.entries.length > _filterThreshold)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
