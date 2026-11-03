@@ -546,7 +546,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get favoriteDirectory => 'Favorite current directory';
 
   @override
-  String get nasDirectory => 'NAS directory';
+  String get nasDirectory => 'Directory selection';
 
   @override
   String get organizingRequirements => 'Organizing requirements';
@@ -620,7 +620,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backToRequirements => 'Back to requirements';
 
   @override
-  String get backToNasDirectory => 'Back to NAS directory';
+  String get backToNasDirectory => 'Back to directory selection';
 
   @override
   String selectedChanges(int selected, int total, int changes) {

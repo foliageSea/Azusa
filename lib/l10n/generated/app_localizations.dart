@@ -1133,7 +1133,7 @@ abstract class AppLocalizations {
   /// No description provided for @nasDirectory.
   ///
   /// In en, this message translates to:
-  /// **'NAS directory'**
+  /// **'Directory selection'**
   String get nasDirectory;
 
   /// No description provided for @organizingRequirements.
@@ -1265,7 +1265,7 @@ abstract class AppLocalizations {
   /// No description provided for @backToNasDirectory.
   ///
   /// In en, this message translates to:
-  /// **'Back to NAS directory'**
+  /// **'Back to directory selection'**
   String get backToNasDirectory;
 
   /// No description provided for @selectedChanges.

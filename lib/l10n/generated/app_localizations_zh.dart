@@ -542,7 +542,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get favoriteDirectory => '收藏当前目录';
 
   @override
-  String get nasDirectory => 'NAS 目录';
+  String get nasDirectory => '目录选择';
 
   @override
   String get organizingRequirements => '整理要求';
@@ -612,7 +612,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backToRequirements => '返回整理要求';
 
   @override
-  String get backToNasDirectory => '返回 NAS 目录';
+  String get backToNasDirectory => '返回目录选择';
 
   @override
   String selectedChanges(int selected, int total, int changes) {
