@@ -11,6 +11,7 @@ import 'package:azusa/core/settings/naming_language.dart';
 import 'package:azusa/core/settings/naming_format.dart';
 import 'package:material_ui/material_ui.dart' show ThemeMode;
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
+import 'package:azusa/features/organizer/connections/ai_models.dart';
 import 'package:azusa/features/organizer/ai/ai_usage.dart';
 import 'package:azusa/features/organizer/ai/ai_usage_history.dart';
 import 'package:azusa/features/organizer/dav/directory_favorites.dart';
@@ -21,6 +22,7 @@ import 'package:azusa/features/organizer/dav/webdav.dart';
 import 'package:azusa/shared/azusa_logo.dart';
 import 'package:azusa/shared/widgets.dart';
 import 'package:azusa/shared/loading_button.dart';
+import 'package:azusa/shared/text_field_action.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -297,6 +299,213 @@ class FlattenOrganizer extends TestOrganizer {
 }
 
 void main() {
+  for (final width in [390.0, 1280.0]) {
+    testWidgets('模型获取选择及密钥显隐在 $width 宽度可用', (tester) async {
+      tester.view.physicalSize = Size(width, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final window = NoWindow();
+      final pending = Completer<List<String>>();
+      Future<List<String>> response = pending.future;
+      final requests = <ConnectionSettings>[];
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(SavableTestConnections.new),
+          organizerProvider.overrideWith(TestOrganizer.new),
+          initialSettingsProvider.overrideWithValue(
+            const AppSettings(language: 'zh'),
+          ),
+          aiModelsLoaderProvider.overrideWithValue((settings) {
+            requests.add(settings);
+            return response;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(window.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      container.read(routerProvider).go('/settings');
+      await tester.pumpAndSettle();
+      Finder field(int i) => find.byKey(ValueKey('connection-field-$i'));
+      Finder editable(int i) =>
+          find.descendant(of: field(i), matching: find.byType(EditableText));
+      await tester.ensureVisible(find.text('WebDAV').first);
+      await tester.tap(find.text('WebDAV').first);
+      await tester.pumpAndSettle();
+      await tester.enterText(editable(2), 'webdav-password');
+      expect(tester.widget<EditableText>(editable(2)).obscureText, isTrue);
+      expect(
+        tester.getSize(field(2)).height,
+        closeTo(tester.getSize(field(1)).height, 0.1),
+      );
+      await tester.tap(find.byKey(const ValueKey('toggle-secret-2')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<EditableText>(editable(2)).obscureText, isFalse);
+      expect(
+        tester.widget<EditableText>(editable(2)).controller.text,
+        'webdav-password',
+      );
+      await tester.ensureVisible(find.text('AI Agent').first);
+      await tester.tap(find.text('AI Agent').first);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(editable(3), 'https://unsaved.test/v1');
+      await tester.enterText(editable(5), 'unsaved-ai-key');
+      expect(tester.widget<EditableText>(editable(5)).obscureText, isTrue);
+      await tester.tap(find.byKey(const ValueKey('toggle-secret-5')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<EditableText>(editable(5)).obscureText, isFalse);
+      expect(
+        tester.widget<EditableText>(editable(5)).controller.text,
+        'unsaved-ai-key',
+      );
+
+      final fetch = find.byKey(const ValueKey('fetch-ai-models'));
+      expect(find.ancestor(of: fetch, matching: field(4)), findsOneWidget);
+      expect(
+        find.descendant(
+          of: fetch,
+          matching: find.byIcon(FLucideIcons.refreshCw),
+        ),
+        findsOneWidget,
+      );
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      for (final action in [
+        fetch,
+        find.byKey(const ValueKey('toggle-secret-5')),
+      ]) {
+        await tester.ensureVisible(action);
+        await mouse.moveTo(tester.getCenter(action));
+        await tester.pumpAndSettle();
+        expect(
+          find.descendant(of: action, matching: find.byType(FButton)),
+          findsNothing,
+        );
+        final tappable = find.descendant(
+          of: action,
+          matching: find.byWidgetPredicate((widget) => widget is FTappable),
+        );
+        expect(tester.widget<FTappable>(tappable).focusedOutlineStyle, isNull);
+        expect(tester.getSize(tappable), const Size(28, 28));
+      }
+      await mouse.removePointer();
+      expect(find.text('获取模型'), findsNothing);
+      for (final i in [4, 5]) {
+        expect(
+          tester.getSize(field(i)).height,
+          closeTo(tester.getSize(field(3)).height, 0.1),
+        );
+      }
+      await tester.ensureVisible(fetch);
+      await tester.tap(fetch);
+      await tester.pump();
+      expect(tester.widget<TextFieldAction>(fetch).loading, isTrue);
+      expect(tester.widget<FTextField>(field(4)).enabled, isFalse);
+      expect(requests.single.aiUrl, 'https://unsaved.test/v1');
+      expect(requests.single.aiKey, 'unsaved-ai-key');
+      expect(
+        container.read(connectionSettingsProvider).requireValue.aiKey,
+        isEmpty,
+      );
+      pending.complete(['model-alpha', 'model-beta']);
+      await tester.pumpAndSettle();
+      final search = find.descendant(
+        of: find.byKey(const ValueKey('ai-model-search')),
+        matching: find.byType(EditableText),
+      );
+      await tester.enterText(search, 'BETA');
+      await tester.pumpAndSettle();
+      expect(find.text('model-alpha'), findsNothing);
+      await tester.tap(find.text('model-beta'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<EditableText>(editable(4)).controller.text,
+        'model-beta',
+      );
+
+      await tester.tap(fetch);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('关闭'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<EditableText>(editable(4)).controller.text,
+        'model-beta',
+      );
+      response = Future.value([]);
+      await tester.tap(fetch);
+      await tester.pumpAndSettle();
+      expect(find.text('服务未返回可用模型，仍可手动填写模型名称。'), findsOneWidget);
+      expect(
+        tester.widget<EditableText>(editable(4)).controller.text,
+        'model-beta',
+      );
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pumpAndSettle();
+      // Complete the error only after a listener is installed by the request.
+      final failure = Completer<List<String>>();
+      response = failure.future;
+      await tester.tap(fetch);
+      await tester.pump();
+      failure.completeError(const FormatException('AI /models 未返回有效 JSON'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('获取模型失败：'), findsOneWidget);
+      expect(
+        tester.widget<EditableText>(editable(4)).controller.text,
+        'model-beta',
+      );
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pumpAndSettle();
+      await tester.enterText(editable(4), 'manual-model');
+      final save = find.text('保存配置');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(
+        container.read(connectionSettingsProvider).requireValue.model,
+        'manual-model',
+      );
+      expect(
+        container.read(connectionSettingsProvider).requireValue.aiKey,
+        'unsaved-ai-key',
+      );
+
+      await tester.ensureVisible(find.text('TMDB').first);
+      await tester.tap(find.text('TMDB').first);
+      await tester.pumpAndSettle();
+      await tester.enterText(editable(6), 'tmdb-key');
+      expect(tester.widget<EditableText>(editable(6)).obscureText, isTrue);
+      await tester.tap(find.byKey(const ValueKey('toggle-secret-6')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<EditableText>(editable(6)).obscureText, isFalse);
+      await tester.tap(find.byKey(const ValueKey('toggle-secret-6')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<EditableText>(editable(6)).obscureText, isTrue);
+      expect(
+        tester.widget<EditableText>(editable(6)).controller.text,
+        'tmdb-key',
+      );
+      container.read(routerProvider).go('/history');
+      await tester.pumpAndSettle();
+      container.read(routerProvider).go('/settings');
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('AI Agent').first);
+      await tester.tap(find.text('AI Agent').first);
+      await tester.pumpAndSettle();
+      expect(tester.widget<EditableText>(editable(5)).obscureText, isTrue);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+  }
   for (final width in [390.0, 1280.0]) {
     testWidgets('历史详情在 $width 宽度格式化时间并分开展示新旧路径', (tester) async {
       tester.view.physicalSize = Size(width, 1000);

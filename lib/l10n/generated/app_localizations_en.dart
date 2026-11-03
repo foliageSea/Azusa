@@ -395,6 +395,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modelName => 'Model name';
 
   @override
+  String get fetchModels => 'Fetch models';
+
+  @override
+  String get selectModel => 'Select model';
+
+  @override
+  String get searchModels => 'Search models';
+
+  @override
+  String get noMatchingModels => 'No matching models';
+
+  @override
+  String get noModelsAvailable =>
+      'The service returned no available models. You can still enter a model name manually.';
+
+  @override
+  String fetchModelsFailed(Object error) {
+    return 'Could not fetch models: $error';
+  }
+
+  @override
+  String get showApiKey => 'Show API key';
+
+  @override
+  String get hideApiKey => 'Hide API key';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
+
+  @override
   String get testWebdav => 'Test WebDAV';
 
   @override

@@ -860,6 +860,66 @@ abstract class AppLocalizations {
   /// **'Model name'**
   String get modelName;
 
+  /// No description provided for @fetchModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch models'**
+  String get fetchModels;
+
+  /// No description provided for @selectModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Select model'**
+  String get selectModel;
+
+  /// No description provided for @searchModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Search models'**
+  String get searchModels;
+
+  /// No description provided for @noMatchingModels.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching models'**
+  String get noMatchingModels;
+
+  /// No description provided for @noModelsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The service returned no available models. You can still enter a model name manually.'**
+  String get noModelsAvailable;
+
+  /// No description provided for @fetchModelsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not fetch models: {error}'**
+  String fetchModelsFailed(Object error);
+
+  /// No description provided for @showApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Show API key'**
+  String get showApiKey;
+
+  /// No description provided for @hideApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide API key'**
+  String get hideApiKey;
+
+  /// No description provided for @showPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get showPassword;
+
+  /// No description provided for @hidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get hidePassword;
+
   /// No description provided for @testWebdav.
   ///
   /// In en, this message translates to:

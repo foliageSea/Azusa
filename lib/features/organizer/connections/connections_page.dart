@@ -1,11 +1,13 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../shared/azusa_logo.dart';
 import '../../../shared/loading_button.dart';
+import '../../../shared/secret_text_field.dart';
+import '../../../shared/text_field_action.dart';
 import '../../../shared/widgets.dart';
 import '../../../shared/localization.dart';
 import '../../../shared/runtime_localization.dart';
@@ -14,13 +16,15 @@ import '../../../core/settings/naming_language.dart';
 import '../../../core/settings/naming_format.dart';
 import '../../settings/settings_page.dart';
 import 'connection_settings.dart';
+import 'ai_models.dart';
+import 'model_picker.dart';
 import 'http_clients.dart';
 import 'naming_format_examples.dart';
 import '../organizer_state.dart';
 import '../ai/tmdb.dart';
 import '../dav/webdav.dart';
 
-enum _ConnectionAction { save, webdav, ai, tmdb }
+enum _ConnectionAction { save, webdav, ai, tmdb, models }
 
 class ConnectionsPage extends ConsumerStatefulWidget {
   const ConnectionsPage({super.key});
@@ -34,11 +38,31 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
   _ConnectionAction? activeAction;
   bool get busy => activeAction != null;
   bool savingNamingSettings = false;
+  final visibleSecrets = <int>{};
+  GoRouter? router;
   bool proxyAi = true, proxyTmdb = true, proxyWebdav = false;
   ProxyMode proxyMode = ProxyMode.direct;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final next = GoRouter.of(context);
+    if (router == next) return;
+    router?.routeInformationProvider.removeListener(hideSecretsOnNavigation);
+    router = next;
+    next.routeInformationProvider.addListener(hideSecretsOnNavigation);
+  }
+
+  void hideSecretsOnNavigation() {
+    if (visibleSecrets.isNotEmpty &&
+        router?.routeInformationProvider.value.uri.path != '/connections') {
+      setState(visibleSecrets.clear);
+    }
+  }
+
+  @override
   void dispose() {
+    router?.routeInformationProvider.removeListener(hideSecretsOnNavigation);
     for (final field in fields) {
       field.dispose();
     }
@@ -112,7 +136,6 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
       },
     );
     final value = current;
-    Dio? ai;
     WebDavClient? dav;
     TmdbClient? tmdb;
     try {
@@ -127,22 +150,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
           );
           await tmdb.search('Breaking Bad');
         case NetworkService.ai:
-          final base = validatedHttpUrl(value.aiUrl, allowHttp: true);
-          ai = createServiceClient(value);
-          final response = await ai.getUri<Object>(
-            base.replace(
-              path: '${base.path.replaceFirst(RegExp(r'/+$'), '')}/models',
-            ),
-            options: Options(
-              headers: {
-                if (value.aiKey.isNotEmpty)
-                  'Authorization': 'Bearer ${value.aiKey}',
-              },
-            ),
-          );
-          if (response.data is! Map) {
-            throw const FormatException('AI /models 未返回有效 JSON');
-          }
+          await ref.read(aiModelsLoaderProvider)(value);
       }
       if (mounted) {
         notifyUser(
@@ -166,9 +174,40 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
         );
       }
     } finally {
-      ai?.close(force: true);
       dav?.close();
       tmdb?.close();
+      if (mounted) setState(() => activeAction = null);
+    }
+  }
+
+  Future<void> getModels() async {
+    if (busy) return;
+    setState(() => activeAction = _ConnectionAction.models);
+    try {
+      final models = await ref.read(aiModelsLoaderProvider)(current);
+      if (!mounted) return;
+      setState(() => activeAction = null);
+      if (models.isEmpty) {
+        notifyUser(context, context.l10n.noModelsAvailable);
+        return;
+      }
+      final selected = await showModelPicker(
+        context,
+        models,
+        selected: fields[4].text.trim(),
+      );
+      if (mounted && selected != null) fields[4].text = selected;
+    } catch (e) {
+      if (mounted) {
+        notifyUser(
+          context,
+          context.l10n.fetchModelsFailed(
+            localizeRuntimeMessage(context.l10n, serviceError(e)),
+          ),
+          type: NoticeType.error,
+        );
+      }
+    } finally {
       if (mounted) setState(() => activeAction = null);
     }
   }
@@ -183,14 +222,42 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
         busy || savingNamingSettings || organizer.busy || organizer.executing;
     Widget field(int i, String label) => Padding(
       padding: const EdgeInsets.only(bottom: 18),
-      child: FTextField(
-        label: Text(label),
-        enabled: !locked,
-        control: .managed(controller: fields[i]),
-        obscureText: [2, 5, 6].contains(i),
-        autocorrect: false,
-        enableSuggestions: false,
-      ),
+      child: [2, 5, 6].contains(i)
+          ? SecretTextField(
+              fieldKey: ValueKey('connection-field-$i'),
+              toggleKey: ValueKey('toggle-secret-$i'),
+              controller: fields[i],
+              label: label,
+              enabled: !locked,
+              visible: visibleSecrets.contains(i),
+              showLabel: i == 2 ? l.showPassword : l.showApiKey,
+              hideLabel: i == 2 ? l.hidePassword : l.hideApiKey,
+              onVisibilityChange: (visible) => setState(() {
+                if (visible) {
+                  visibleSecrets.add(i);
+                } else {
+                  visibleSecrets.remove(i);
+                }
+              }),
+            )
+          : FTextField(
+              key: ValueKey('connection-field-$i'),
+              label: Text(label),
+              enabled: !locked,
+              control: .managed(controller: fields[i]),
+              suffixBuilder: i == 4
+                  ? (context, style, variants) => TextFieldAction(
+                      key: const ValueKey('fetch-ai-models'),
+                      style: style,
+                      label: l.fetchModels,
+                      icon: FLucideIcons.refreshCw,
+                      loading: activeAction == _ConnectionAction.models,
+                      onPress: locked ? null : getModels,
+                    )
+                  : null,
+              autocorrect: false,
+              enableSuggestions: false,
+            ),
     );
     Widget section(
       String title,

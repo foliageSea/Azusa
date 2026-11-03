@@ -393,6 +393,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String get modelName => '模型名称';
 
   @override
+  String get fetchModels => '获取模型';
+
+  @override
+  String get selectModel => '选择模型';
+
+  @override
+  String get searchModels => '搜索模型';
+
+  @override
+  String get noMatchingModels => '没有匹配的模型';
+
+  @override
+  String get noModelsAvailable => '服务未返回可用模型，仍可手动填写模型名称。';
+
+  @override
+  String fetchModelsFailed(Object error) {
+    return '获取模型失败：$error';
+  }
+
+  @override
+  String get showApiKey => '显示 API Key';
+
+  @override
+  String get hideApiKey => '隐藏 API Key';
+
+  @override
+  String get showPassword => '显示密码';
+
+  @override
+  String get hidePassword => '隐藏密码';
+
+  @override
   String get testWebdav => '测试 WebDAV';
 
   @override
