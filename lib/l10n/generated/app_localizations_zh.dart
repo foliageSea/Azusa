@@ -250,6 +250,42 @@ class AppLocalizationsZh extends AppLocalizations {
   String get namingLanguage => '命名语言';
 
   @override
+  String get namingFormat => '命名格式';
+
+  @override
+  String get namingFormatStandard => '标准';
+
+  @override
+  String get namingFormatCompact => '简洁';
+
+  @override
+  String get namingFormatDotted => '点分隔';
+
+  @override
+  String get namingFormatDottedCompact => '点分隔-简洁';
+
+  @override
+  String get namingFormatExamples => '命名格式示例';
+
+  @override
+  String get namingExampleMovieStandard => '星际穿越 (2014).mkv';
+
+  @override
+  String get namingExampleMovieDotted => '星际穿越.2014.mkv';
+
+  @override
+  String get namingExampleTvStandard => '绝命毒师 - S01E01 - 试播集.mkv';
+
+  @override
+  String get namingExampleTvCompact => '绝命毒师 - S01E01.mkv';
+
+  @override
+  String get namingExampleTvDotted => '绝命毒师.S01E01.试播集.mkv';
+
+  @override
+  String get namingExampleTvDottedCompact => '绝命毒师.S01E01.mkv';
+
+  @override
   String get organizeSeries => '影视整理';
 
   @override

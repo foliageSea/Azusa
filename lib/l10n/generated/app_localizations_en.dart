@@ -252,6 +252,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get namingLanguage => 'Naming language';
 
   @override
+  String get namingFormat => 'Naming format';
+
+  @override
+  String get namingFormatStandard => 'Standard';
+
+  @override
+  String get namingFormatCompact => 'Compact';
+
+  @override
+  String get namingFormatDotted => 'Dot-separated';
+
+  @override
+  String get namingFormatDottedCompact => 'Dot-separated - compact';
+
+  @override
+  String get namingFormatExamples => 'Naming format examples';
+
+  @override
+  String get namingExampleMovieStandard => 'Interstellar (2014).mkv';
+
+  @override
+  String get namingExampleMovieDotted => 'Interstellar.2014.mkv';
+
+  @override
+  String get namingExampleTvStandard => 'Breaking Bad - S01E01 - Pilot.mkv';
+
+  @override
+  String get namingExampleTvCompact => 'Breaking Bad - S01E01.mkv';
+
+  @override
+  String get namingExampleTvDotted => 'Breaking.Bad.S01E01.Pilot.mkv';
+
+  @override
+  String get namingExampleTvDottedCompact => 'Breaking.Bad.S01E01.mkv';
+
+  @override
   String get organizeSeries => 'Organize media';
 
   @override

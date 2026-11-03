@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:azusa/core/settings/naming_language.dart';
+import 'package:azusa/core/settings/naming_format.dart';
 import 'package:azusa/features/organizer/ai/agent.dart';
 import 'package:azusa/features/organizer/ai/tmdb.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
@@ -49,6 +50,7 @@ Future<List<RenameItem>> _propose(
   List<Map<String, Object>> items, {
   bool verify = true,
   bool searchOnly = false,
+  NamingFormat namingFormat = NamingFormat.standard,
 }) async {
   var round = 0;
   final ai = Dio()
@@ -91,7 +93,13 @@ Future<List<RenameItem>> _propose(
     );
   final dav = WebDavClient(_settings);
   final tmdb = TmdbClient(_settings, client: data);
-  final agent = RenameAgent(_settings, dav, tmdb, client: ai);
+  final agent = RenameAgent(
+    _settings,
+    dav,
+    tmdb,
+    client: ai,
+    namingFormat: namingFormat,
+  );
   try {
     return await agent.propose('/dav/', entries);
   } finally {
@@ -156,6 +164,24 @@ void main() {
     expect(plan.last.targetName, '毒液：最后一舞 (2024).zh-Hans.srt');
     expect(validatePlan(plan, entries), isNull);
   });
+
+  for (final format in NamingFormat.values) {
+    test('${format.name} 格式的电影配对字幕跟随视频并保留语言标记', () async {
+      const entries = [
+        DavEntry('/dav/raw.MKV', false),
+        DavEntry('/dav/raw.zh-Hans.srt', false),
+      ];
+      final dotted =
+          format == NamingFormat.dotted || format == NamingFormat.dottedCompact;
+      final stem = dotted ? '毒液：最后一舞.2024' : '毒液：最后一舞 (2024)';
+      final plan = await _propose(entries, [
+        {..._item(entries.first.path), 'targetName': '$stem.mkv'},
+      ], namingFormat: format);
+      expect(plan.first.targetName, '$stem.MKV');
+      expect(plan.last.targetName, '$stem.zh-Hans.srt');
+      expect(validatePlan(plan, entries), isNull);
+    });
+  }
 
   test('电影子目录保持原位，不沿用剧集平铺行为', () async {
     const entries = [

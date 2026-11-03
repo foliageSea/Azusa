@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:azusa/core/settings/naming_language.dart';
+import 'package:azusa/core/settings/naming_format.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:azusa/features/organizer/ai/agent.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
@@ -122,6 +123,60 @@ void main() {
         await agent.propose('/dav/', [
           const DavEntry('/dav/a.mkv', false),
         ], instruction: '使用其他语言'),
+        isEmpty,
+      );
+      expect(requests, 1);
+    });
+  }
+
+  for (final format in NamingFormat.values) {
+    test('AI 系统指令使用命名格式 ${format.name} 并优先于整理要求', () async {
+      var requests = 0;
+      final ai = Dio()
+        ..httpClientAdapter = TestAdapter((options) async {
+          requests++;
+          final body = jsonDecode(
+            utf8.decode(
+              await (options.data as Stream<List<int>>)
+                  .expand((bytes) => bytes)
+                  .toList(),
+            ),
+          ) as Map;
+          final messages = (body['messages'] as List).cast<Map>();
+          final system = messages.firstWhere((m) => m['role'] == 'system');
+          expect(system['content'], contains(format.instruction));
+          expect(system['content'], contains('多版本电影保留区分版本的标记'));
+          expect(system['content'], contains('字幕保留语言标记'));
+          return jsonResponse({
+            'choices': [
+              {
+                'message': {'role': 'assistant', 'content': '{"items":[]}'},
+              },
+            ],
+          });
+        });
+      const settings = ConnectionSettings(
+        webdavUrl: 'https://nas.test/dav/',
+        model: 'test',
+      );
+      final dav = WebDavClient(settings);
+      final tmdb = TmdbClient(settings);
+      final agent = RenameAgent(
+        settings,
+        dav,
+        tmdb,
+        client: ai,
+        namingFormat: format,
+      );
+      addTearDown(() {
+        agent.close();
+        tmdb.close();
+        dav.close();
+      });
+      expect(
+        await agent.propose('/dav/', [
+          const DavEntry('/dav/a.mkv', false),
+        ], instruction: '使用其他命名格式'),
         isEmpty,
       );
       expect(requests, 1);

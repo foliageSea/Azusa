@@ -8,6 +8,7 @@ import 'package:azusa/core/window/desktop_window.dart';
 import 'package:azusa/core/settings/settings.dart';
 import 'package:azusa/core/settings/directory_sort.dart';
 import 'package:azusa/core/settings/naming_language.dart';
+import 'package:azusa/core/settings/naming_format.dart';
 import 'package:material_ui/material_ui.dart' show ThemeMode;
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/ai/ai_usage.dart';
@@ -851,7 +852,7 @@ void main() {
     });
   }
   for (final width in [390.0, 1280.0]) {
-    testWidgets('命名语言在 $width 宽度可独立选择并保存', (tester) async {
+    testWidgets('命名语言和格式在 $width 宽度可独立选择并保存', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -899,6 +900,52 @@ void main() {
         NamingLanguage.english,
       );
       expect(container.read(settingsProvider).language, 'zh');
+      expect(find.text('命名格式'), findsOneWidget);
+      final help = find.byKey(const ValueKey('naming-format-help'));
+      await tester.ensureVisible(help);
+      await tester.tap(help);
+      await tester.pumpAndSettle();
+      expect(find.text('命名格式示例'), findsOneWidget);
+      expect(find.text('星际穿越 (2014).mkv'), findsNWidgets(2));
+      expect(find.text('星际穿越.2014.mkv'), findsNWidgets(2));
+      for (final example in [
+        '绝命毒师 - S01E01 - 试播集.mkv',
+        '绝命毒师 - S01E01.mkv',
+        '绝命毒师.S01E01.试播集.mkv',
+        '绝命毒师.S01E01.mkv',
+      ]) {
+        expect(find.text(example), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+      await tester.tap(
+        find.byKey(const ValueKey('close-naming-format-examples')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('命名格式示例'), findsNothing);
+      const formats = {
+        '简洁': NamingFormat.compact,
+        '点分隔': NamingFormat.dotted,
+        '点分隔-简洁': NamingFormat.dottedCompact,
+        '标准': NamingFormat.standard,
+      };
+      for (final option in formats.entries) {
+        final select = find.byKey(const ValueKey('naming-format-select'));
+        await tester.ensureVisible(select);
+        await tester.tap(
+          find.descendant(of: select, matching: find.byType(EditableText)),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('含 TMDB ID'), findsNothing);
+        await tester.tap(find.text(option.key).last);
+        await tester.pumpAndSettle();
+        expect(repository.value.namingFormat, option.value);
+        expect(container.read(settingsProvider).namingFormat, option.value);
+        expect(container.read(settingsProvider).language, 'zh');
+        expect(
+          container.read(settingsProvider).namingLanguage,
+          NamingLanguage.english,
+        );
+      }
       expect(
         container.read(organizerProvider).plan.single.targetName,
         '剧集 - S01E01.mkv',

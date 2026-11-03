@@ -578,6 +578,78 @@ abstract class AppLocalizations {
   /// **'Naming language'**
   String get namingLanguage;
 
+  /// No description provided for @namingFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Naming format'**
+  String get namingFormat;
+
+  /// No description provided for @namingFormatStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get namingFormatStandard;
+
+  /// No description provided for @namingFormatCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact'**
+  String get namingFormatCompact;
+
+  /// No description provided for @namingFormatDotted.
+  ///
+  /// In en, this message translates to:
+  /// **'Dot-separated'**
+  String get namingFormatDotted;
+
+  /// No description provided for @namingFormatDottedCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Dot-separated - compact'**
+  String get namingFormatDottedCompact;
+
+  /// No description provided for @namingFormatExamples.
+  ///
+  /// In en, this message translates to:
+  /// **'Naming format examples'**
+  String get namingFormatExamples;
+
+  /// No description provided for @namingExampleMovieStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Interstellar (2014).mkv'**
+  String get namingExampleMovieStandard;
+
+  /// No description provided for @namingExampleMovieDotted.
+  ///
+  /// In en, this message translates to:
+  /// **'Interstellar.2014.mkv'**
+  String get namingExampleMovieDotted;
+
+  /// No description provided for @namingExampleTvStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Breaking Bad - S01E01 - Pilot.mkv'**
+  String get namingExampleTvStandard;
+
+  /// No description provided for @namingExampleTvCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Breaking Bad - S01E01.mkv'**
+  String get namingExampleTvCompact;
+
+  /// No description provided for @namingExampleTvDotted.
+  ///
+  /// In en, this message translates to:
+  /// **'Breaking.Bad.S01E01.Pilot.mkv'**
+  String get namingExampleTvDotted;
+
+  /// No description provided for @namingExampleTvDottedCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Breaking.Bad.S01E01.mkv'**
+  String get namingExampleTvDottedCompact;
+
   /// No description provided for @organizeSeries.
   ///
   /// In en, this message translates to:

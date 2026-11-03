@@ -11,9 +11,11 @@ import '../../../shared/localization.dart';
 import '../../../shared/runtime_localization.dart';
 import '../../../core/settings/settings.dart';
 import '../../../core/settings/naming_language.dart';
+import '../../../core/settings/naming_format.dart';
 import '../../settings/settings_page.dart';
 import 'connection_settings.dart';
 import 'http_clients.dart';
+import 'naming_format_examples.dart';
 import '../organizer_state.dart';
 import '../ai/tmdb.dart';
 import '../dav/webdav.dart';
@@ -31,7 +33,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
   bool loaded = false;
   _ConnectionAction? activeAction;
   bool get busy => activeAction != null;
-  bool savingNamingLanguage = false;
+  bool savingNamingSettings = false;
   bool proxyAi = true, proxyTmdb = true, proxyWebdav = false;
   ProxyMode proxyMode = ProxyMode.direct;
 
@@ -178,7 +180,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
     final settings = ref.watch(connectionSettingsProvider);
     final organizer = ref.watch(organizerProvider);
     final locked =
-        busy || savingNamingLanguage || organizer.busy || organizer.executing;
+        busy || savingNamingSettings || organizer.busy || organizer.executing;
     Widget field(int i, String label) => Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: FTextField(
@@ -304,7 +306,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                           value == appSettings.namingLanguage) {
                         return;
                       }
-                      setState(() => savingNamingLanguage = true);
+                      setState(() => savingNamingSettings = true);
                       try {
                         await ref
                             .read(settingsProvider.notifier)
@@ -324,7 +326,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                         }
                       } finally {
                         if (mounted) {
-                          setState(() => savingNamingLanguage = false);
+                          setState(() => savingNamingSettings = false);
                         }
                       }
                     },
@@ -332,6 +334,66 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                   children: [
                     for (final language in NamingLanguage.values)
                       FSelectItem(title: Text(language.label), value: language),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                FSelect<NamingFormat>.rich(
+                  key: const ValueKey('naming-format-select'),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(l.namingFormat),
+                      const SizedBox(width: 4),
+                      FButton.icon(
+                        key: const ValueKey('naming-format-help'),
+                        variant: .ghost,
+                        size: .sm,
+                        semanticsLabel: l.namingFormatExamples,
+                        semanticsTooltip: l.namingFormatExamples,
+                        onPress: () => showNamingFormatExamples(context),
+                        child: const Icon(
+                          FLucideIcons.circleQuestionMark,
+                          size: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  enabled: !locked,
+                  format: (value) => namingFormatLabel(l, value),
+                  control: .lifted(
+                    value: appSettings.namingFormat,
+                    onChange: (value) async {
+                      if (value == null || value == appSettings.namingFormat) {
+                        return;
+                      }
+                      setState(() => savingNamingSettings = true);
+                      try {
+                        await ref
+                            .read(settingsProvider.notifier)
+                            .update((s) => s.copyWith(namingFormat: value));
+                      } catch (e) {
+                        if (context.mounted) {
+                          notifyUser(
+                            context,
+                            l.saveFailed(
+                              localizeRuntimeMessage(l, serviceError(e)),
+                            ),
+                            type: NoticeType.error,
+                          );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => savingNamingSettings = false);
+                        }
+                      }
+                    },
+                  ),
+                  children: [
+                    for (final format in NamingFormat.values)
+                      FSelectItem(
+                        title: Text(namingFormatLabel(l, format)),
+                        value: format,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 18),

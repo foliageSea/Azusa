@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../app_exception.dart';
 import '../logging.dart';
 import 'naming_language.dart';
+import 'naming_format.dart';
 import 'directory_sort.dart';
 
 enum AppThemeColor { azusa, neutral, blue, green, violet, orange, rose }
@@ -16,6 +17,7 @@ class AppSettings {
     this.themeMode = ThemeMode.system,
     this.language = 'system',
     this.namingLanguage = NamingLanguage.simplifiedChinese,
+    this.namingFormat = NamingFormat.standard,
     this.directorySort = DirectorySort.nameAscending,
     this.compactSidebar = false,
     this.themeColor = AppThemeColor.azusa,
@@ -26,6 +28,7 @@ class AppSettings {
   final ThemeMode themeMode;
   final String language;
   final NamingLanguage namingLanguage;
+  final NamingFormat namingFormat;
   final DirectorySort directorySort;
   final bool compactSidebar;
   final AppThemeColor themeColor;
@@ -36,6 +39,7 @@ class AppSettings {
     ThemeMode? themeMode,
     String? language,
     NamingLanguage? namingLanguage,
+    NamingFormat? namingFormat,
     DirectorySort? directorySort,
     bool? compactSidebar,
     AppThemeColor? themeColor,
@@ -45,6 +49,7 @@ class AppSettings {
     themeMode: themeMode ?? this.themeMode,
     language: language ?? this.language,
     namingLanguage: namingLanguage ?? this.namingLanguage,
+    namingFormat: namingFormat ?? this.namingFormat,
     directorySort: directorySort ?? this.directorySort,
     compactSidebar: compactSidebar ?? this.compactSidebar,
     themeColor: themeColor ?? this.themeColor,
@@ -55,6 +60,7 @@ class AppSettings {
     'theme': themeMode.name,
     'language': language,
     'namingLanguage': namingLanguage.code,
+    'namingFormat': namingFormat.name,
     'directorySort': directorySort.name,
     'compactSidebar': compactSidebar,
     'themeColor': themeColor.name,
@@ -70,6 +76,7 @@ class AppSettings {
         ? json['language'] as String
         : 'system',
     namingLanguage: NamingLanguage.fromCode(json['namingLanguage']),
+    namingFormat: NamingFormat.fromName(json['namingFormat']),
     directorySort: DirectorySort.fromName(json['directorySort']),
     compactSidebar: json['compactSidebar'] == true,
     themeColor: AppThemeColor.values.firstWhere(

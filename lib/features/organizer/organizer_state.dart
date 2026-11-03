@@ -188,7 +188,12 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         settings,
         namingLanguage: ref.read(settingsProvider).namingLanguage,
       );
-      agent = RenameAgent(settings, dav, tmdb);
+      agent = RenameAgent(
+        settings,
+        dav,
+        tmdb,
+        namingFormat: ref.read(settingsProvider).namingFormat,
+      );
       final fresh = await interruptible(dav.list(state.directory));
       final analysisEntries = <DavEntry>[...fresh];
       for (final folder in fresh.where((entry) => entry.directory)) {
