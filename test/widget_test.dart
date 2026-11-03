@@ -169,6 +169,23 @@ class MacWindow extends NoWindow {
   Future<void> toggleMaximize() async => maximizes++;
 }
 
+class ThemeTitleBarWindow extends NoWindow {
+  ThemeTitleBarWindow({required this.macOS});
+
+  @override
+  final bool macOS;
+  @override
+  bool get available => true;
+  bool _fullScreen = false;
+  @override
+  bool get fullScreen => _fullScreen;
+
+  void setFullScreen(bool value) {
+    _fullScreen = value;
+    notifyListeners();
+  }
+}
+
 class FavoritesOrganizer extends TestOrganizer {
   void beginDirectoryLoad() {
     state = state.copyWith(busy: true, message: '');
@@ -793,6 +810,61 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
         .clearLocalesTestValue();
   });
+  for (final macOS in [false, true]) {
+    testWidgets('亮暗切换位于窗口标题栏并在全屏时回退 macOS=$macOS', (tester) async {
+      tester.view.physicalSize = const Size(1280, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final window = ThemeTitleBarWindow(macOS: macOS);
+      final repository = MemorySettings();
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(TestConnections.new),
+          organizerProvider.overrideWith(TestOrganizer.new),
+          settingsRepositoryProvider.overrideWithValue(repository),
+          initialSettingsProvider.overrideWithValue(
+            const AppSettings(themeMode: ThemeMode.light),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(window.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final toggle = find.byKey(const ValueKey('theme-toggle'));
+      final titleBar = find.byKey(const ValueKey('window-title-bar'));
+      expect(toggle, findsOneWidget);
+      expect(find.descendant(of: titleBar, matching: toggle), findsOneWidget);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(repository.value.themeMode, ThemeMode.dark);
+      window.setFullScreen(true);
+      await tester.pumpAndSettle();
+      expect(titleBar, findsNothing);
+      expect(toggle, findsOneWidget);
+      expect(
+        find.ancestor(
+          of: toggle,
+          matching: find.byWidgetPredicate((widget) => widget is FHeader),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(repository.value.themeMode, ThemeMode.light);
+      window.setFullScreen(false);
+      await tester.pumpAndSettle();
+      expect(find.descendant(of: titleBar, matching: toggle), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
   testWidgets('macOS 标题栏绘制左侧窗口按钮并响应点击', (tester) async {
     tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1;

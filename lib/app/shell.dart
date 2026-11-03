@@ -187,6 +187,30 @@ class AppShell extends ConsumerWidget {
     };
     final l = context.l10n;
     final themeAction = dark ? l.switchLight : l.switchDark;
+    final themeToggle = FTooltip(
+      tipBuilder: (_, _) => Text(themeAction),
+      child: FButton.icon(
+        key: const ValueKey('theme-toggle'),
+        variant: .ghost,
+        semanticsLabel: themeAction,
+        onPress: () async {
+          try {
+            await ref
+                .read(settingsProvider.notifier)
+                .update(
+                  (value) => value.copyWith(
+                    themeMode: dark ? ThemeMode.light : ThemeMode.dark,
+                  ),
+                );
+          } catch (_) {
+            if (context.mounted) {
+              notifyUser(context, l.saveThemeFailed, type: NoticeType.error);
+            }
+          }
+        },
+        child: Icon(dark ? FLucideIcons.sun : FLucideIcons.moon),
+      ),
+    );
     final showBack =
         shell.currentIndex == 0 &&
         GoRouterState.of(context).uri.path.startsWith('/organize/assistant');
@@ -213,6 +237,7 @@ class AppShell extends ConsumerWidget {
                 ColoredBox(
                   color: context.theme.colors.muted,
                   child: SizedBox(
+                    key: const ValueKey('window-title-bar'),
                     height: 48,
                     child: Row(
                       children: [
@@ -237,6 +262,10 @@ class AppShell extends ConsumerWidget {
                               ),
                             ),
                           ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: themeToggle,
                         ),
                         if (!window.macOS) ...[
                           FButton.icon(
@@ -430,42 +459,9 @@ class AppShell extends ConsumerWidget {
                                             labels[shell.currentIndex],
                                           ),
                                         ),
-                                        FTooltip(
-                                          tipBuilder: (_, _) =>
-                                              Text(themeAction),
-                                          child: FButton.icon(
-                                            variant: .ghost,
-                                            semanticsLabel: themeAction,
-                                            onPress: () async {
-                                              try {
-                                                await ref
-                                                    .read(
-                                                      settingsProvider.notifier,
-                                                    )
-                                                    .update(
-                                                      (value) => value.copyWith(
-                                                        themeMode: dark
-                                                            ? ThemeMode.light
-                                                            : ThemeMode.dark,
-                                                      ),
-                                                    );
-                                              } catch (_) {
-                                                if (context.mounted) {
-                                                  notifyUser(
-                                                    context,
-                                                    l.saveThemeFailed,
-                                                    type: NoticeType.error,
-                                                  );
-                                                }
-                                              }
-                                            },
-                                            child: Icon(
-                                              dark
-                                                  ? FLucideIcons.sun
-                                                  : FLucideIcons.moon,
-                                            ),
-                                          ),
-                                        ),
+                                        if (!window.available ||
+                                            window.fullScreen)
+                                          themeToggle,
                                       ],
                                     ),
                                   ),
