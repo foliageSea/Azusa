@@ -23,6 +23,7 @@ import 'package:azusa/shared/loading_button.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -78,6 +79,26 @@ class TestOrganizer extends OrganizerController {
       ),
     ],
   );
+}
+
+class EntryInteractionOrganizer extends TestOrganizer {
+  final opened = <String?>[];
+  final renamed = <(String, String)>[];
+
+  @override
+  Future<void> open(String? path) async {
+    opened.add(path);
+    state = state.copyWith(directory: path, entries: []);
+  }
+
+  @override
+  Future<void> renameEntry(DavEntry entry, String name) async {
+    renamed.add((entry.path, name));
+  }
+
+  void setLocked({bool busy = false, bool executing = false}) {
+    state = state.copyWith(busy: busy, executing: executing);
+  }
 }
 
 class EmptyDirectoryOrganizer extends OrganizerController {
@@ -1179,6 +1200,116 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });
+
+  for (final platform in [
+    TargetPlatform.linux,
+    TargetPlatform.windows,
+    TargetPlatform.macOS,
+    TargetPlatform.android,
+  ]) {
+    testWidgets('$platform NAS 选择、F2 与目录打开交互', (tester) async {
+      debugDefaultTargetPlatformOverride = platform;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final window = NoWindow();
+      addTearDown(window.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          desktopWindowProvider.overrideWithValue(window),
+          connectionSettingsProvider.overrideWith(TestConnections.new),
+          organizerProvider.overrideWith(EntryInteractionOrganizer.new),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const StarterApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final controller = container.read(
+        organizerProvider.notifier,
+      ) as EntryInteractionOrganizer;
+      final input = find.descendant(
+        of: find.byKey(const ValueKey('rename-entry-name')),
+        matching: find.byType(EditableText),
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.f2);
+      await tester.pumpAndSettle();
+      expect(input, findsNothing);
+      if (platform == TargetPlatform.android) {
+        await tester.tap(find.text('a.mkv'));
+        await tester.pumpAndSettle();
+        await tester.sendKeyEvent(LogicalKeyboardKey.f2);
+        await tester.pumpAndSettle();
+        expect(input, findsNothing);
+        await tester.tap(find.text('season'));
+        await tester.pumpAndSettle();
+        expect(controller.opened, ['/dav/season/']);
+        debugDefaultTargetPlatformOverride = null;
+        return;
+      }
+      for (final name in ['a.mkv', 'season']) {
+        await tester.tap(find.text(name), kind: PointerDeviceKind.mouse);
+        await tester.pumpAndSettle();
+        expect(controller.opened, isEmpty);
+        final selected = find.descendant(
+          of: find.byKey(
+            ValueKey(name == 'season' ? '/dav/season/' : '/dav/a.mkv'),
+          ),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics && widget.properties.selected == true,
+          ),
+        );
+        expect(selected, findsOneWidget);
+        await tester.sendKeyEvent(LogicalKeyboardKey.f2);
+        await tester.pumpAndSettle();
+        expect(tester.widget<EditableText>(input).controller.text, name);
+        await tester.sendKeyEvent(LogicalKeyboardKey.f2);
+        await tester.pumpAndSettle();
+        expect(input, findsOneWidget);
+        await tester.tap(find.text('取消').last);
+        await tester.pumpAndSettle();
+      }
+      for (final executing in [false, true]) {
+        controller.setLocked(busy: !executing, executing: executing);
+        await tester.pump();
+        await tester.sendKeyEvent(LogicalKeyboardKey.f2);
+        await tester.pump();
+        expect(input, findsNothing);
+      }
+      controller.setLocked();
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.f2);
+      await tester.pumpAndSettle();
+      expect(tester.widget<EditableText>(input).controller.text, 'season');
+      await tester.enterText(input, 'renamed-season');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FButton, '重命名'));
+      await tester.pumpAndSettle();
+      expect(controller.renamed, [('/dav/season/', 'renamed-season')]);
+      for (final name in ['a.mkv', 'season']) {
+        await tester.tap(find.text(name), kind: PointerDeviceKind.mouse);
+        await tester.pump(const Duration(milliseconds: 60));
+        await tester.tap(find.text(name), kind: PointerDeviceKind.mouse);
+        await tester.pumpAndSettle();
+        expect(
+          controller.opened,
+          name == 'season' ? ['/dav/season/'] : isEmpty,
+        );
+      }
+      await tester.sendKeyEvent(LogicalKeyboardKey.f2);
+      await tester.pumpAndSettle();
+      expect(input, findsNothing);
+      expect(tester.takeException(), isNull);
+      debugDefaultTargetPlatformOverride = null;
+    });
+  }
 
   testWidgets('NAS 文件和文件夹可通过下拉菜单打开重命名对话框', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);

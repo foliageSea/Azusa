@@ -45,6 +45,22 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
   final instruction = TextEditingController();
   final filter = TextEditingController();
   final _fileScrollController = ScrollController();
+  final _entryFocus = FocusNode(debugLabel: 'NAS entries');
+  String? _selectedEntryPath;
+  bool _renamingEntry = false;
+
+  bool get _desktop => switch (defaultTargetPlatform) {
+    TargetPlatform.linux ||
+    TargetPlatform.macOS ||
+    TargetPlatform.windows => true,
+    _ => false,
+  };
+
+  void _selectEntry(DavEntry entry) {
+    setState(() => _selectedEntryPath = entry.path);
+    _entryFocus.requestFocus();
+  }
+
   final _directoryScrollOffsets = <String, double>{};
   bool _savingFavorite = false;
   bool _savingSort = false;
@@ -76,6 +92,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
   void dispose() {
     instruction.dispose();
     filter.dispose();
+    _entryFocus.dispose();
     _fileScrollController.dispose();
     super.dispose();
   }
@@ -207,19 +224,28 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
   }
 
   Future<void> _renameEntry(DavEntry entry) async {
-    final target = await showFDialog<String>(
-      context: context,
-      builder: (context, style, animation) =>
-          _RenameEntryDialog(entry: entry, animation: animation),
-    );
-    if (target == null || !mounted) return;
-    await _controller.renameEntry(entry, target);
+    final state = ref.read(organizerProvider);
+    if (_renamingEntry || state.busy || state.executing) return;
+    _renamingEntry = true;
+    try {
+      final target = await showFDialog<String>(
+        context: context,
+        builder: (context, style, animation) =>
+            _RenameEntryDialog(entry: entry, animation: animation),
+      );
+      if (target == null || !mounted) return;
+      await _controller.renameEntry(entry, target);
+    } finally {
+      _renamingEntry = false;
+      if (mounted && _selectedEntryPath != null) _entryFocus.requestFocus();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     ref.listen(organizerProvider.select((s) => s.directory), (_, directory) {
       filter.clear();
+      _selectedEntryPath = null;
       if (directory.isEmpty) _directoryScrollOffsets.clear();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted ||
@@ -336,12 +362,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     );
     if (widget.step != OrganizerStep.browse) return content;
 
-    final desktop = switch (defaultTargetPlatform) {
-      TargetPlatform.linux ||
-      TargetPlatform.macOS ||
-      TargetPlatform.windows => true,
-      _ => false,
-    };
+    final desktop = _desktop;
     return PopScope<Object?>(
       canPop: _parentDirectory(state, root) == null,
       onPopInvokedWithResult: (didPop, _) {
@@ -609,6 +630,9 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     final visible = query.isEmpty
         ? sorted
         : sorted.where((e) => e.name.toLowerCase().contains(query)).toList();
+    if (!visible.any((entry) => entry.path == _selectedEntryPath)) {
+      _selectedEntryPath = null;
+    }
     final planned = {
       for (final item in state.plan)
         if (item.enabled && item.source != item.target) item.source,
@@ -811,44 +835,69 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                     : const Center(child: _Divider()),
               ),
               Expanded(
-                child: ClipRect(
-                  child: !connected || visible.isEmpty
-                      ? Center(
-                          key: const ValueKey('nas-empty-state'),
-                          child: _Placeholder(
-                            icon: !connected
-                                ? FLucideIcons.hardDrive
-                                : state.entries.isEmpty
-                                ? FLucideIcons.folderOpen
-                                : FLucideIcons.search,
-                            message: !connected
-                                ? context.l10n.browseNasHint
-                                : state.entries.isEmpty
-                                ? context.l10n.directoryEmpty
-                                : context.l10n.noNameMatches(
-                                    filter.text.trim(),
-                                  ),
+                child: Focus(
+                  focusNode: _entryFocus,
+                  onKeyEvent: (node, event) {
+                    if (!_desktop ||
+                        !node.hasPrimaryFocus ||
+                        locked ||
+                        _renamingEntry ||
+                        event is! KeyDownEvent ||
+                        event.logicalKey != LogicalKeyboardKey.f2) {
+                      return KeyEventResult.ignored;
+                    }
+                    for (final entry in visible) {
+                      if (entry.path == _selectedEntryPath) {
+                        _renameEntry(entry);
+                        return KeyEventResult.handled;
+                      }
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: ClipRect(
+                    child: !connected || visible.isEmpty
+                        ? Center(
+                            key: const ValueKey('nas-empty-state'),
+                            child: _Placeholder(
+                              icon: !connected
+                                  ? FLucideIcons.hardDrive
+                                  : state.entries.isEmpty
+                                  ? FLucideIcons.folderOpen
+                                  : FLucideIcons.search,
+                              message: !connected
+                                  ? context.l10n.browseNasHint
+                                  : state.entries.isEmpty
+                                  ? context.l10n.directoryEmpty
+                                  : context.l10n.noNameMatches(
+                                      filter.text.trim(),
+                                    ),
+                            ),
+                          )
+                        : ListView.builder(
+                            key: const ValueKey('nas-file-list'),
+                            controller: _fileScrollController,
+                            primary: false,
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            itemCount: visible.length,
+                            itemBuilder: (context, index) {
+                              final entry = visible[index];
+                              return _EntryRow(
+                                key: ValueKey(entry.path),
+                                entry: entry,
+                                locked: locked,
+                                compact: compact,
+                                desktop: _desktop,
+                                selected:
+                                    _desktop &&
+                                    entry.path == _selectedEntryPath,
+                                onSelect: () => _selectEntry(entry),
+                                planned: planned.contains(entry.path),
+                                onOpen: () => _openDirectory(entry.path),
+                                onRename: () => _renameEntry(entry),
+                              );
+                            },
                           ),
-                        )
-                      : ListView.builder(
-                          key: const ValueKey('nas-file-list'),
-                          controller: _fileScrollController,
-                          primary: false,
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          itemCount: visible.length,
-                          itemBuilder: (context, index) {
-                            final entry = visible[index];
-                            return _EntryRow(
-                              key: ValueKey(entry.path),
-                              entry: entry,
-                              locked: locked,
-                              compact: compact,
-                              planned: planned.contains(entry.path),
-                              onOpen: () => _openDirectory(entry.path),
-                              onRename: () => _renameEntry(entry),
-                            );
-                          },
-                        ),
+                  ),
                 ),
               ),
             ],
@@ -1359,12 +1408,16 @@ class _EntryRow extends StatelessWidget {
     required this.locked,
     required this.compact,
     required this.planned,
+    required this.desktop,
+    required this.selected,
+    required this.onSelect,
     required this.onOpen,
     required this.onRename,
     super.key,
   });
   final DavEntry entry;
-  final bool locked, compact, planned;
+  final bool locked, compact, planned, desktop, selected;
+  final VoidCallback onSelect;
   final VoidCallback onOpen;
   final VoidCallback onRename;
 
@@ -1376,106 +1429,117 @@ class _EntryRow extends StatelessWidget {
       if (!entry.directory && entry.size != null) _formatSize(entry.size!),
       if (!compact || entry.directory) ?_formatModified(entry.modified),
     ].join(' · ');
-    return FTappable(
-      onPress: entry.directory && !locked ? onOpen : null,
-      semanticsLabel: entry.directory
-          ? context.l10n.openEntry(entry.name)
-          : entry.name,
-      builder: (context, variants, child) => AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color:
-              entry.directory &&
-                  !locked &&
-                  (variants.contains(FTappableVariant.hovered) ||
-                      variants.contains(FTappableVariant.pressed))
-              ? theme.colors.secondary
-              : null,
-          borderRadius: theme.style.borderRadius.md,
+    return Semantics(
+      selected: desktop ? selected : null,
+      child: FTappable(
+        onPress: locked
+            ? null
+            : desktop
+            ? onSelect
+            : entry.directory
+            ? onOpen
+            : null,
+        onDoubleTap: desktop && entry.directory && !locked ? onOpen : null,
+        semanticsLabel: entry.directory
+            ? context.l10n.openEntry(entry.name)
+            : entry.name,
+        builder: (context, variants, child) => AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            color:
+                selected ||
+                    (desktop || entry.directory) &&
+                        !locked &&
+                        (variants.contains(FTappableVariant.hovered) ||
+                            variants.contains(FTappableVariant.pressed))
+                ? theme.colors.secondary
+                : null,
+            borderRadius: theme.style.borderRadius.md,
+          ),
+          child: child,
         ),
-        child: child,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
-        child: Row(
-          children: [
-            Icon(
-              _entryIcon(entry),
-              size: 20,
-              color: entry.directory
-                  ? theme.colors.primary
-                  : theme.colors.mutedForeground,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.typography.body.sm,
-                  ),
-                  if (details.isNotEmpty)
-                    Text(
-                      details,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.typography.body.xs.copyWith(
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                ],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+          child: Row(
+            children: [
+              Icon(
+                _entryIcon(entry),
+                size: 20,
+                color: entry.directory
+                    ? theme.colors.primary
+                    : theme.colors.mutedForeground,
               ),
-            ),
-            if (planned) ...[
-              const SizedBox(width: 8),
-              FBadge(
-                variant: .secondary,
-                child: Text(
-                  compact
-                      ? context.l10n.pendingRenameShort
-                      : context.l10n.pendingRename,
-                ),
-              ),
-            ],
-            const SizedBox(width: 4),
-            FPopoverMenu(
-              menuAnchor: Alignment.topRight,
-              childAnchor: Alignment.bottomRight,
-              menuBuilder: (context, controller, _) => [
-                FItemGroup(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    FItem(
-                      prefix: const Icon(FLucideIcons.pencil, size: 16),
-                      title: Text(context.l10n.renameEntry),
-                      onPress: () {
-                        controller.hide();
-                        onRename();
-                      },
+                    Text(
+                      entry.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.typography.body.sm,
                     ),
+                    if (details.isNotEmpty)
+                      Text(
+                        details,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.typography.body.xs.copyWith(
+                          color: theme.colors.mutedForeground,
+                        ),
+                      ),
                   ],
                 ),
-              ],
-              builder: (context, controller, _) => FButton.icon(
-                variant: .ghost,
-                size: .sm,
-                semanticsLabel: context.l10n.entryActions(entry.name),
-                onPress: locked ? null : controller.toggle,
-                child: const Icon(FLucideIcons.ellipsis, size: 16),
               ),
-            ),
-            if (entry.directory)
-              Icon(
-                FLucideIcons.chevronRight,
-                size: 16,
-                color: theme.colors.mutedForeground,
-              )
-            else
-              const SizedBox(width: 16),
-          ],
+              if (planned) ...[
+                const SizedBox(width: 8),
+                FBadge(
+                  variant: .secondary,
+                  child: Text(
+                    compact
+                        ? context.l10n.pendingRenameShort
+                        : context.l10n.pendingRename,
+                  ),
+                ),
+              ],
+              const SizedBox(width: 4),
+              FPopoverMenu(
+                menuAnchor: Alignment.topRight,
+                childAnchor: Alignment.bottomRight,
+                menuBuilder: (context, controller, _) => [
+                  FItemGroup(
+                    children: [
+                      FItem(
+                        prefix: const Icon(FLucideIcons.pencil, size: 16),
+                        title: Text(context.l10n.renameEntry),
+                        onPress: () {
+                          controller.hide();
+                          onRename();
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+                builder: (context, controller, _) => FButton.icon(
+                  variant: .ghost,
+                  size: .sm,
+                  semanticsLabel: context.l10n.entryActions(entry.name),
+                  onPress: locked ? null : controller.toggle,
+                  child: const Icon(FLucideIcons.ellipsis, size: 16),
+                ),
+              ),
+              if (entry.directory)
+                Icon(
+                  FLucideIcons.chevronRight,
+                  size: 16,
+                  color: theme.colors.mutedForeground,
+                )
+              else
+                const SizedBox(width: 16),
+            ],
+          ),
         ),
       ),
     );
