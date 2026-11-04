@@ -35,23 +35,20 @@ class WebDavSwitcher extends ConsumerWidget {
     final name =
         items.where((item) => item.id == activeId).firstOrNull?.name ??
         l.webdavConnection;
-    Widget trigger(VoidCallback open) => FTooltip(
-      tipBuilder: (_, _) => Text(l.switchConnection),
-      child: FButton(
-        key: const ValueKey('webdav-switcher-trigger'),
-        semanticsLabel: '${l.switchConnection}: $name',
-        variant: .ghost,
-        mainAxisSize: MainAxisSize.min,
-        prefix: const Icon(FLucideIcons.server),
-        suffix: Icon(
-          FLucideIcons.chevronDown,
-          size: 14,
-          color: context.theme.colors.mutedForeground,
-        ),
-        builder: responsiveButtonContent,
-        onPress: locked ? null : open,
-        child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+    Widget trigger(VoidCallback open) => FButton(
+      key: const ValueKey('webdav-switcher-trigger'),
+      semanticsLabel: '${l.switchConnection}: $name',
+      variant: .ghost,
+      mainAxisSize: MainAxisSize.min,
+      prefix: const Icon(FLucideIcons.server),
+      suffix: Icon(
+        FLucideIcons.chevronDown,
+        size: 14,
+        color: context.theme.colors.mutedForeground,
       ),
+      builder: responsiveButtonContent,
+      onPress: locked ? null : open,
+      child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
     void manage() {
       if (!_locked(ref)) context.go(SettingsTab.webdav.location);
