@@ -357,19 +357,6 @@ void main() {
       await tester.ensureVisible(find.text('WebDAV').first);
       await tester.tap(find.text('WebDAV').first);
       await tester.pumpAndSettle();
-      await tester.enterText(editable(2), 'webdav-password');
-      expect(tester.widget<EditableText>(editable(2)).obscureText, isTrue);
-      expect(
-        tester.getSize(field(2)).height,
-        closeTo(tester.getSize(field(1)).height, 0.1),
-      );
-      await tester.tap(find.byKey(const ValueKey('toggle-secret-2')));
-      await tester.pumpAndSettle();
-      expect(tester.widget<EditableText>(editable(2)).obscureText, isFalse);
-      expect(
-        tester.widget<EditableText>(editable(2)).controller.text,
-        'webdav-password',
-      );
       await tester.ensureVisible(find.text('AI Agent').first);
       await tester.tap(find.text('AI Agent').first);
       await tester.pumpAndSettle();
@@ -1017,7 +1004,7 @@ void main() {
     expect(find.text('语言').last, findsOneWidget);
     await tester.tap(find.text('WebDAV').first);
     await tester.pumpAndSettle();
-    expect(find.text('测试 WebDAV'), findsOneWidget);
+    expect(find.text('WebDAV'), findsWidgets);
     debugDefaultTargetPlatformOverride = null;
   });
   for (final width in [390.0, 1280.0]) {
@@ -1125,9 +1112,8 @@ void main() {
       await tester.ensureVisible(find.text('WebDAV').first);
       await tester.tap(find.text('WebDAV').first);
       await tester.pumpAndSettle();
-      expect(find.text('WebDAV URL'), findsOneWidget);
-      expect(find.text('Username'), findsOneWidget);
-      expect(find.text('Save configuration'), findsOneWidget);
+      expect(find.text('WebDAV'), findsWidgets);
+      expect(find.byKey(const ValueKey('connection-field-0')), findsNothing);
       await tester.ensureVisible(find.text('HTTP proxy').first);
       await tester.tap(find.text('HTTP proxy').first);
       await tester.pumpAndSettle();
@@ -1538,7 +1524,7 @@ void main() {
     expect(find.text('目录选择'), findsWidgets);
   });
 
-  testWidgets('四个连接配置 Tab 使用保存气泡提示', (tester) async {
+  testWidgets('共享连接配置 Tab 使用保存气泡提示', (tester) async {
     tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -1562,7 +1548,7 @@ void main() {
     await tester.pumpAndSettle();
     container.read(routerProvider).go('/connections');
     await tester.pumpAndSettle();
-    for (final tab in ['WebDAV', 'AI Agent', 'TMDB', 'HTTP 代理']) {
+    for (final tab in ['AI Agent', 'TMDB', 'HTTP 代理']) {
       await tester.ensureVisible(find.text(tab).first);
       await tester.tap(find.text(tab).first);
       await tester.pumpAndSettle();
@@ -1889,12 +1875,12 @@ void main() {
     await tester.pumpAndSettle();
     container.read(routerProvider).go('/connections');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('WebDAV').first);
+    await tester.tap(find.text('AI Agent').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('保存配置'));
     await tester.pump();
     final save = find.widgetWithText(LoadingButton, '保存配置');
-    final test = find.widgetWithText(LoadingButton, '测试 WebDAV');
+    final test = find.widgetWithText(LoadingButton, '测试 AI');
     expect(tester.widget<LoadingButton>(save).loading, isTrue);
     expect(tester.widget<LoadingButton>(test).onPress, isNull);
     expect(
@@ -2385,17 +2371,17 @@ void main() {
       expect(tester.takeException(), isNull);
       container.read(routerProvider).go('/connections');
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('WebDAV').first);
-      await tester.tap(find.text('WebDAV').first);
+      await tester.ensureVisible(find.text('AI Agent').first);
+      await tester.tap(find.text('AI Agent').first);
       await tester.pumpAndSettle();
-      expect(find.text('WebDAV 地址'), findsOneWidget);
-      expect(find.text('OpenAI 兼容 API 基础地址'), findsNothing);
+      expect(find.text('OpenAI 兼容 API 基础地址'), findsOneWidget);
+      expect(find.text('WebDAV 地址'), findsNothing);
       final webdavUrl = find.descendant(
         of: find.byType(FTextField).first,
         matching: find.byType(EditableText),
       );
       await tester.enterText(webdavUrl, '');
-      await tester.tap(find.text('测试 WebDAV'));
+      await tester.tap(find.text('测试 AI'));
       await tester.pumpAndSettle();
       expect(find.textContaining('连接失败：'), findsOneWidget);
       expect(find.byIcon(FLucideIcons.circleX), findsOneWidget);
@@ -2413,11 +2399,11 @@ void main() {
       await tester.pump(const Duration(seconds: 10));
       await tester.pumpAndSettle();
       expect(find.textContaining('连接失败：'), findsNothing);
-      await tester.enterText(webdavUrl, 'https://nas.test/dav/');
+      await tester.enterText(webdavUrl, 'https://unsaved.test/v1');
       final username = find.byType(FTextField).at(1);
       await tester.enterText(
         find.descendant(of: username, matching: find.byType(EditableText)),
-        '未保存的用户名',
+        '未保存的模型',
       );
       await tester.tap(find.text('AI Agent').first);
       await tester.pumpAndSettle();
@@ -2431,18 +2417,18 @@ void main() {
       await tester.ensureVisible(find.text('HTTP 代理').first);
       await tester.tap(find.text('HTTP 代理').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('WebDAV 使用代理'));
+      await tester.tap(find.text('AI 使用代理'));
       await tester.pumpAndSettle();
-      expect(find.text('WebDAV 使用代理'), findsOneWidget);
+      expect(find.text('AI 使用代理'), findsOneWidget);
       await tester.ensureVisible(find.text('关于').first);
       await tester.tap(find.text('关于').first);
       await tester.pumpAndSettle();
       expect(find.text('MiSans 字体许可'), findsOneWidget);
       expect(find.text('保存配置'), findsNothing);
-      await tester.ensureVisible(find.text('WebDAV').first);
-      await tester.tap(find.text('WebDAV').first);
+      await tester.ensureVisible(find.text('AI Agent').first);
+      await tester.tap(find.text('AI Agent').first);
       await tester.pumpAndSettle();
-      expect(find.text('未保存的用户名'), findsOneWidget);
+      expect(find.text('未保存的模型'), findsOneWidget);
       expect(find.text('保存配置'), findsOneWidget);
       expect(
         find.ancestor(of: find.text('保存配置'), matching: find.byType(FCard)),
@@ -2453,11 +2439,11 @@ void main() {
       await tester.pumpAndSettle();
       final proxyCheckbox = tester.widget<FCheckbox>(
         find.ancestor(
-          of: find.text('WebDAV 使用代理'),
+          of: find.text('AI 使用代理'),
           matching: find.byType(FCheckbox),
         ),
       );
-      expect(proxyCheckbox.value, isTrue);
+      expect(proxyCheckbox.value, isFalse);
       expect(find.text('保存配置'), findsOneWidget);
       expect(tester.takeException(), isNull);
       container.read(routerProvider).go('/organize/assistant/preview');

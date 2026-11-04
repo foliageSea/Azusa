@@ -10,6 +10,42 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
+  test('版本 1 数据库升级到版本 2 并保留已有记录', () async {
+    final directory = await Directory('/tmp/opencode').createTemp('app-v1-');
+    addTearDown(() => directory.delete(recursive: true));
+    final path = '${directory.path}/azusa.sqlite3';
+    final seed = sqlite3.open(path);
+    seed.execute('''
+      CREATE TABLE execution_history (id INTEGER PRIMARY KEY, record TEXT NOT NULL);
+      INSERT INTO execution_history (record) VALUES ('existing');
+      PRAGMA user_version = 1;
+    ''');
+    seed.close();
+    final database = AppDatabase(open: () async => sqlite3.open(path));
+    addTearDown(database.close);
+    expect(await ExecutionHistoryRepository(database).load(), ['existing']);
+    final db = await database.connection();
+    expect(db.select('PRAGMA user_version').single.values.single, 2);
+    db.execute(
+      "INSERT INTO webdav_connections VALUES ('one', 'NAS', 'https://nas.test/', 'user', 0, 'secret-reference')",
+    );
+    db.execute("UPDATE webdav_state SET active_id = 'one', migrated = 1");
+    await database.close();
+    final reopened = AppDatabase(open: () async => sqlite3.open(path));
+    addTearDown(reopened.close);
+    final persisted = await reopened.connection();
+    expect(
+      persisted.select('SELECT name FROM webdav_connections').single['name'],
+      'NAS',
+    );
+    expect(
+      persisted
+          .select('SELECT active_id FROM webdav_state')
+          .single['active_id'],
+      'one',
+    );
+  });
+
   test('三个 Repository 共用一个连接，记录及收藏重启后均保留', () async {
     final directory = await Directory('/tmp/opencode').createTemp('app-db-');
     addTearDown(() => directory.delete(recursive: true));
@@ -48,12 +84,18 @@ void main() {
     final db = await database.connection();
     expect(db.select('PRAGMA journal_mode').single.values.single, 'wal');
     expect(db.select('PRAGMA synchronous').single.values.single, 2);
-    expect(db.select('PRAGMA user_version').single.values.single, 1);
+    expect(db.select('PRAGMA user_version').single.values.single, 2);
     expect(
       db
           .select("SELECT name FROM sqlite_master WHERE type = 'table'")
           .map((row) => row['name']),
-      unorderedEquals(['execution_history', 'ai_usage', 'directory_favorites']),
+      unorderedEquals([
+        'execution_history',
+        'ai_usage',
+        'directory_favorites',
+        'webdav_connections',
+        'webdav_state',
+      ]),
     );
     await database.close();
 
@@ -75,14 +117,14 @@ void main() {
     addTearDown(() => directory.delete(recursive: true));
     final path = '${directory.path}/azusa.sqlite3';
     final seed = sqlite3.open(path);
-    seed.execute('PRAGMA user_version = 2');
+    seed.execute('PRAGMA user_version = 3');
     seed.close();
     final database = AppDatabase(open: () async => sqlite3.open(path));
     addTearDown(database.close);
     await expectLater(database.connection(), throwsStateError);
     final inspection = sqlite3.open(path);
     addTearDown(inspection.close);
-    expect(inspection.select('PRAGMA user_version').single.values.single, 2);
+    expect(inspection.select('PRAGMA user_version').single.values.single, 3);
     expect(
       inspection.select("SELECT name FROM sqlite_master WHERE type = 'table'"),
       isEmpty,

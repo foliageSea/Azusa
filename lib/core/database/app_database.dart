@@ -24,7 +24,7 @@ class AppDatabase {
       db.execute('PRAGMA busy_timeout = 5000');
       final version =
           db.select('PRAGMA user_version').first.values.first as int;
-      if (version > 1) throw StateError('数据库版本过高');
+      if (version > 2) throw StateError('数据库版本过高');
       db.execute('PRAGMA journal_mode = WAL');
       // Preparation records must be committed before any NAS write begins.
       db.execute('PRAGMA synchronous = FULL');
@@ -59,7 +59,21 @@ class AppDatabase {
             path TEXT NOT NULL,
             UNIQUE(endpoint, username, path)
           );
-          PRAGMA user_version = 1;
+          CREATE TABLE IF NOT EXISTS webdav_connections (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            url TEXT NOT NULL,
+            username TEXT NOT NULL,
+            proxy_enabled INTEGER NOT NULL CHECK (proxy_enabled IN (0, 1)),
+            secret_key TEXT NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS webdav_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            active_id TEXT,
+            migrated INTEGER NOT NULL DEFAULT 0
+          );
+          INSERT OR IGNORE INTO webdav_state (id) VALUES (1);
+          PRAGMA user_version = 2;
         ''');
         db.execute('COMMIT');
       } catch (_) {

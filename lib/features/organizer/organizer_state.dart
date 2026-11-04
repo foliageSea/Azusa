@@ -100,6 +100,20 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       ref.read(connectionSettingsProvider).requireValue;
   WebDavClient client() => ref.read(webDavFactoryProvider)(config);
 
+  void beginConnectionChange() {
+    if (state.busy || state.executing) throw StateError('请等待当前操作完成');
+    state = state.copyWith(busy: true);
+  }
+
+  void endConnectionChange({bool reset = false}) {
+    if (reset) {
+      _analysisGeneration++;
+      state = const OrganizerState();
+    } else {
+      state = state.copyWith(busy: false);
+    }
+  }
+
   void disconnect() {
     if (state.busy || state.executing) return;
     _analysisGeneration++;

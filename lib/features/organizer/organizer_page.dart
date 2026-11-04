@@ -24,6 +24,7 @@ import 'dav/directory_favorites_bar.dart';
 import 'organizer_state.dart';
 import 'rename_plan.dart';
 import 'dav/webdav.dart';
+import 'connections/webdav_manager.dart';
 
 /// Panel width below which toolbars collapse to icon buttons.
 const _compactPanelWidth = 520.0;
@@ -162,12 +163,20 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       false;
 
   Future<void> _favorites(NasScope scope, String directory) async {
+    final connection = ref.read(connectionSettingsProvider).asData?.value;
     final path = await showDirectoryFavoritesDialog(
       context,
       scope: scope,
       directory: directory,
     );
-    if (path != null && mounted) _openDirectory(path);
+    if (path != null &&
+        mounted &&
+        identical(
+          connection,
+          ref.read(connectionSettingsProvider).asData?.value,
+        )) {
+      _openDirectory(path);
+    }
   }
 
   Future<void> _toggleFavorite(
@@ -199,12 +208,17 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
   }
 
   Future<void> _propose() async {
+    final connection = ref.read(connectionSettingsProvider).asData?.value;
     if (await _confirm(
           context.l10n.analyzeDirectory,
           detail: context.l10n.analyzeDirectoryDetail,
           action: context.l10n.startAnalysis,
         ) &&
-        mounted) {
+        mounted &&
+        identical(
+          connection,
+          ref.read(connectionSettingsProvider).asData?.value,
+        )) {
       await _controller.propose(instruction: instruction.text.trim());
       if (mounted && ref.read(organizerProvider).plan.isNotEmpty) {
         context.go('/organize/assistant/preview');
@@ -213,17 +227,23 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
   }
 
   Future<void> _execute() async {
+    final connection = ref.read(connectionSettingsProvider).asData?.value;
     if (await _confirm(
           context.l10n.executeRenames,
           detail: context.l10n.executeRenamesDetail,
           action: context.l10n.startExecution,
         ) &&
-        mounted) {
+        mounted &&
+        identical(
+          connection,
+          ref.read(connectionSettingsProvider).asData?.value,
+        )) {
       await _controller.execute();
     }
   }
 
   Future<void> _renameEntry(DavEntry entry) async {
+    final connection = ref.read(connectionSettingsProvider).asData?.value;
     final state = ref.read(organizerProvider);
     if (_renamingEntry || state.busy || state.executing) return;
     _renamingEntry = true;
@@ -233,7 +253,14 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
         builder: (context, style, animation) =>
             _RenameEntryDialog(entry: entry, animation: animation),
       );
-      if (target == null || !mounted) return;
+      if (target == null ||
+          !mounted ||
+          !identical(
+            connection,
+            ref.read(connectionSettingsProvider).asData?.value,
+          )) {
+        return;
+      }
       await _controller.renameEntry(entry, target);
     } finally {
       _renamingEntry = false;
@@ -243,6 +270,18 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(
+      connectionSettingsProvider.select(
+        (value) => value.asData?.value.connectionId,
+      ),
+      (previous, next) {
+        if (previous == next) return;
+        filter.clear();
+        instruction.clear();
+        _selectedEntryPath = null;
+        _directoryScrollOffsets.clear();
+      },
+    );
     ref.listen(organizerProvider.select((s) => s.directory), (_, directory) {
       filter.clear();
       _selectedEntryPath = null;
@@ -647,118 +686,125 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       child: LayoutBuilder(
         builder: (context, box) {
           final compact = box.maxWidth < _compactPanelWidth;
-
+          final connection = WebDavManager(
+            compact: true,
+            subtitle: connected && !compact
+                ? context.l10n.directoryCounts(folders, files)
+                : null,
+          );
+          final actions = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (connected) ...[
+                FPopoverMenu(
+                  menuAnchor: Alignment.topRight,
+                  childAnchor: Alignment.bottomRight,
+                  menu: [
+                    FItemGroup(
+                      children: [
+                        for (final (value, label) in [
+                          (DirectorySort.nameAscending, context.l10n.sortName),
+                          (
+                            DirectorySort.modifiedDescending,
+                            context.l10n.sortModified,
+                          ),
+                          (DirectorySort.sizeDescending, context.l10n.sortSize),
+                        ])
+                          FItem(
+                            key: ValueKey('directory-sort-${value.name}'),
+                            title: Text(label),
+                            semanticsLabel: order.sameField(value)
+                                ? '$label · ${order.ascending ? context.l10n.sortAscending : context.l10n.sortDescending}'
+                                : label,
+                            semanticsChecked: order.sameField(value),
+                            suffix: order.sameField(value)
+                                ? Icon(
+                                    order.ascending
+                                        ? FLucideIcons.arrowUp
+                                        : FLucideIcons.arrowDown,
+                                  )
+                                : null,
+                            onPress: locked || _savingSort
+                                ? null
+                                : () => _setSort(
+                                    order.sameField(value)
+                                        ? order.reversed
+                                        : value,
+                                  ),
+                          ),
+                      ],
+                    ),
+                  ],
+                  builder: (_, controller, _) => FButton.icon(
+                    key: const ValueKey('directory-sort'),
+                    variant: .outline,
+                    size: .sm,
+                    semanticsLabel: context.l10n.sortDirectory,
+                    onPress: locked || _savingSort ? null : controller.toggle,
+                    child: const Icon(FLucideIcons.arrowUpDown),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              FButton(
+                variant: connected ? .outline : .primary,
+                size: .sm,
+                mainAxisSize: MainAxisSize.min,
+                onPress: locked
+                    ? null
+                    : connected
+                    ? _controller.disconnect
+                    : () => _openDirectory(null),
+                prefix: Icon(
+                  connected ? FLucideIcons.unplug : FLucideIcons.plugZap,
+                ),
+                child: Text(
+                  connected ? context.l10n.disconnect : context.l10n.connectNas,
+                ),
+              ),
+            ],
+          );
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 16, 12),
-                child: Row(
-                  children: [
-                    Icon(
-                      FLucideIcons.server,
-                      size: 18,
-                      color: theme.colors.mutedForeground,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                child: compact
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            context.l10n.nasDirectory,
-                            style: theme.typography.body.lg,
-                          ),
-                          if (connected)
-                            Text(
-                              context.l10n.directoryCounts(folders, files),
-                              style: theme.typography.body.xs.copyWith(
-                                color: theme.colors.mutedForeground,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    if (connected) ...[
-                      FPopoverMenu(
-                        menuAnchor: Alignment.topRight,
-                        childAnchor: Alignment.bottomRight,
-                        menu: [
-                          FItemGroup(
+                          connection,
+                          const SizedBox(height: 12),
+                          Row(
                             children: [
-                              for (final (value, label) in [
-                                (
-                                  DirectorySort.nameAscending,
-                                  context.l10n.sortName,
-                                ),
-                                (
-                                  DirectorySort.modifiedDescending,
-                                  context.l10n.sortModified,
-                                ),
-                                (
-                                  DirectorySort.sizeDescending,
-                                  context.l10n.sortSize,
-                                ),
-                              ])
-                                FItem(
-                                  key: ValueKey('directory-sort-${value.name}'),
-                                  title: Text(label),
-                                  semanticsLabel: order.sameField(value)
-                                      ? '$label · ${order.ascending ? context.l10n.sortAscending : context.l10n.sortDescending}'
-                                      : label,
-                                  semanticsChecked: order.sameField(value),
-                                  suffix: order.sameField(value)
-                                      ? Icon(
-                                          order.ascending
-                                              ? FLucideIcons.arrowUp
-                                              : FLucideIcons.arrowDown,
-                                        )
-                                      : null,
-                                  onPress: locked || _savingSort
-                                      ? null
-                                      : () => _setSort(
-                                          order.sameField(value)
-                                              ? order.reversed
-                                              : value,
+                              Expanded(
+                                child: connected
+                                    ? Text(
+                                        context.l10n.directoryCounts(
+                                          folders,
+                                          files,
                                         ),
-                                ),
+                                        style: theme.typography.body.xs
+                                            .copyWith(
+                                              color:
+                                                  theme.colors.mutedForeground,
+                                            ),
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                              const SizedBox(width: 8),
+                              actions,
                             ],
                           ),
                         ],
-                        builder: (_, controller, _) => FButton.icon(
-                          key: const ValueKey('directory-sort'),
-                          variant: .outline,
-                          size: .sm,
-                          semanticsLabel: context.l10n.sortDirectory,
-                          onPress: locked || _savingSort
-                              ? null
-                              : controller.toggle,
-                          child: const Icon(FLucideIcons.arrowUpDown),
-                        ),
+                      )
+                    : Row(
+                        children: [
+                          Expanded(child: connection),
+                          const SizedBox(width: 16),
+                          actions,
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                    ],
-                    FButton(
-                      variant: connected ? .outline : .primary,
-                      size: .sm,
-                      mainAxisSize: MainAxisSize.min,
-                      onPress: locked
-                          ? null
-                          : connected
-                          ? _controller.disconnect
-                          : () => _openDirectory(null),
-                      prefix: Icon(
-                        connected ? FLucideIcons.unplug : FLucideIcons.plugZap,
-                      ),
-                      child: Text(
-                        connected
-                            ? context.l10n.disconnect
-                            : context.l10n.connectNas,
-                      ),
-                    ),
-                  ],
-                ),
               ),
               if (connected) ...[
                 Padding(

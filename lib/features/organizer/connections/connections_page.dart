@@ -17,6 +17,7 @@ import '../../../core/settings/naming_language.dart';
 import '../../../core/settings/naming_format.dart';
 import '../../settings/settings_page.dart';
 import 'connection_settings.dart';
+import 'webdav_manager.dart';
 import 'ai_models.dart';
 import 'model_picker.dart';
 import 'http_clients.dart';
@@ -342,12 +343,10 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
           connectionTabs: [
             FTabEntry(
               label: const Text('WebDAV'),
-              child: section('WebDAV', [
-                field(0, l.webdavUrl),
-                field(1, l.username),
-                field(2, l.password),
-                testButton(NetworkService.webdav, l.testWebdav),
-              ]),
+              child: const Padding(
+                padding: EdgeInsets.only(bottom: 16),
+                child: Surface(child: WebDavManager()),
+              ),
             ),
             FTabEntry(
               label: const Text('AI Agent'),
@@ -498,13 +497,6 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                   value: proxyTmdb,
                   enabled: !locked,
                   onChange: (v) => setState(() => proxyTmdb = v),
-                ),
-                const SizedBox(height: 12),
-                FCheckbox(
-                  label: Text(l.proxyWebdav),
-                  value: proxyWebdav,
-                  enabled: !locked,
-                  onChange: (v) => setState(() => proxyWebdav = v),
                 ),
               ]),
             ),

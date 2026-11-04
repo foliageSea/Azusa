@@ -836,6 +836,90 @@ abstract class AppLocalizations {
   /// **'WebDAV URL'**
   String get webdavUrl;
 
+  /// No description provided for @webdavConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV connection'**
+  String get webdavConnection;
+
+  /// No description provided for @manageWebdavConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage connections'**
+  String get manageWebdavConnections;
+
+  /// No description provided for @useConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Use connection'**
+  String get useConnection;
+
+  /// No description provided for @connectionActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection actions for {name}'**
+  String connectionActions(String name);
+
+  /// No description provided for @connectionName.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection name'**
+  String get connectionName;
+
+  /// No description provided for @addWebdavConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Add WebDAV'**
+  String get addWebdavConnection;
+
+  /// No description provided for @currentConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Current connection'**
+  String get currentConnection;
+
+  /// No description provided for @editConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editConnection;
+
+  /// No description provided for @deleteConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteConnection;
+
+  /// No description provided for @discardConnectionPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard the current rename preview and change connection?'**
+  String get discardConnectionPreview;
+
+  /// No description provided for @deleteConnectionConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete connection “{name}”? Its active rename preview will also be cleared.'**
+  String deleteConnectionConfirmation(String name);
+
+  /// No description provided for @connectionNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a connection name'**
+  String get connectionNameRequired;
+
+  /// No description provided for @connectionMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection no longer exists'**
+  String get connectionMissing;
+
+  /// No description provided for @waitForCurrentOperation.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for the current operation to finish'**
+  String get waitForCurrentOperation;
+
   /// No description provided for @username.
   ///
   /// In en, this message translates to:

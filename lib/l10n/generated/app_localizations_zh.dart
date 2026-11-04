@@ -381,6 +381,52 @@ class AppLocalizationsZh extends AppLocalizations {
   String get webdavUrl => 'WebDAV 地址';
 
   @override
+  String get webdavConnection => 'WebDAV 连接';
+
+  @override
+  String get manageWebdavConnections => '管理连接';
+
+  @override
+  String get useConnection => '使用此连接';
+
+  @override
+  String connectionActions(String name) {
+    return '$name 的连接操作';
+  }
+
+  @override
+  String get connectionName => '连接名称';
+
+  @override
+  String get addWebdavConnection => '新增 WebDAV';
+
+  @override
+  String get currentConnection => '当前连接';
+
+  @override
+  String get editConnection => '编辑';
+
+  @override
+  String get deleteConnection => '删除';
+
+  @override
+  String get discardConnectionPreview => '放弃当前重命名预览并更换连接？';
+
+  @override
+  String deleteConnectionConfirmation(String name) {
+    return '删除连接“$name”？当前连接的重命名预览也将清空。';
+  }
+
+  @override
+  String get connectionNameRequired => '请输入连接名称';
+
+  @override
+  String get connectionMissing => '连接已不存在';
+
+  @override
+  String get waitForCurrentOperation => '请等待当前操作完成';
+
+  @override
   String get username => '用户名';
 
   @override

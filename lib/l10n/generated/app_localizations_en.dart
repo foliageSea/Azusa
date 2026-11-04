@@ -383,6 +383,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get webdavUrl => 'WebDAV URL';
 
   @override
+  String get webdavConnection => 'WebDAV connection';
+
+  @override
+  String get manageWebdavConnections => 'Manage connections';
+
+  @override
+  String get useConnection => 'Use connection';
+
+  @override
+  String connectionActions(String name) {
+    return 'Connection actions for $name';
+  }
+
+  @override
+  String get connectionName => 'Connection name';
+
+  @override
+  String get addWebdavConnection => 'Add WebDAV';
+
+  @override
+  String get currentConnection => 'Current connection';
+
+  @override
+  String get editConnection => 'Edit';
+
+  @override
+  String get deleteConnection => 'Delete';
+
+  @override
+  String get discardConnectionPreview =>
+      'Discard the current rename preview and change connection?';
+
+  @override
+  String deleteConnectionConfirmation(String name) {
+    return 'Delete connection “$name”? Its active rename preview will also be cleared.';
+  }
+
+  @override
+  String get connectionNameRequired => 'Enter a connection name';
+
+  @override
+  String get connectionMissing => 'The connection no longer exists';
+
+  @override
+  String get waitForCurrentOperation =>
+      'Wait for the current operation to finish';
+
+  @override
   String get username => 'Username';
 
   @override
