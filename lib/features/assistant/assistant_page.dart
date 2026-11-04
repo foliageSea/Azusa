@@ -5,6 +5,7 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/localization.dart';
+import '../../shared/responsive_button.dart';
 import '../../shared/runtime_localization.dart';
 import '../../shared/status_badge.dart';
 import '../../shared/widgets.dart';
@@ -13,11 +14,12 @@ import '../organizer/ai/folder_layout.dart';
 import '../organizer/connections/connection_settings.dart';
 import '../organizer/connections/webdav_manager.dart';
 import '../organizer/dav/dav_paths.dart';
-import '../organizer/organizer_page.dart';
 import '../organizer/organizer_state.dart';
 import '../organizer/rename_plan.dart';
 import '../settings/settings_tab.dart';
 import 'assistant_state.dart';
+import 'plan_tree.dart';
+import 'plan_tree_view.dart';
 
 /// Width at which the plan sits beside the conversation instead of in a sheet.
 const _splitWidth = 960.0;
@@ -294,19 +296,23 @@ class _Conversation extends ConsumerWidget {
               const Expanded(child: WebDavManager(compact: true)),
               if (directory.isNotEmpty) ...[
                 const SizedBox(width: 12),
-                Flexible(
-                  child: FButton(
-                    key: const ValueKey('assistant-directory'),
-                    variant: .outline,
-                    size: .sm,
-                    mainAxisSize: MainAxisSize.min,
-                    semanticsLabel: displayDavPath(directory),
-                    prefix: const Icon(FLucideIcons.folderOpen),
-                    onPress: locked ? null : () => context.go('/organize'),
-                    child: Text(
-                      _directoryName(directory, l.rootDirectory),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: FButton(
+                      key: const ValueKey('assistant-directory'),
+                      variant: .outline,
+                      size: .sm,
+                      mainAxisSize: MainAxisSize.min,
+                      builder: responsiveButtonContent,
+                      semanticsLabel: displayDavPath(directory),
+                      prefix: const Icon(FLucideIcons.folderOpen),
+                      onPress: locked ? null : () => context.go('/organize'),
+                      child: Text(
+                        _directoryName(directory, l.rootDirectory),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                 ),
@@ -1072,14 +1078,6 @@ class _ExecutionProgress extends StatelessWidget {
   }
 }
 
-class _PlanGroup {
-  _PlanGroup(this.key, this.type, this.title);
-  final String key;
-  final TmdbMediaType? type;
-  final String title;
-  final items = <(int, RenameItem)>[];
-}
-
 class _PlanPanel extends ConsumerWidget {
   const _PlanPanel({required this.onExecute});
   final Future<void> Function() onExecute;
@@ -1106,24 +1104,7 @@ class _PlanPanel extends ConsumerWidget {
         .length;
     final canExecute = !locked && error == null && changes > 0;
 
-    final groups = <String, _PlanGroup>{};
-    for (final (index, item) in plan.indexed) {
-      final key = item.tmdbId == null
-          ? 'other'
-          : '${item.tmdbMediaType?.name}:${item.tmdbId}';
-      groups
-          .putIfAbsent(
-            key,
-            () => _PlanGroup(
-              key,
-              item.tmdbMediaType,
-              item.mediaTitle ??
-                  (item.tmdbId == null ? l.otherFiles : 'TMDB ${item.tmdbId}'),
-            ),
-          )
-          .items
-          .add((index, item));
-    }
+    final tree = PlanTree.build(organizer.directory, plan, entries);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1179,32 +1160,20 @@ class _PlanPanel extends ConsumerWidget {
         if (plan.isNotEmpty)
           _LayoutBar(
             layout: layout,
-            folders: plannedFolders(plan).length,
+            folders: tree.newDirectories.length,
             locked: locked,
             onChange: ref.read(assistantProvider.notifier).updateLayout,
           ),
         Expanded(
           child: plan.isEmpty
               ? EmptyState(l.noPlanYet, icon: FLucideIcons.listChecks)
-              : ListView(
-                  key: const ValueKey('assistant-plan-list'),
-                  primary: false,
-                  padding: const EdgeInsets.only(bottom: 8),
-                  children: [
-                    for (final group in groups.values) ...[
-                      _GroupHeader(group, root: organizer.directory),
-                      for (final (index, item) in group.items)
-                        RenamePlanRow(
-                          key: ValueKey('assistant-row-${item.source}'),
-                          item: item,
-                          entries: entries,
-                          disabled: locked,
-                          onName: (name) => controller.edit(index, name: name),
-                          onEnabled: (enabled) =>
-                              controller.edit(index, enabled: enabled),
-                        ),
-                    ],
-                  ],
+              : PlanTreeView(
+                  tree: tree,
+                  entries: entries,
+                  disabled: locked,
+                  onName: (index, name) => controller.edit(index, name: name),
+                  onEnabled: (index, enabled) =>
+                      controller.edit(index, enabled: enabled),
                 ),
         ),
         if (plan.isNotEmpty) ...[
@@ -1333,118 +1302,6 @@ class _LayoutBar extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _GroupHeader extends StatelessWidget {
-  const _GroupHeader(this.group, {required this.root});
-  final _PlanGroup group;
-  final String root;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = context.l10n;
-    final theme = context.theme;
-    final seasons = {
-      for (final (_, item) in group.items)
-        if (item.seasonNumber != null) item.seasonNumber!,
-    }.toList()..sort();
-    final detail = [
-      switch (group.type) {
-        TmdbMediaType.movie => l.movieLabel,
-        TmdbMediaType.tv => l.seriesLabel,
-        null => null,
-      },
-      for (final season in seasons) l.seasonLabel(season),
-    ].nonNulls.join(' · ');
-    final folders = {
-      for (final (_, item) in group.items)
-        if (item.enabled &&
-            item.scope != null &&
-            item.targetDirectory != null &&
-            item.targetDirectory != item.scope)
-          item.targetDirectory!,
-    };
-    final shared = folders.isEmpty
-        ? null
-        : folders.reduce((a, b) {
-            var i = 0;
-            while (i < a.length && i < b.length && a[i] == b[i]) {
-              i++;
-            }
-            return a.substring(0, a.substring(0, i).lastIndexOf('/') + 1);
-          });
-    final folder = shared == null || shared.length <= root.length
-        ? null
-        : displayDavPath(
-            shared.substring(root.length).replaceFirst(RegExp(r'/$'), ''),
-          );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Icon(
-                switch (group.type) {
-                  TmdbMediaType.movie => FLucideIcons.film,
-                  TmdbMediaType.tv => FLucideIcons.tv,
-                  null => FLucideIcons.file,
-                },
-                size: 15,
-                color: theme.colors.primary,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  group.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.typography.body.sm.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (detail.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                Text(
-                  detail,
-                  style: theme.typography.body.xs.copyWith(
-                    color: theme.colors.mutedForeground,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          if (folder != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 23, top: 2),
-              child: Row(
-                children: [
-                  Icon(
-                    FLucideIcons.folderPlus,
-                    size: 13,
-                    color: theme.colors.mutedForeground,
-                  ),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      '$folder/',
-                      key: ValueKey('assistant-group-folder-${group.key}'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.typography.body.xs.copyWith(
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
       ),
     );
   }

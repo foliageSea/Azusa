@@ -323,6 +323,58 @@ void main() {
       expect(container.read(assistantProvider).planVersion, 2);
     });
 
+    test('新建会话清空方案与分析状态，保留目录、授权和结构偏好', () async {
+      final assistant = container.read(assistantProvider.notifier)
+        ..grantConsent();
+      await assistant.send('整理');
+      assistant.setLayout(const FolderLayout(seriesFolders: true));
+      final before = container.read(organizerProvider);
+      expect(before.plan, isNotEmpty);
+      expect(before.aiUsage, isNotNull);
+
+      assistant.reset();
+
+      final organizerState = container.read(organizerProvider);
+      expect(organizerState.plan, isEmpty);
+      expect(organizerState.analysisEntries, isEmpty);
+      expect(organizerState.aiUsage, isNull);
+      expect(organizerState.pricing, isNull);
+      expect(organizerState.message, isEmpty);
+      expect(organizerState.progress, isEmpty);
+      expect(organizerState.directory, before.directory);
+      expect(organizerState.entries, before.entries);
+      expect(container.read(assistantProvider).messages, isEmpty);
+      expect(container.read(assistantProvider).planVersion, 0);
+      expect(
+        container.read(assistantProvider).layout,
+        const FolderLayout(seriesFolders: true),
+      );
+      expect(assistant.hasConsent, isTrue);
+      await assistant.execute();
+      expect(organizer.executed, 0);
+
+      await assistant.send('新要求');
+      expect(organizer.instructions, ['整理', '新要求']);
+      expect(container.read(assistantProvider).planVersion, 1);
+    });
+
+    test('处理中或执行中不允许新建会话清空方案', () async {
+      final assistant = container.read(assistantProvider.notifier)
+        ..grantConsent();
+      await assistant.send('整理');
+      final conversation = container.read(assistantProvider);
+      final plan = container.read(organizerProvider).plan;
+      for (final executing in [false, true]) {
+        organizer.state = organizer.state.copyWith(
+          busy: !executing,
+          executing: executing,
+        );
+        assistant.reset();
+        expect(container.read(assistantProvider), same(conversation));
+        expect(container.read(organizerProvider).plan, same(plan));
+      }
+    });
+
     test('切换目录后清空对话与授权', () async {
       final assistant = container.read(assistantProvider.notifier)
         ..grantConsent();

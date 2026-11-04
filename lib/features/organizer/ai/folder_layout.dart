@@ -74,6 +74,11 @@ String? plannedDirectory(RenameItem item, String scope, FolderLayout layout) {
   if (segments.isEmpty || segments.any((segment) => segment.isEmpty)) {
     return null;
   }
+  final scopeSegments = scope.split('/').where((part) => part.isNotEmpty);
+  if (scopeSegments.isNotEmpty &&
+      Uri.decodeComponent(scopeSegments.last) == segments.first) {
+    segments.removeAt(0);
+  }
   return [
     scope,
     for (final segment in segments) '${Uri.encodeComponent(segment)}/',

@@ -73,14 +73,17 @@ List<RenameItem> _plan() => [
 ];
 
 class _Organizer extends OrganizerController {
+  _Organizer({String? directory}) : directory = directory ?? _root;
+
+  final String directory;
   var proposals = 0;
 
   @override
   OrganizerState build() => OrganizerState(
-    directory: _root,
+    directory: directory,
     entries: [
-      DavEntry('${_root}raw.1.mkv', false),
-      DavEntry('${_root}movie.mkv', false),
+      DavEntry('${directory}raw.1.mkv', false),
+      DavEntry('${directory}movie.mkv', false),
     ],
   );
 
@@ -134,14 +137,15 @@ class _Organizer extends OrganizerController {
 
 Future<(ProviderContainer, _Organizer)> _pump(
   WidgetTester tester,
-  double width,
-) async {
+  double width, {
+  String? directory,
+}) async {
   tester.view.physicalSize = Size(width, 900);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final window = _NoWindow();
-  final organizer = _Organizer();
+  final organizer = _Organizer(directory: directory);
   final container = ProviderContainer(
     overrides: [
       desktopWindowProvider.overrideWithValue(window),
@@ -171,6 +175,38 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
         .clearLocalesTestValue();
   });
+
+  for (final width in [390.0, 1100.0, 1466.0]) {
+    testWidgets('长目录名在 $width 宽度下不溢出且保留新对话按钮', (tester) async {
+      const name = '僵尸100～在成为僵尸前要做的100件事～ (2023) [1080p BluRay]';
+      final (container, _) = await _pump(
+        tester,
+        width,
+        directory: '/dav/${Uri.encodeComponent(name)}/',
+      );
+      expect(tester.takeException(), isNull);
+
+      final directory = find.byKey(const ValueKey('assistant-directory'));
+      final label = find.descendant(of: directory, matching: find.text(name));
+      expect(label, findsOneWidget);
+      expect(
+        tester.getRect(label).right,
+        lessThanOrEqualTo(tester.getRect(directory).right),
+      );
+
+      container.read(assistantProvider.notifier).grantConsent();
+      await container.read(assistantProvider.notifier).send('整理');
+      await tester.pumpAndSettle();
+
+      final reset = find.byKey(const ValueKey('assistant-reset'));
+      expect(reset, findsOneWidget);
+      expect(
+        tester.getRect(directory).right,
+        lessThanOrEqualTo(tester.getRect(reset).left),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   for (final width in [390.0, 1280.0]) {
     testWidgets('整理助手作为首页在 $width 宽度展示对话、工具过程与方案', (tester) async {
@@ -226,30 +262,148 @@ void main() {
         expect(find.byKey(const ValueKey('assistant-view-plan')), findsNothing);
       }
       expect(find.byKey(const ValueKey('assistant-plan-list')), findsOneWidget);
-      expect(find.text('绝命毒师'), findsOneWidget);
-      expect(find.text('剧集 · 第 1 季'), findsOneWidget);
-      expect(find.text('星际穿越'), findsOneWidget);
-      expect(find.text('电影'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('assistant-plan-list')),
+          matching: find.byType(FTooltip),
+        ),
+        findsNothing,
+      );
       expect(find.text('目录结构'), findsOneWidget);
-      expect(find.text('绝命毒师 (2008)/Season 01/'), findsOneWidget);
-      expect(find.text('星际穿越 (2014)/'), findsOneWidget);
+      expect(find.text('绝命毒师 (2008)'), findsOneWidget);
+      expect(find.text('Season 01'), findsOneWidget);
+      expect(find.text('星际穿越 (2014)'), findsOneWidget);
+      expect(find.text('绝命毒师 - S01E01 - 试播集.mkv'), findsOneWidget);
+      expect(find.byType(EditableText).evaluate().length, lessThanOrEqualTo(1));
+      final file = find.byKey(ValueKey('plan-file-${_root}raw.1.mkv'));
+      await tester.tap(file);
+      await tester.pumpAndSettle();
+      expect(find.text('原路径'), findsOneWidget);
+      expect(find.text('新路径'), findsOneWidget);
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(ValueKey('plan-name-${_root}raw.1.mkv')),
+          matching: find.byType(EditableText),
+        ),
+        '僵尸100～在成为僵尸前要做的100件事～ - S01E01 - 死者的光明磊落.mkv',
+      );
+      await tester.pumpAndSettle();
       expect(find.text('确认并执行'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('目录树支持折叠、文件详情改名、勾选与全选', (tester) async {
+    final (container, _) = await _pump(tester, 1280);
+    container.read(assistantProvider.notifier).grantConsent();
+    await container.read(assistantProvider.notifier).send('整理');
+    await tester.pumpAndSettle();
+
+    final source = '${_root}raw.1.mkv';
+    final file = find.byKey(ValueKey('plan-file-$source'));
+    await tester.tap(find.text('Season 01'));
+    await tester.pumpAndSettle();
+    expect(file, findsNothing);
+    await tester.tap(find.text('Season 01'));
+    await tester.pumpAndSettle();
+    expect(file, findsOneWidget);
+
+    await tester.tap(file);
+    await tester.pumpAndSettle();
+    expect(find.text('原路径'), findsOneWidget);
+    expect(find.text('新路径'), findsOneWidget);
+    expect(find.byKey(ValueKey('tmdb-link-$source')), findsOneWidget);
+    final name = find.descendant(
+      of: find.byKey(ValueKey('plan-name-$source')),
+      matching: find.byType(EditableText),
+    );
+    await tester.enterText(name, '绝命毒师 - S01E01 - 新名称.mkv');
+    await tester.pumpAndSettle();
+    expect(
+      container.read(organizerProvider).plan.first.targetName,
+      '绝命毒师 - S01E01 - 新名称.mkv',
+    );
+    expect(file, findsOneWidget);
+
+    await tester.enterText(name, 'invalid/name.mkv');
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FButton>(find.byKey(const ValueKey('assistant-execute')))
+          .onPress,
+      isNull,
+    );
+    await tester.enterText(name, '绝命毒师 - S01E01 - 新名称.mkv');
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FButton>(find.byKey(const ValueKey('assistant-execute')))
+          .onPress,
+      isNotNull,
+    );
+
+    await tester.tap(file);
+    await tester.pumpAndSettle();
+    final checkbox = find.byKey(ValueKey('plan-select-$source'));
+    await tester.tap(checkbox);
+    await tester.pumpAndSettle();
+    expect(container.read(organizerProvider).plan.first.enabled, isFalse);
+    expect(file, findsOneWidget);
+    final tree = find.byKey(const ValueKey('assistant-plan-list'));
+    expect(
+      find.descendant(of: tree, matching: find.text('新建')),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('全选'));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(organizerProvider).plan.every((p) => p.enabled),
+      isTrue,
+    );
+    await tester.tap(find.text('全不选'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FButton>(find.byKey(const ValueKey('assistant-execute')))
+          .onPress,
+      isNull,
+    );
+    expect(find.descendant(of: tree, matching: find.text('新建')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('短目录名与新对话按钮靠对话区域右侧对齐', (tester) async {
+    final (container, _) = await _pump(tester, 1280);
+    container.read(assistantProvider.notifier).grantConsent();
+    await container.read(assistantProvider.notifier).send('整理');
+    await tester.pumpAndSettle();
+
+    final directory = find.byKey(const ValueKey('assistant-directory'));
+    final reset = find.byKey(const ValueKey('assistant-reset'));
+    final messages = find.byKey(const ValueKey('assistant-messages'));
+    expect(
+      tester.getRect(reset).right,
+      closeTo(tester.getRect(messages).right, .01),
+    );
+    expect(
+      tester.getRect(reset).left - tester.getRect(directory).right,
+      closeTo(8, .01),
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('切换目录结构即时更新方案且不再次调用 AI', (tester) async {
     final (container, organizer) = await _pump(tester, 1280);
     container.read(assistantProvider.notifier).grantConsent();
     await container.read(assistantProvider.notifier).send('整理');
     await tester.pumpAndSettle();
-    expect(find.text('绝命毒师 (2008)/Season 01/'), findsOneWidget);
+    expect(find.text('Season 01'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('folder-layout-seasons')));
     await tester.pumpAndSettle();
     expect(organizer.proposals, 1);
-    expect(find.text('绝命毒师 (2008)/'), findsOneWidget);
-    expect(find.text('绝命毒师 (2008)/Season 01/'), findsNothing);
+    expect(find.text('绝命毒师 (2008)'), findsOneWidget);
+    expect(find.text('Season 01'), findsNothing);
     expect(find.text('已调整目录结构。'), findsOneWidget);
     expect(find.text('整理方案 · 第 2 版'), findsWidgets);
     expect(find.text('新建 2 个文件夹'), findsWidgets);
@@ -259,7 +413,7 @@ void main() {
     await tester.pumpAndSettle();
     final plan = container.read(organizerProvider).plan;
     expect(plan.map((item) => item.targetDirectory), everyElement(isNull));
-    expect(find.text('星际穿越 (2014)/'), findsNothing);
+    expect(find.text('星际穿越 (2014)'), findsNothing);
     expect(container.read(assistantProvider).planVersion, 4);
     expect(tester.takeException(), isNull);
   });
@@ -294,6 +448,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('assistant-reset')));
     await tester.pumpAndSettle();
     expect(find.text('要怎么整理这个目录？'), findsOneWidget);
+    expect(find.text('暂无整理方案'), findsOneWidget);
+    expect(find.byKey(const ValueKey('assistant-plan-list')), findsNothing);
+    expect(find.byKey(const ValueKey('assistant-execute')), findsNothing);
+    expect(container.read(organizerProvider).plan, isEmpty);
+    expect(container.read(organizerProvider).directory, _root);
     expect(tester.takeException(), isNull);
   });
 }

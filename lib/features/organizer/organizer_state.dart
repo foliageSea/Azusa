@@ -95,6 +95,16 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
 
   void cancelSuggestions() => _cancelAnalysis?.call();
 
+  void clearPlan() {
+    if (state.busy || state.executing) return;
+    state = state.copyWith(
+      plan: [],
+      clearAnalysis: true,
+      progress: '',
+      message: '',
+    );
+  }
+
   @override
   OrganizerState build() => const OrganizerState();
 

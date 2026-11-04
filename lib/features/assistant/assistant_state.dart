@@ -219,6 +219,7 @@ class AssistantController extends Notifier<AssistantState> {
   void reset() {
     final organizer = ref.read(organizerProvider);
     if (organizer.busy || organizer.executing) return;
+    _organizer.clearPlan();
     state = AssistantState(
       consentScope: state.consentScope,
       layout: state.layout,

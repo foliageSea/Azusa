@@ -122,6 +122,46 @@ class _Adapter implements HttpClientAdapter {
 
 void main() {
   group('目录规划', () {
+    test('当前目录已是作品目录时复用，不重复嵌套同名文件夹', () {
+      final scope = _encoded(['绝命毒师 (2008)']);
+      final item = RenameItem(
+        source: '${scope}raw.mkv',
+        targetName: '绝命毒师 - S01E01.mkv',
+        tmdbMediaType: TmdbMediaType.tv,
+        mediaTitle: '绝命毒师',
+        mediaYear: 2008,
+        seasonNumber: 1,
+        scope: scope,
+      );
+      final full = applyFolderLayout([item], scope, FolderLayout.full);
+      expect(full.single.targetDirectory, '${scope}Season%2001/');
+      expect(plannedFolders(full), ['${scope}Season%2001/']);
+      final noSeasons = applyFolderLayout(
+        full,
+        scope,
+        const FolderLayout(seriesFolders: true),
+      );
+      expect(noSeasons.single.targetDirectory, scope);
+      expect(plannedFolders(noSeasons), isEmpty);
+    });
+
+    test('电影目录及只分季的同名当前目录也直接复用', () {
+      final movieScope = _encoded(['星际穿越 (2014)']);
+      expect(
+        plannedDirectory(_movie, movieScope, FolderLayout.full),
+        movieScope,
+      );
+      final seasonScope = _encoded(['Season 01']);
+      expect(
+        plannedDirectory(
+          _tv('${seasonScope}raw.mkv', 1, 1),
+          seasonScope,
+          const FolderLayout(seasonFolders: true),
+        ),
+        seasonScope,
+      );
+    });
+
     test('完整布局按作品与季生成文件夹，特殊集使用 Specials', () {
       final plan = applyFolderLayout(
         [
@@ -189,6 +229,37 @@ void main() {
   });
 
   group('目录执行', () {
+    test('复用当前作品目录时只创建季目录，执行目标与预览一致', () async {
+      final scope = _encoded(['绝命毒师 (2008)']);
+      final source = '${scope}raw.mkv';
+      final dav = _FolderDav({
+        scope: DavEntry(scope, true),
+        source: DavEntry(source, false),
+      });
+      addTearDown(dav.close);
+      final plan = applyFolderLayout(
+        [
+          RenameItem(
+            source: source,
+            targetName: '绝命毒师 - S01E01.mkv',
+            tmdbMediaType: TmdbMediaType.tv,
+            mediaTitle: '绝命毒师',
+            mediaYear: 2008,
+            seasonNumber: 1,
+            scope: scope,
+          ),
+        ],
+        scope,
+        FolderLayout.full,
+      );
+      final result = await RenameExecutor(dav).execute(plan);
+      expect(result.error, isNull);
+      expect(dav.log.where((entry) => entry.startsWith('mkdir')), [
+        'mkdir ${scope}Season%2001/',
+      ]);
+      expect(dav.files.containsKey(plan.single.target), isTrue);
+    });
+
     test('按需逐级创建文件夹后移动，已存在的文件夹不重复创建', () async {
       final existing = _encoded(['绝命毒师 (2008)']);
       final dav = _FolderDav({
