@@ -848,6 +848,24 @@ abstract class AppLocalizations {
   /// **'Manage connections'**
   String get manageWebdavConnections;
 
+  /// No description provided for @switchConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch connection'**
+  String get switchConnection;
+
+  /// No description provided for @searchConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'Search connections'**
+  String get searchConnections;
+
+  /// No description provided for @noConnectionsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching connections'**
+  String get noConnectionsFound;
+
   /// No description provided for @useConnection.
   ///
   /// In en, this message translates to:

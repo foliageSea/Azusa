@@ -1,20 +1,18 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../shared/localization.dart';
-import '../../../shared/icon_action.dart';
 import '../../../shared/loading_button.dart';
 import '../../../shared/runtime_localization.dart';
 import '../../../shared/secret_text_field.dart';
 import '../../../shared/widgets.dart';
 import '../organizer_state.dart';
-import '../../settings/settings_tab.dart';
 import '../dav/webdav.dart';
 import 'connection_settings.dart';
 import 'http_clients.dart';
 import 'webdav_connections.dart';
+import 'webdav_switcher.dart';
 
 Future<bool> confirmConnectionChange(
   BuildContext context,
@@ -162,60 +160,21 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
         ?.value
         .connectionId;
     final connections = ref.watch(webDavConnectionsProvider);
-    Widget selector(List<WebDavConnection> items) => FSelect<String>.rich(
-      key: const ValueKey('webdav-connection-select'),
-      hint: l.webdavConnection,
-      enabled: !locked,
-      format: (id) =>
-          items.where((item) => item.id == id).firstOrNull?.name ?? '',
-      control: .lifted(
-        value: active,
-        onChange: (id) {
-          if (id != null && id != active) select(id);
-        },
-      ),
-      children: [
-        for (final item in items)
-          FSelectItem(
-            key: ValueKey('webdav-option-${item.id}'),
-            title: Text(item.name),
-            value: item.id,
-          ),
-      ],
-    );
     if (widget.compact) {
       final items = connections.asData?.value ?? const <WebDavConnection>[];
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Flexible(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 280),
-                  child: items.isEmpty
-                      ? Text(
-                          l.nasDirectory,
-                          style: context.theme.typography.body.lg,
-                        )
-                      : selector(items),
-                ),
-              ),
-              if (items.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                FTooltip(
-                  tipBuilder: (_, _) => Text(l.manageWebdavConnections),
-                  child: IconAction(
-                    key: const ValueKey('manage-webdav-connections'),
-                    label: l.manageWebdavConnections,
-                    icon: FLucideIcons.settings2,
-                    onPress: locked
-                        ? null
-                        : () => context.go(SettingsTab.webdav.location),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 280),
+            child: items.isEmpty
+                ? Text(l.nasDirectory, style: context.theme.typography.body.lg)
+                : WebDavSwitcher(
+                    items: items,
+                    activeId: active,
+                    locked: locked,
+                    onSelect: select,
                   ),
-                ),
-              ],
-            ],
           ),
           if (widget.subtitle != null)
             Padding(

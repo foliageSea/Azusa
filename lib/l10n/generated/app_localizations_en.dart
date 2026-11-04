@@ -389,6 +389,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manageWebdavConnections => 'Manage connections';
 
   @override
+  String get switchConnection => 'Switch connection';
+
+  @override
+  String get searchConnections => 'Search connections';
+
+  @override
+  String get noConnectionsFound => 'No matching connections';
+
+  @override
   String get useConnection => 'Use connection';
 
   @override

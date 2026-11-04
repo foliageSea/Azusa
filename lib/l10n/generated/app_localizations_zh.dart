@@ -387,6 +387,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get manageWebdavConnections => '管理连接';
 
   @override
+  String get switchConnection => '切换连接';
+
+  @override
+  String get searchConnections => '搜索连接';
+
+  @override
+  String get noConnectionsFound => '未找到匹配的连接';
+
+  @override
   String get useConnection => '使用此连接';
 
   @override

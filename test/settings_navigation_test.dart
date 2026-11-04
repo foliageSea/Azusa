@@ -122,6 +122,8 @@ void main() {
 
       router.go('/organize');
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('webdav-switcher-trigger')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('manage-webdav-connections')));
       await tester.pumpAndSettle();
       expect(

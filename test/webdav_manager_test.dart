@@ -149,7 +149,7 @@ void main() {
 
         await tester.pumpWidget(page(const OrganizerPage()));
         await tester.pumpAndSettle();
-        final selector = find.byKey(const ValueKey('webdav-connection-select'));
+        final selector = find.byKey(const ValueKey('webdav-switcher-trigger'));
         expect(
           find.descendant(
             of: find.byKey(const ValueKey('nas-browser')),
@@ -160,7 +160,7 @@ void main() {
         expect(tester.getSize(selector).width, lessThanOrEqualTo(280));
         expect(
           find.byKey(const ValueKey('manage-webdav-connections')),
-          findsOneWidget,
+          findsNothing,
         );
         final sort = tester.getRect(
           find.byKey(const ValueKey('directory-sort')),
