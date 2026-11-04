@@ -14,6 +14,7 @@ import '../organizer/ai/folder_layout.dart';
 import '../organizer/connections/connection_settings.dart';
 import '../organizer/connections/webdav_manager.dart';
 import '../organizer/dav/dav_paths.dart';
+import '../organizer/dav/directory_picker.dart';
 import '../organizer/organizer_state.dart';
 import '../organizer/rename_plan.dart';
 import '../settings/settings_tab.dart';
@@ -55,6 +56,39 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
   }
 
   AssistantController get _assistant => ref.read(assistantProvider.notifier);
+
+  Future<void> _selectDirectory() async {
+    final organizer = ref.read(organizerProvider);
+    final connection = ref.read(connectionSettingsProvider).asData?.value;
+    if (organizer.busy || organizer.executing || connection == null) return;
+    final directory = await showDirectoryPicker(
+      context,
+      connection: connection,
+      directory: organizer.directory,
+    );
+    if (!mounted ||
+        directory == null ||
+        !identical(
+          connection,
+          ref.read(connectionSettingsProvider).asData?.value,
+        )) {
+      return;
+    }
+    final current = ref.read(organizerProvider);
+    if (current.busy || current.executing || current.directory == directory) {
+      return;
+    }
+    await ref.read(organizerProvider.notifier).open(directory);
+    if (!mounted) return;
+    final result = ref.read(organizerProvider);
+    if (result.hasError) {
+      notifyUser(
+        context,
+        localizeRuntimeMessage(context.l10n, result.message),
+        type: NoticeType.error,
+      );
+    }
+  }
 
   void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -222,6 +256,7 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
             inputFocus: _inputFocus,
             onSend: _send,
             onStop: _assistant.stop,
+            onSelectDirectory: _selectDirectory,
             onViewPlan: split ? null : _showPlanSheet,
           );
           return Align(
@@ -263,6 +298,7 @@ class _Conversation extends ConsumerWidget {
     required this.inputFocus,
     required this.onSend,
     required this.onStop,
+    required this.onSelectDirectory,
     required this.onViewPlan,
   });
 
@@ -273,6 +309,7 @@ class _Conversation extends ConsumerWidget {
   final FocusNode inputFocus;
   final Future<void> Function([String? preset]) onSend;
   final VoidCallback onStop;
+  final VoidCallback onSelectDirectory;
   final VoidCallback? onViewPlan;
 
   @override
@@ -307,7 +344,7 @@ class _Conversation extends ConsumerWidget {
                       builder: responsiveButtonContent,
                       semanticsLabel: displayDavPath(directory),
                       prefix: const Icon(FLucideIcons.folderOpen),
-                      onPress: locked ? null : () => context.go('/organize'),
+                      onPress: locked ? null : onSelectDirectory,
                       child: Text(
                         _directoryName(directory, l.rootDirectory),
                         maxLines: 1,
@@ -344,7 +381,7 @@ class _Conversation extends ConsumerWidget {
                   child: FButton(
                     variant: .outline,
                     mainAxisSize: MainAxisSize.min,
-                    onPress: locked ? null : () => context.go('/organize'),
+                    onPress: locked ? null : onSelectDirectory,
                     child: Text(l.selectDirectory),
                   ),
                 )

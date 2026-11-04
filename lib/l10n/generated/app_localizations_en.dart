@@ -719,6 +719,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectDirectory => 'Select directory';
 
   @override
+  String get selectCurrentDirectory => 'Select this directory';
+
+  @override
+  String get noSubdirectories => 'No subdirectories';
+
+  @override
   String get clearSearch => 'Clear search';
 
   @override

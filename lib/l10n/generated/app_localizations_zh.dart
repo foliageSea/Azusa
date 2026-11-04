@@ -711,6 +711,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectDirectory => '选择目录';
 
   @override
+  String get selectCurrentDirectory => '选择此目录';
+
+  @override
+  String get noSubdirectories => '没有子目录';
+
+  @override
   String get clearSearch => '清除搜索';
 
   @override

@@ -235,6 +235,8 @@
   "openSeriesDirectory": "Select a media directory first",
   "openNonemptyDirectory": "No files to organize in this directory",
   "selectDirectory": "Select directory",
+  "selectCurrentDirectory": "Select this directory",
+  "noSubdirectories": "No subdirectories",
   "clearSearch": "Clear search",
   "aiSuggestions": "AI organizing suggestions",
   "optionalRequirements": "Organizing requirements (optional)",

@@ -1454,6 +1454,18 @@ abstract class AppLocalizations {
   /// **'Select directory'**
   String get selectDirectory;
 
+  /// No description provided for @selectCurrentDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Select this directory'**
+  String get selectCurrentDirectory;
+
+  /// No description provided for @noSubdirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'No subdirectories'**
+  String get noSubdirectories;
+
   /// No description provided for @clearSearch.
   ///
   /// In en, this message translates to:

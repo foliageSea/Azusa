@@ -229,6 +229,8 @@
   "openSeriesDirectory": "请先选择影视目录",
   "openNonemptyDirectory": "当前目录没有可整理的文件",
   "selectDirectory": "选择目录",
+  "selectCurrentDirectory": "选择此目录",
+  "noSubdirectories": "没有子目录",
   "clearSearch": "清除搜索",
   "aiSuggestions": "AI 整理建议",
   "optionalRequirements": "整理要求（可选）",
