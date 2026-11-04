@@ -82,7 +82,10 @@ class _FavoritesDialogState extends ConsumerState<_FavoritesDialog> {
                 ],
               ),
               data: (items) => items.isEmpty
-                  ? Text(context.l10n.noFavorites)
+                  ? EmptyState(
+                      context.l10n.noFavorites,
+                      icon: FLucideIcons.star,
+                    )
                   : SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,

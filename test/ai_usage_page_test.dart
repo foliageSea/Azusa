@@ -102,15 +102,29 @@ void main() {
     expect(find.text('fast-model'), findsWidgets);
     expect(find.text('other-model'), findsNothing);
     final search = find.byWidgetPredicate(
-      (widget) => widget is FTextField && widget.hint == '搜索目录…',
+      (widget) => widget is FTextField && widget.hint == '搜索目录',
     );
     await tester.enterText(
       find.descendant(of: search, matching: find.byType(EditableText)),
       'does-not-exist',
     );
     await tester.pumpAndSettle();
-    expect(find.text('没有匹配的记录'), findsOneWidget);
+    expect(find.text('未找到匹配的用量记录'), findsOneWidget);
     expect(find.text('用量趋势'), findsOneWidget);
+    await tester.ensureVisible(find.text('清除筛选'));
+    await tester.tap(find.text('清除筛选'));
+    await tester.pumpAndSettle();
+    expect(find.text('未找到匹配的用量记录'), findsNothing);
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(of: search, matching: find.byType(EditableText)),
+          )
+          .controller
+          .text,
+      isEmpty,
+    );
+    expect(find.text('other-model'), findsWidgets);
   });
 
   testWidgets('记录分批加载，每次增加二十条', (tester) async {
@@ -154,8 +168,8 @@ void main() {
 
   testWidgets('空历史仍显示零值概览和空状态', (tester) async {
     await pumpPage(tester, data: []);
-    await reveal(tester, find.text('暂无 AI 分析用量'));
-    expect(find.text('暂无 AI 分析用量'), findsOneWidget);
+    await reveal(tester, find.text('暂无 AI 用量记录'));
+    expect(find.text('暂无 AI 用量记录'), findsOneWidget);
     expect(find.text('用量趋势'), findsNothing);
     expect(tester.takeException(), isNull);
   });

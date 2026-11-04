@@ -188,22 +188,60 @@ class LoadingNotice extends StatelessWidget {
 }
 
 class EmptyNotice extends StatelessWidget {
-  const EmptyNotice(this.message, {this.child, super.key});
+  const EmptyNotice(
+    this.message, {
+    this.child,
+    this.icon = FLucideIcons.inbox,
+    super.key,
+  });
   final String message;
   final Widget? child;
+  final IconData icon;
   @override
   Widget build(BuildContext context) => Surface(
-    child: Column(
-      children: [
-        Icon(
-          FLucideIcons.inbox,
-          size: 32,
-          color: context.theme.colors.mutedForeground,
+    padding: 0,
+    child: EmptyState(message, icon: icon, child: child),
+  );
+}
+
+/// Empty content without a surrounding card, for lists, dialogs and panels.
+class EmptyState extends StatelessWidget {
+  const EmptyState(
+    this.message, {
+    this.icon = FLucideIcons.inbox,
+    this.child,
+    super.key,
+  });
+
+  final String message;
+  final IconData icon;
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: SingleChildScrollView(
+      primary: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 32, color: context.theme.colors.mutedForeground),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: context.theme.typography.body.sm.copyWith(
+                  color: context.theme.colors.mutedForeground,
+                ),
+              ),
+              if (child != null) ...[const SizedBox(height: 16), child!],
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
-        Text(message, textAlign: TextAlign.center),
-        if (child != null) ...[const SizedBox(height: 16), child!],
-      ],
+      ),
     ),
   );
 }

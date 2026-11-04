@@ -22,6 +22,9 @@ class LiveLogController extends ChangeNotifier {
   List<LiveLogEntry> get entries => _entries;
   bool get paused => _paused;
   Level get minimumLevel => _minimumLevel;
+  bool get hasFilters => _query.trim().isNotEmpty || _minimumLevel != Level.ALL;
+  bool get hasUnfilteredEntries =>
+      _snapshot.any((entry) => entry.id > _afterId);
   String get copyText => _entries.map((entry) => entry.text).join('\n\n');
 
   void _filter() {
@@ -58,6 +61,13 @@ class LiveLogController extends ChangeNotifier {
   void togglePaused() {
     _paused = !_paused;
     if (!_paused) _snapshot = store.snapshot;
+    _filter();
+    notifyListeners();
+  }
+
+  void clearFilters() {
+    _query = '';
+    _minimumLevel = Level.ALL;
     _filter();
     notifyListeners();
   }

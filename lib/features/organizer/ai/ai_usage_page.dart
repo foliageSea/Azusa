@@ -27,6 +27,23 @@ class _AiUsagePageState extends ConsumerState<AiUsagePage> {
   String? _model;
   String _query = '';
   int _limit = 20;
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _clearFilters() {
+    _search.clear();
+    _filter(() {
+      _period = UsagePeriod.all;
+      _status = UsageStatus.all;
+      _model = null;
+      _query = '';
+    });
+  }
 
   void _filter(VoidCallback change) => setState(() {
     change();
@@ -42,12 +59,18 @@ class _AiUsagePageState extends ConsumerState<AiUsagePage> {
             .watch(aiUsageHistoryProvider)
             .when(
               loading: () => const LoadingNotice(),
-              error: (_, _) => EmptyNotice(
-                l.usageLoadFailed,
-                child: FButton(
+              error: (_, _) => Surface(
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  onPress: () => ref.invalidate(aiUsageHistoryProvider),
-                  child: Text(l.retry),
+                  children: [
+                    Text(l.usageLoadFailed),
+                    const SizedBox(height: 12),
+                    FButton(
+                      mainAxisSize: MainAxisSize.min,
+                      onPress: () => ref.invalidate(aiUsageHistoryProvider),
+                      child: Text(l.retry),
+                    ),
+                  ],
                 ),
               ),
               data: (records) {
@@ -173,6 +196,7 @@ class _AiUsagePageState extends ConsumerState<AiUsagePage> {
                           child: FTextField(
                             hint: l.usageDirectorySearch,
                             control: .managed(
+                              controller: _search,
                               onChange: (value) =>
                                   _filter(() => _query = value.text),
                             ),
@@ -192,6 +216,17 @@ class _AiUsagePageState extends ConsumerState<AiUsagePage> {
                     if (history.isEmpty)
                       EmptyNotice(
                         records.isEmpty ? l.noAiUsage : l.usageNoMatches,
+                        icon: records.isEmpty
+                            ? FLucideIcons.chartColumn
+                            : FLucideIcons.search,
+                        child: records.isEmpty
+                            ? null
+                            : FButton(
+                                variant: .outline,
+                                mainAxisSize: MainAxisSize.min,
+                                onPress: _clearFilters,
+                                child: Text(l.clearFilters),
+                              ),
                       )
                     else ...[
                       if (!isMobileLayout(context)) _RecordHeader(),

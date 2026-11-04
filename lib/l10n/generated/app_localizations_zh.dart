@@ -402,7 +402,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchModels => '搜索模型';
 
   @override
-  String get noMatchingModels => '没有匹配的模型';
+  String get noMatchingModels => '未找到匹配的模型';
 
   @override
   String get noModelsAvailable => '服务未返回可用模型，仍可手动填写模型名称。';
@@ -549,8 +549,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get configureConnection => '配置连接';
 
   @override
-  String get noConnectionConfigured =>
-      '尚未配置 NAS 连接。请先填写 WebDAV 地址、AI 服务与 TMDB 凭据。';
+  String get noConnectionConfigured => '尚未配置 NAS 连接';
 
   @override
   String get executionSafety => '逐项修改，遇到失败立即停止，不覆盖已有文件。';
@@ -603,24 +602,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connectNas => '连接 NAS';
 
   @override
-  String get filterByName => '按名称筛选';
+  String get filterByName => '搜索文件或文件夹';
 
   @override
-  String get browseNasHint => '连接 NAS 后，在这里浏览并打开要整理的影视目录。';
+  String get browseNasHint => '尚未连接 NAS';
 
   @override
   String get directoryEmpty => '此目录为空';
 
   @override
-  String noNameMatches(String query) {
-    return '没有名称包含“$query”的项目';
-  }
+  String get noNameMatches => '未找到匹配的文件或文件夹';
 
   @override
-  String get openSeriesDirectory => '请先连接 NAS 并打开电影或剧集所在目录。';
+  String get openSeriesDirectory => '请先选择影视目录';
 
   @override
-  String get openNonemptyDirectory => '当前目录没有文件，请打开包含电影或剧集文件的目录。';
+  String get openNonemptyDirectory => '当前目录没有可整理的文件';
+
+  @override
+  String get selectDirectory => '选择目录';
+
+  @override
+  String get clearSearch => '清除搜索';
 
   @override
   String get aiSuggestions => 'AI 整理建议';
@@ -629,7 +632,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get optionalRequirements => '整理要求（可选）';
 
   @override
-  String get requirementsHint => '片名 / 剧名、年份 / 季数、TMDB ID 或命名偏好';
+  String get requirementsHint => '片名、年份、季数或命名要求';
 
   @override
   String get generateSuggestions => 'AI 生成重命名建议';
@@ -767,7 +770,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get usageTokens => 'Token';
 
   @override
-  String get usageDirectorySearch => '搜索目录…';
+  String get usageDirectorySearch => '搜索目录';
 
   @override
   String get usageNewest => '时间倒序';
@@ -779,7 +782,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get usageLoadMore => '加载更多';
 
   @override
-  String get usageNoMatches => '没有匹配的记录';
+  String get usageNoMatches => '未找到匹配的用量记录';
 
   @override
   String get usagePriceSource => '价格来源';
@@ -801,7 +804,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get noAiUsage => '暂无 AI 分析用量';
+  String get noAiUsage => '暂无 AI 用量记录';
 
   @override
   String get failed => '失败';
@@ -1316,7 +1319,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get logs => '日志';
 
   @override
-  String get searchLogs => '搜索日志…';
+  String get searchLogs => '搜索日志';
 
   @override
   String get pauseLogs => '暂停';
@@ -1337,7 +1340,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clearLogView => '清空视图';
 
   @override
-  String get noLiveLogs => '暂无可显示的日志';
+  String get noLiveLogs => '暂无日志';
+
+  @override
+  String get noMatchingLogs => '未找到匹配的日志';
 
   @override
   String get logCopyError => '无法复制日志，请重试。';

@@ -404,7 +404,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchModels => 'Search models';
 
   @override
-  String get noMatchingModels => 'No matching models';
+  String get noMatchingModels => 'No matching models found';
 
   @override
   String get noModelsAvailable =>
@@ -553,8 +553,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get configureConnection => 'Configure connection';
 
   @override
-  String get noConnectionConfigured =>
-      'No NAS connection configured. Set up WebDAV, AI, and TMDB credentials first.';
+  String get noConnectionConfigured => 'No NAS connection configured';
 
   @override
   String get executionSafety =>
@@ -608,27 +607,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectNas => 'Connect NAS';
 
   @override
-  String get filterByName => 'Filter by name';
+  String get filterByName => 'Search files or folders';
 
   @override
-  String get browseNasHint =>
-      'Connect to your NAS to browse and open the media directory you want to organize.';
+  String get browseNasHint => 'Not connected to NAS';
 
   @override
   String get directoryEmpty => 'This directory is empty';
 
   @override
-  String noNameMatches(String query) {
-    return 'No items contain “$query”';
-  }
+  String get noNameMatches => 'No matching files or folders found';
 
   @override
-  String get openSeriesDirectory =>
-      'Connect to your NAS and open a movie or series directory first.';
+  String get openSeriesDirectory => 'Select a media directory first';
 
   @override
-  String get openNonemptyDirectory =>
-      'This directory has no files. Open a directory containing movies or episodes.';
+  String get openNonemptyDirectory => 'No files to organize in this directory';
+
+  @override
+  String get selectDirectory => 'Select directory';
+
+  @override
+  String get clearSearch => 'Clear search';
 
   @override
   String get aiSuggestions => 'AI organizing suggestions';
@@ -637,8 +637,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get optionalRequirements => 'Organizing requirements (optional)';
 
   @override
-  String get requirementsHint =>
-      'Movie / series title, year / season, TMDB ID, or naming preferences';
+  String get requirementsHint => 'Title, year, season, or naming requirements';
 
   @override
   String get generateSuggestions => 'Generate rename suggestions';
@@ -776,7 +775,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get usageTokens => 'Tokens';
 
   @override
-  String get usageDirectorySearch => 'Search directories…';
+  String get usageDirectorySearch => 'Search directories';
 
   @override
   String get usageNewest => 'Newest first';
@@ -788,7 +787,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get usageLoadMore => 'Load more';
 
   @override
-  String get usageNoMatches => 'No matching records';
+  String get usageNoMatches => 'No matching usage records found';
 
   @override
   String get usagePriceSource => 'Price source';
@@ -810,7 +809,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get noAiUsage => 'No AI analysis usage yet';
+  String get noAiUsage => 'No AI usage records yet';
 
   @override
   String get failed => 'Failed';
@@ -1354,7 +1353,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logs => 'Logs';
 
   @override
-  String get searchLogs => 'Search logs…';
+  String get searchLogs => 'Search logs';
 
   @override
   String get pauseLogs => 'Pause';
@@ -1376,6 +1375,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noLiveLogs => 'No logs to display';
+
+  @override
+  String get noMatchingLogs => 'No matching logs found';
 
   @override
   String get logCopyError => 'Could not copy logs. Please try again.';

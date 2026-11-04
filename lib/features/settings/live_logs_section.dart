@@ -24,6 +24,7 @@ class LiveLogsSection extends ConsumerStatefulWidget {
 class _LiveLogsSectionState extends ConsumerState<LiveLogsSection> {
   late final LiveLogController _logs;
   final _scroll = ScrollController();
+  final _search = TextEditingController();
   bool _following = true;
   bool _scrollScheduled = false;
 
@@ -69,6 +70,7 @@ class _LiveLogsSectionState extends ConsumerState<LiveLogsSection> {
     _logs.removeListener(_scheduleFollow);
     _logs.dispose();
     _scroll.dispose();
+    _search.dispose();
     super.dispose();
   }
 
@@ -106,7 +108,10 @@ class _LiveLogsSectionState extends ConsumerState<LiveLogsSection> {
       final search = FTextField(
         key: const ValueKey('log-search'),
         hint: l.searchLogs,
-        control: .managed(onChange: (value) => _logs.setQuery(value.text)),
+        control: .managed(
+          controller: _search,
+          onChange: (value) => _logs.setQuery(value.text),
+        ),
       );
       final level = FSelect<Level>.rich(
         key: const ValueKey('log-level'),
@@ -228,14 +233,25 @@ class _LiveLogsSectionState extends ConsumerState<LiveLogsSection> {
             context,
             compact: compact,
             child: entries.isEmpty
-                ? Center(
-                    child: Icon(
-                      FLucideIcons.inbox,
-                      key: const ValueKey('empty-logs-icon'),
-                      size: 32,
-                      color: context.theme.colors.mutedForeground,
-                      semanticLabel: l.noLiveLogs,
-                    ),
+                ? EmptyState(
+                    _logs.hasUnfilteredEntries
+                        ? l.noMatchingLogs
+                        : l.noLiveLogs,
+                    key: const ValueKey('empty-logs-icon'),
+                    icon: _logs.hasUnfilteredEntries
+                        ? FLucideIcons.search
+                        : FLucideIcons.fileText,
+                    child: !_logs.hasFilters
+                        ? null
+                        : FButton(
+                            variant: .outline,
+                            mainAxisSize: MainAxisSize.min,
+                            onPress: () {
+                              _search.clear();
+                              _logs.clearFilters();
+                            },
+                            child: Text(l.clearFilters),
+                          ),
                   )
                 : NotificationListener<ScrollMetricsNotification>(
                     onNotification: (notification) {

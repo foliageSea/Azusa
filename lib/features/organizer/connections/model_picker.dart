@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
 import '../../../shared/localization.dart';
+import '../../../shared/widgets.dart';
 
 Future<String?> showModelPicker(
   BuildContext context,
@@ -32,6 +33,13 @@ class _ModelPicker extends StatefulWidget {
 
 class _ModelPickerState extends State<_ModelPicker> {
   String query = '';
+  final search = TextEditingController();
+
+  @override
+  void dispose() {
+    search.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +61,7 @@ class _ModelPickerState extends State<_ModelPicker> {
             autocorrect: false,
             enableSuggestions: false,
             control: .managed(
+              controller: search,
               onChange: (value) =>
                   setState(() => query = value.text.trim().toLowerCase()),
             ),
@@ -62,7 +71,21 @@ class _ModelPickerState extends State<_ModelPicker> {
             child: SizedBox(
               height: 320,
               child: models.isEmpty
-                  ? Center(child: Text(l.noMatchingModels))
+                  ? EmptyState(
+                      l.noMatchingModels,
+                      icon: FLucideIcons.search,
+                      child: query.isEmpty
+                          ? null
+                          : FButton(
+                              variant: .outline,
+                              mainAxisSize: MainAxisSize.min,
+                              onPress: () {
+                                search.clear();
+                                setState(() => query = '');
+                              },
+                              child: Text(l.clearSearch),
+                            ),
+                    )
                   : ListView.builder(
                       itemCount: models.length,
                       itemBuilder: (context, index) {

@@ -625,6 +625,71 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+  testWidgets('目录筛选无结果可清除且不改变当前目录', (tester) async {
+    final window = NoWindow();
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(LongOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(window.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final field = find.byWidgetPredicate(
+      (widget) => widget is FTextField && widget.hint == '搜索文件或文件夹',
+    );
+    final editable = find.descendant(
+      of: field,
+      matching: find.byType(EditableText),
+    );
+    await tester.enterText(editable, 'not-found');
+    await tester.pumpAndSettle();
+    expect(find.text('未找到匹配的文件或文件夹'), findsOneWidget);
+    await tester.tap(find.text('清除筛选'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<EditableText>(editable).controller.text, isEmpty);
+    expect(container.read(organizerProvider).directory, '/dav/');
+    expect(find.text('episode0.mkv'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('空目录整理要求仅展示选择目录入口', (tester) async {
+    final window = NoWindow();
+    final container = ProviderContainer(
+      overrides: [
+        desktopWindowProvider.overrideWithValue(window),
+        connectionSettingsProvider.overrideWith(TestConnections.new),
+        organizerProvider.overrideWith(EmptyDirectoryOrganizer.new),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(window.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const StarterApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    container.read(routerProvider).go('/organize/assistant');
+    await tester.pumpAndSettle();
+    expect(find.text('当前目录没有可整理的文件'), findsOneWidget);
+    expect(find.byKey(const ValueKey('organizing-requirements')), findsNothing);
+    expect(find.text('AI 生成重命名建议'), findsNothing);
+    await tester.tap(find.text('选择目录'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('nas-empty-state')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('修改预览显示已核验匹配的 TMDB 跳转入口', (tester) async {
     final window = NoWindow();
     final container = ProviderContainer(
@@ -1121,13 +1186,13 @@ void main() {
       expect(find.text('No execution history yet'), findsOneWidget);
       container.read(routerProvider).go('/ai-usage');
       await tester.pumpAndSettle();
-      expect(find.text('No AI analysis usage yet'), findsOneWidget);
+      expect(find.text('No AI usage records yet'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await container
           .read(settingsProvider.notifier)
           .update((s) => s.copyWith(language: 'zh'));
       await tester.pumpAndSettle();
-      expect(find.text('暂无 AI 分析用量'), findsOneWidget);
+      expect(find.text('暂无 AI 用量记录'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
     });

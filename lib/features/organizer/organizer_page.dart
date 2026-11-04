@@ -273,6 +273,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
         children: [
           EmptyNotice(
             context.l10n.noConnectionConfigured,
+            icon: FLucideIcons.hardDrive,
             child: FButton(
               mainAxisSize: MainAxisSize.min,
               prefix: const Icon(FLucideIcons.settings2),
@@ -858,19 +859,28 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                     child: !connected || visible.isEmpty
                         ? Center(
                             key: const ValueKey('nas-empty-state'),
-                            child: _Placeholder(
+                            child: EmptyState(
+                              !connected
+                                  ? context.l10n.browseNasHint
+                                  : state.entries.isEmpty
+                                  ? context.l10n.directoryEmpty
+                                  : context.l10n.noNameMatches,
                               icon: !connected
                                   ? FLucideIcons.hardDrive
                                   : state.entries.isEmpty
                                   ? FLucideIcons.folderOpen
                                   : FLucideIcons.search,
-                              message: !connected
-                                  ? context.l10n.browseNasHint
-                                  : state.entries.isEmpty
-                                  ? context.l10n.directoryEmpty
-                                  : context.l10n.noNameMatches(
-                                      filter.text.trim(),
-                                    ),
+                              child: connected && state.entries.isNotEmpty
+                                  ? FButton(
+                                      variant: .outline,
+                                      mainAxisSize: MainAxisSize.min,
+                                      onPress: () {
+                                        filter.clear();
+                                        setState(() {});
+                                      },
+                                      child: Text(context.l10n.clearFilters),
+                                    )
+                                  : null,
                             ),
                           )
                         : ListView.builder(
@@ -920,6 +930,18 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
         : !hasFiles
         ? context.l10n.openNonemptyDirectory
         : null;
+    if (hint != null) {
+      return EmptyNotice(
+        hint,
+        icon: FLucideIcons.folderOpen,
+        child: FButton(
+          variant: .outline,
+          mainAxisSize: MainAxisSize.min,
+          onPress: locked ? null : () => context.go('/organize'),
+          child: Text(context.l10n.selectDirectory),
+        ),
+      );
+    }
     return Surface(
       padding: 20,
       child: Column(
@@ -984,15 +1006,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
               child: Text(context.l10n.viewRenamePreview),
             ),
           ],
-          if (hint != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              hint,
-              style: theme.typography.body.xs.copyWith(
-                color: theme.colors.mutedForeground,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -1004,9 +1017,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     required bool locked,
   }) {
     final theme = context.theme;
-    final muted = theme.typography.body.sm.copyWith(
-      color: theme.colors.mutedForeground,
-    );
     if (state.plan.isEmpty) {
       return Surface(
         padding: 20,
@@ -1027,9 +1037,10 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(context.l10n.noPendingChanges, style: muted),
-            const SizedBox(height: 12),
+            EmptyState(
+              context.l10n.noPendingChanges,
+              icon: FLucideIcons.listChecks,
+            ),
             if (state.message.startsWith('已完成 ')) ...[
               FButton(
                 onPress: locked ? null : () => context.go('/organize'),
@@ -1367,30 +1378,6 @@ class _Divider extends StatelessWidget {
     child: SizedBox(
       height: 1,
       child: ColoredBox(color: context.theme.colors.border),
-    ),
-  );
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder({required this.icon, required this.message});
-  final IconData icon;
-  final String message;
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 28, color: context.theme.colors.mutedForeground),
-        const SizedBox(height: 12),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: context.theme.typography.body.sm.copyWith(
-            color: context.theme.colors.mutedForeground,
-          ),
-        ),
-      ],
     ),
   );
 }

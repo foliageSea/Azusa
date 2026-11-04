@@ -881,7 +881,7 @@ abstract class AppLocalizations {
   /// No description provided for @noMatchingModels.
   ///
   /// In en, this message translates to:
-  /// **'No matching models'**
+  /// **'No matching models found'**
   String get noMatchingModels;
 
   /// No description provided for @noModelsAvailable.
@@ -1145,7 +1145,7 @@ abstract class AppLocalizations {
   /// No description provided for @noConnectionConfigured.
   ///
   /// In en, this message translates to:
-  /// **'No NAS connection configured. Set up WebDAV, AI, and TMDB credentials first.'**
+  /// **'No NAS connection configured'**
   String get noConnectionConfigured;
 
   /// No description provided for @executionSafety.
@@ -1247,13 +1247,13 @@ abstract class AppLocalizations {
   /// No description provided for @filterByName.
   ///
   /// In en, this message translates to:
-  /// **'Filter by name'**
+  /// **'Search files or folders'**
   String get filterByName;
 
   /// No description provided for @browseNasHint.
   ///
   /// In en, this message translates to:
-  /// **'Connect to your NAS to browse and open the media directory you want to organize.'**
+  /// **'Not connected to NAS'**
   String get browseNasHint;
 
   /// No description provided for @directoryEmpty.
@@ -1265,20 +1265,32 @@ abstract class AppLocalizations {
   /// No description provided for @noNameMatches.
   ///
   /// In en, this message translates to:
-  /// **'No items contain “{query}”'**
-  String noNameMatches(String query);
+  /// **'No matching files or folders found'**
+  String get noNameMatches;
 
   /// No description provided for @openSeriesDirectory.
   ///
   /// In en, this message translates to:
-  /// **'Connect to your NAS and open a movie or series directory first.'**
+  /// **'Select a media directory first'**
   String get openSeriesDirectory;
 
   /// No description provided for @openNonemptyDirectory.
   ///
   /// In en, this message translates to:
-  /// **'This directory has no files. Open a directory containing movies or episodes.'**
+  /// **'No files to organize in this directory'**
   String get openNonemptyDirectory;
+
+  /// No description provided for @selectDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Select directory'**
+  String get selectDirectory;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearch;
 
   /// No description provided for @aiSuggestions.
   ///
@@ -1295,7 +1307,7 @@ abstract class AppLocalizations {
   /// No description provided for @requirementsHint.
   ///
   /// In en, this message translates to:
-  /// **'Movie / series title, year / season, TMDB ID, or naming preferences'**
+  /// **'Title, year, season, or naming requirements'**
   String get requirementsHint;
 
   /// No description provided for @generateSuggestions.
@@ -1559,7 +1571,7 @@ abstract class AppLocalizations {
   /// No description provided for @usageDirectorySearch.
   ///
   /// In en, this message translates to:
-  /// **'Search directories…'**
+  /// **'Search directories'**
   String get usageDirectorySearch;
 
   /// No description provided for @usageNewest.
@@ -1583,7 +1595,7 @@ abstract class AppLocalizations {
   /// No description provided for @usageNoMatches.
   ///
   /// In en, this message translates to:
-  /// **'No matching records'**
+  /// **'No matching usage records found'**
   String get usageNoMatches;
 
   /// No description provided for @usagePriceSource.
@@ -1619,7 +1631,7 @@ abstract class AppLocalizations {
   /// No description provided for @noAiUsage.
   ///
   /// In en, this message translates to:
-  /// **'No AI analysis usage yet'**
+  /// **'No AI usage records yet'**
   String get noAiUsage;
 
   /// No description provided for @failed.
@@ -2543,7 +2555,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchLogs.
   ///
   /// In en, this message translates to:
-  /// **'Search logs…'**
+  /// **'Search logs'**
   String get searchLogs;
 
   /// No description provided for @pauseLogs.
@@ -2587,6 +2599,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No logs to display'**
   String get noLiveLogs;
+
+  /// No description provided for @noMatchingLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching logs found'**
+  String get noMatchingLogs;
 
   /// No description provided for @logCopyError.
   ///

@@ -23,7 +23,10 @@ class HistoryPage extends ConsumerWidget {
           data: (items) {
             final entries = HistoryEntry.fromRecords(items);
             if (entries.isEmpty) {
-              return Surface(child: Text(context.l10n.noExecutionHistory));
+              return EmptyNotice(
+                context.l10n.noExecutionHistory,
+                icon: FLucideIcons.history,
+              );
             }
             final groups = <String, List<HistoryEntry>>{};
             for (final entry in entries) {
