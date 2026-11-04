@@ -1478,6 +1478,132 @@ abstract class AppLocalizations {
   /// **'Analysis history'**
   String get analysisHistory;
 
+  /// No description provided for @usageWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get usageWeek;
+
+  /// No description provided for @usageMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get usageMonth;
+
+  /// No description provided for @usageStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get usageStatus;
+
+  /// No description provided for @usageAverageCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Average cost / priced analysis'**
+  String get usageAverageCost;
+
+  /// No description provided for @usageRequestsPerAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Requests / analysis'**
+  String get usageRequestsPerAnalysis;
+
+  /// No description provided for @usageCachedTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached input tokens'**
+  String get usageCachedTokens;
+
+  /// No description provided for @usageCacheRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache hit rate'**
+  String get usageCacheRate;
+
+  /// No description provided for @usageModelPerformance.
+  ///
+  /// In en, this message translates to:
+  /// **'Model performance'**
+  String get usageModelPerformance;
+
+  /// No description provided for @usageAverageRequestTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Average request time'**
+  String get usageAverageRequestTime;
+
+  /// No description provided for @usageModelTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Model request time'**
+  String get usageModelTime;
+
+  /// No description provided for @usageTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage trend'**
+  String get usageTrend;
+
+  /// No description provided for @usageModels.
+  ///
+  /// In en, this message translates to:
+  /// **'Model breakdown'**
+  String get usageModels;
+
+  /// No description provided for @usageTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Tokens'**
+  String get usageTokens;
+
+  /// No description provided for @usageDirectorySearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search directories…'**
+  String get usageDirectorySearch;
+
+  /// No description provided for @usageNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get usageNewest;
+
+  /// No description provided for @usageHighestCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Highest cost first'**
+  String get usageHighestCost;
+
+  /// No description provided for @usageLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get usageLoadMore;
+
+  /// No description provided for @usageNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching records'**
+  String get usageNoMatches;
+
+  /// No description provided for @usagePriceSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Price source'**
+  String get usagePriceSource;
+
+  /// No description provided for @usageTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get usageTime;
+
+  /// No description provided for @usageRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh usage'**
+  String get usageRefresh;
+
   /// No description provided for @incompleteUsageCount.
   ///
   /// In en, this message translates to:

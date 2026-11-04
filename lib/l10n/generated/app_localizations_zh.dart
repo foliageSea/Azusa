@@ -728,6 +728,69 @@ class AppLocalizationsZh extends AppLocalizations {
   String get analysisHistory => '分析记录';
 
   @override
+  String get usageWeek => '近 7 天';
+
+  @override
+  String get usageMonth => '近 30 天';
+
+  @override
+  String get usageStatus => '状态';
+
+  @override
+  String get usageAverageCost => '已计价分析均价';
+
+  @override
+  String get usageRequestsPerAnalysis => '每次分析平均请求';
+
+  @override
+  String get usageCachedTokens => '缓存输入 Token';
+
+  @override
+  String get usageCacheRate => '缓存命中率';
+
+  @override
+  String get usageModelPerformance => '模型性能';
+
+  @override
+  String get usageAverageRequestTime => '平均请求耗时';
+
+  @override
+  String get usageModelTime => '模型请求耗时';
+
+  @override
+  String get usageTrend => '用量趋势';
+
+  @override
+  String get usageModels => '模型汇总';
+
+  @override
+  String get usageTokens => 'Token';
+
+  @override
+  String get usageDirectorySearch => '搜索目录…';
+
+  @override
+  String get usageNewest => '时间倒序';
+
+  @override
+  String get usageHighestCost => '花费从高到低';
+
+  @override
+  String get usageLoadMore => '加载更多';
+
+  @override
+  String get usageNoMatches => '没有匹配的记录';
+
+  @override
+  String get usagePriceSource => '价格来源';
+
+  @override
+  String get usageTime => '时间';
+
+  @override
+  String get usageRefresh => '刷新用量';
+
+  @override
   String incompleteUsageCount(int count) {
     return '$count 次用量不完整';
   }

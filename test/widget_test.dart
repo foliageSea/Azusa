@@ -2289,14 +2289,33 @@ void main() {
       expect(find.text('累计输出 Tok'), findsOneWidget);
       expect(find.text('预估总花费（USD）'), findsOneWidget);
       if (width < mobileBreakpoint) {
-        final analyses = tester.getRect(find.text('分析次数'));
-        final requests = tester.getRect(find.text('模型请求'));
-        expect(analyses.top, closeTo(requests.top, 0.1));
-        expect(requests.left, greaterThan(analyses.right));
+        final cost = tester.getRect(find.text('预估总花费（USD）'));
+        final analyses = tester.getRect(find.text('分析次数').first);
+        expect(cost.top, closeTo(analyses.top, 0.1));
+        expect(analyses.left, greaterThan(cost.right));
         final input = tester.getRect(find.text('累计输入 Tok'));
         expect(input.left, closeTo(analyses.left, 0.1));
-        expect(input.top - analyses.top, lessThan(100));
+        final analysesCard = tester.getRect(
+          find
+              .ancestor(
+                of: find.text('分析次数').first,
+                matching: find.byType(FCard),
+              )
+              .first,
+        );
+        expect(input.top, greaterThan(analysesCard.bottom));
       }
+      await tester.scrollUntilVisible(
+        find.text('分析记录'),
+        300,
+        scrollable: find
+            .byWidgetPredicate(
+              (widget) =>
+                  widget is Scrollable &&
+                  widget.axisDirection == AxisDirection.down,
+            )
+            .last,
+      );
       expect(find.text('分析记录'), findsOneWidget);
       expect(tester.takeException(), isNull);
       container.read(routerProvider).go('/connections');

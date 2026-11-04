@@ -737,6 +737,69 @@ class AppLocalizationsEn extends AppLocalizations {
   String get analysisHistory => 'Analysis history';
 
   @override
+  String get usageWeek => 'Last 7 days';
+
+  @override
+  String get usageMonth => 'Last 30 days';
+
+  @override
+  String get usageStatus => 'Status';
+
+  @override
+  String get usageAverageCost => 'Average cost / priced analysis';
+
+  @override
+  String get usageRequestsPerAnalysis => 'Requests / analysis';
+
+  @override
+  String get usageCachedTokens => 'Cached input tokens';
+
+  @override
+  String get usageCacheRate => 'Cache hit rate';
+
+  @override
+  String get usageModelPerformance => 'Model performance';
+
+  @override
+  String get usageAverageRequestTime => 'Average request time';
+
+  @override
+  String get usageModelTime => 'Model request time';
+
+  @override
+  String get usageTrend => 'Usage trend';
+
+  @override
+  String get usageModels => 'Model breakdown';
+
+  @override
+  String get usageTokens => 'Tokens';
+
+  @override
+  String get usageDirectorySearch => 'Search directories…';
+
+  @override
+  String get usageNewest => 'Newest first';
+
+  @override
+  String get usageHighestCost => 'Highest cost first';
+
+  @override
+  String get usageLoadMore => 'Load more';
+
+  @override
+  String get usageNoMatches => 'No matching records';
+
+  @override
+  String get usagePriceSource => 'Price source';
+
+  @override
+  String get usageTime => 'Time';
+
+  @override
+  String get usageRefresh => 'Refresh usage';
+
+  @override
   String incompleteUsageCount(int count) {
     return '$count with incomplete usage';
   }

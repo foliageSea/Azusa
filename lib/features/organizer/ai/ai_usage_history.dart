@@ -60,10 +60,13 @@ class AiUsageSummary {
   AiUsageSummary(Iterable<AiUsageRecord> records) {
     for (final record in records) {
       analyses++;
+      if (record.succeeded) succeeded++;
       final usage = record.usage;
       inputTokens += usage.inputTokens;
       outputTokens += usage.outputTokens;
+      cachedTokens += usage.cachedTokens;
       responses += usage.responses;
+      modelTime += usage.modelTime;
       if (usage.missingUsage) missingUsage++;
       if (record.estimatedCost case final cost?) {
         estimatedCost += cost;
@@ -79,9 +82,22 @@ class AiUsageSummary {
 
   int analyses = 0, responses = 0, inputTokens = 0, outputTokens = 0;
   int missingUsage = 0, pricedAnalyses = 0;
+  int succeeded = 0, cachedTokens = 0;
+  Duration modelTime = Duration.zero;
   double estimatedCost = 0;
   int _timedOutput = 0;
   Duration _modelTime = Duration.zero;
+
+  int get failed => analyses - succeeded;
+  double? get averageCost =>
+      pricedAnalyses == 0 ? null : estimatedCost / pricedAnalyses;
+  double? get requestsPerAnalysis =>
+      analyses == 0 ? null : responses / analyses;
+  double? get cacheHitRate =>
+      inputTokens == 0 || missingUsage > 0 ? null : cachedTokens / inputTokens;
+  Duration? get averageRequestTime => responses == 0
+      ? null
+      : Duration(microseconds: modelTime.inMicroseconds ~/ responses);
 
   double? get tokensPerSecond => _modelTime.inMicroseconds == 0
       ? null
