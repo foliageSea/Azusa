@@ -158,7 +158,7 @@ jobs:
       - name: Build Windows x64
         run: |
           flutter pub get --enforce-lockfile
-          flutter build windows --release --target-platform windows-x64 \
+          flutter build windows --release \
             --build-name "$VERSION" --build-number "$BUILD_NUMBER"
       - name: Bundle VC++ runtime and build installer
         shell: pwsh
