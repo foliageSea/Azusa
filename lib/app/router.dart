@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/assistant/assistant_page.dart';
 import '../features/organizer/organizer_page.dart';
 import '../features/organizer/connections/connections_page.dart';
 import '../features/organizer/history/history_page.dart';
@@ -11,7 +12,7 @@ import '../features/settings/settings_tab.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
-    initialLocation: '/organize',
+    initialLocation: '/assistant',
     routes: [
       GoRoute(
         path: '/settings',
@@ -21,6 +22,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppShell(shell: shell),
         branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/assistant',
+                pageBuilder: (_, state) => NoTransitionPage<void>(
+                  key: state.pageKey,
+                  child: const AssistantPage(),
+                ),
+              ),
+            ],
+          ),
           StatefulShellBranch(
             routes: [
               GoRoute(

@@ -8,6 +8,8 @@ import '../../../core/settings/naming_format.dart';
 import '../connections/connection_settings.dart';
 import '../dav/dav_paths.dart';
 import 'ai_usage.dart';
+import 'agent_activity.dart';
+import 'folder_layout.dart';
 import '../connections/http_clients.dart';
 import 'langchain_http_client.dart';
 import '../rename_plan.dart';
@@ -100,8 +102,11 @@ class RenameAgent {
     String directory,
     List<DavEntry> entries, {
     String instruction = '',
+    FolderLayout? folderLayout,
     void Function(String message)? onStatus,
     void Function(AiUsage usage)? onUsage,
+    void Function(AgentActivity activity)? onActivity,
+    void Function(FolderLayout layout)? onLayout,
   }) async {
     if (_closed) throw StateError('AI 客户端已关闭');
     if (_running) throw StateError('AI 正在分析');
@@ -136,19 +141,33 @@ class RenameAgent {
     try {
       final evidence = <String, Map<String, dynamic>>{};
       final movieEvidence = <int, Map<String, dynamic>>{};
+      final seriesNames = <int, String>{};
+      final seriesYears = <int, int>{};
       var modelCalls = 0;
       var toolCalls = 0;
       var usage = const AiUsage();
+      AgentActivity? modelActivity;
       final transport = LangChainHttpClient(
         _dio,
         onChatResponse: (body, elapsed) {
           usage = usage.addResponse(body, elapsed);
           onUsage?.call(usage);
+          if (modelActivity case final activity?) {
+            onActivity?.call(activity.succeed());
+            modelActivity = null;
+          }
         },
         onChatRequest: () {
           if (_closed) throw StateError('AI 客户端已关闭');
           if (++modelCalls > 8) throw StateError('AI 工具调用次数超过限制');
           onStatus?.call('AI 分析中（$modelCalls/8）');
+          final activity = AgentActivity(
+            key: 'model-$modelCalls',
+            kind: AgentActivityKind.model,
+            number: modelCalls,
+          );
+          modelActivity = activity;
+          onActivity?.call(activity);
         },
       );
       final model = ChatOpenAI(
@@ -163,8 +182,12 @@ class RenameAgent {
         String name,
         String description,
         Map<String, dynamic> schema,
-        Future<Object> Function(Map<String, dynamic>) run,
-      ) => Tool.fromFunction<Map<String, dynamic>, String>(
+        Future<Object> Function(Map<String, dynamic>) run, {
+        required AgentActivity Function(String key, Map<String, dynamic> input)
+        describe,
+        required AgentActivity Function(AgentActivity activity, Object result)
+        summarize,
+      }) => Tool.fromFunction<Map<String, dynamic>, String>(
         name: name,
         description: description,
         inputJsonSchema: schema,
@@ -173,13 +196,31 @@ class RenameAgent {
           if (_closed) throw StateError('AI 客户端已关闭');
           if (++toolCalls > 128) throw StateError('AI 工具调用次数超过限制');
           onStatus?.call('查询：$name');
+          AgentActivity? activity;
           try {
-            return jsonEncode(await run(input));
+            activity = describe('tool-$toolCalls', input);
+            onActivity?.call(activity);
+          } catch (_) {
+            activity = null;
+          }
+          try {
+            final result = await run(input);
+            if (activity != null) {
+              onActivity?.call(summarize(activity, result));
+            }
+            return jsonEncode(result);
           } catch (error) {
-            return jsonEncode({'error': serviceError(error)});
+            final message = serviceError(error);
+            if (activity != null && !_closed) {
+              onActivity?.call(activity.fail(message));
+            }
+            return jsonEncode({'error': message});
           }
         },
       );
+
+      String? text(Object? value) =>
+          value is String && value.trim().isNotEmpty ? value.trim() : null;
 
       final tools = <Tool>[
         tool(
@@ -197,6 +238,14 @@ class RenameAgent {
             input['query'] as String,
             year: input['year'] as int?,
           ),
+          describe: (key, input) => AgentActivity(
+            key: key,
+            kind: AgentActivityKind.searchMovie,
+            subject: text(input['query']),
+            number: input['year'] is int ? input['year'] as int : null,
+          ),
+          summarize: (activity, result) =>
+              activity.succeed(count: (result as List).length),
         ),
         tool(
           'get_movie',
@@ -213,14 +262,51 @@ class RenameAgent {
             movieEvidence[movie['id'] as int] = movie;
             return movie;
           },
-        ),
-        tool('search_tv', '查询 TMDB 剧集候选', {
-          'type': 'object',
-          'properties': {
-            'query': {'type': 'string'},
+          describe: (key, input) => AgentActivity(
+            key: key,
+            kind: AgentActivityKind.getMovie,
+            number: input['movie_id'] is int ? input['movie_id'] as int : null,
+          ),
+          summarize: (activity, result) {
+            final movie = result as Map<String, dynamic>;
+            return activity.succeed(
+              title: text(movie['title']) ?? text(movie['original_title']),
+              date: text(movie['release_date']),
+            );
           },
-          'required': ['query'],
-        }, (input) => tmdb.search(input['query'] as String)),
+        ),
+        tool(
+          'search_tv',
+          '查询 TMDB 剧集候选',
+          {
+            'type': 'object',
+            'properties': {
+              'query': {'type': 'string'},
+            },
+            'required': ['query'],
+          },
+          (input) async {
+            final results = await tmdb.search(input['query'] as String);
+            for (final show in results) {
+              final name = text(show['name']) ?? text(show['original_name']);
+              if (show['id'] is int && name != null) {
+                seriesNames[show['id'] as int] = name;
+              }
+              final year = _year(show['first_air_date']);
+              if (show['id'] is int && year != null) {
+                seriesYears[show['id'] as int] = year;
+              }
+            }
+            return results;
+          },
+          describe: (key, input) => AgentActivity(
+            key: key,
+            kind: AgentActivityKind.searchTv,
+            subject: text(input['query']),
+          ),
+          summarize: (activity, result) =>
+              activity.succeed(count: (result as List).length),
+        ),
         tool(
           'get_season',
           '读取指定 TMDB 剧集的季和各集标题',
@@ -243,6 +329,18 @@ class RenameAgent {
             }
             return episodes;
           },
+          describe: (key, input) => AgentActivity(
+            key: key,
+            kind: AgentActivityKind.getSeason,
+            subject: input['series_id'] is int
+                ? seriesNames[input['series_id']]
+                : null,
+            number: input['season_number'] is int
+                ? input['season_number'] as int
+                : null,
+          ),
+          summarize: (activity, result) =>
+              activity.succeed(count: (result as List).length),
         ),
         tool(
           'list_directory',
@@ -257,6 +355,10 @@ class RenameAgent {
                 },
               )
               .toList(),
+          describe: (key, _) =>
+              AgentActivity(key: key, kind: AgentActivityKind.listDirectory),
+          summarize: (activity, result) =>
+              activity.succeed(count: (result as List).length),
         ),
       ];
       final agent = ToolsAgent.fromLLMAndTools(
@@ -272,7 +374,8 @@ class RenameAgent {
                         '目标文件名中的片名、剧名和单集标题必须优先使用 TMDB 返回的该语言官方名称。'
                         '缺少该语言名称时保留 TMDB 提供的原名，不自行翻译或编造标题。'
                         '整理要求中的语言偏好不得覆盖此命名语言设置。'
-                        '季集编号、字幕语言标记和原文件扩展名保持原规则。')
+                        '季集编号、字幕语言标记和原文件扩展名保持原规则。'
+                        '${folderLayout == null ? '' : _folderInstruction(folderLayout)}')
                     .replaceAll('{', '{{')
                     .replaceAll('}', '}}'),
           ),
@@ -296,14 +399,19 @@ class RenameAgent {
           !content.trimLeft().startsWith(RegExp(r'[\{`]'))) {
         throw StateError('AI 未返回有效建议或已达到执行限制');
       }
-      return _parseProposal(
+      final (plan, layout) = _parseProposal(
         content,
         directory,
         entries,
         videos,
         evidence,
         movieEvidence,
+        seriesNames,
+        seriesYears,
+        folderLayout,
       );
+      if (layout != null) onLayout?.call(layout);
+      return plan;
     } finally {
       // ChatOpenAI owns the injected transport; close it even after parser errors.
       _model?.close();
@@ -313,13 +421,16 @@ class RenameAgent {
     }
   }
 
-  List<RenameItem> _parseProposal(
+  (List<RenameItem>, FolderLayout?) _parseProposal(
     String content,
     String directory,
     List<DavEntry> entries,
     List<DavEntry> videos,
     Map<String, Map<String, dynamic>> evidence,
     Map<int, Map<String, dynamic>> movieEvidence,
+    Map<int, String> seriesNames,
+    Map<int, int> seriesYears,
+    FolderLayout? folderLayout,
   ) {
     final parsed = jsonDecode(
       content
@@ -327,6 +438,9 @@ class RenameAgent {
           .replaceFirst(RegExp(r'^```(?:json)?\s*'), '')
           .replaceFirst(RegExp(r'\s*```$'), ''),
     ) as Map<String, dynamic>;
+    final layout = folderLayout == null
+        ? null
+        : _parseFolders(parsed['folders'], folderLayout);
     final allowed = {for (final file in videos) file.path: file};
     final output = <RenameItem>[];
     final seen = <String>{};
@@ -369,12 +483,33 @@ class RenameAgent {
               entry.path.substring(directory.length).contains('/')
           ? directory
           : null;
+      final movieTitle = movie?['title'] ?? movie?['original_title'];
+      final mediaTitle = isMovie
+          ? movieTitle is String
+                ? movieTitle
+                : null
+          : seriesNames[item['series_id']];
+      final seasonNumber = isMovie || item['season_number'] is! int
+          ? null
+          : item['season_number'] as int;
+      final episodeNumber = isMovie || item['episode_number'] is! int
+          ? null
+          : item['episode_number'] as int;
+      final mediaYear = isMovie
+          ? _year(movie!['release_date'])
+          : seriesYears[item['series_id']];
+      final scope = layout == null ? null : directory;
       output.add(
         RenameItem(
           source: source,
           targetName: target,
           tmdbId: isMovie ? item['movie_id'] as int : item['series_id'] as int,
           tmdbMediaType: isMovie ? TmdbMediaType.movie : TmdbMediaType.tv,
+          mediaTitle: mediaTitle,
+          mediaYear: mediaYear,
+          seasonNumber: seasonNumber,
+          episodeNumber: episodeNumber,
+          scope: scope,
           targetDirectory: targetDirectory,
           fingerprint: entry.fingerprint,
           etag: entry.etag,
@@ -383,8 +518,9 @@ class RenameAgent {
               : '匹配结果：第 ${item['season_number']} 季第 ${item['episode_number']} 集 · ${evidence[key]!['name']}\nTMDB ${item['series_id']}',
         ),
       );
-      if (targetDirectory != null ||
-          isMovie && _videoExtensions.contains(_extension(entry.name))) {
+      final isVideo = _videoExtensions.contains(_extension(entry.name));
+      final pairEach = isMovie || layout != null;
+      if (targetDirectory != null || pairEach && isVideo) {
         final siblings = entries
             .where(
               (e) =>
@@ -397,7 +533,7 @@ class RenameAgent {
                   e.path != source,
             )
             .toList();
-        if (isMovie ||
+        if (pairEach ||
             videos
                     .where(
                       (e) =>
@@ -414,7 +550,7 @@ class RenameAgent {
             (e) =>
                 _subtitleExtensions.contains(_extension(e.name)) &&
                 subtitleMatchesVideo(e.name, entry.name) &&
-                (!isMovie ||
+                (!pairEach ||
                     videos
                             .where(
                               (video) =>
@@ -442,6 +578,11 @@ class RenameAgent {
                     ? item['movie_id'] as int
                     : item['series_id'] as int,
                 tmdbMediaType: isMovie ? TmdbMediaType.movie : TmdbMediaType.tv,
+                mediaTitle: mediaTitle,
+                mediaYear: mediaYear,
+                seasonNumber: seasonNumber,
+                episodeNumber: episodeNumber,
+                scope: scope,
                 targetDirectory: targetDirectory,
                 targetName: _subtitleName(subtitle, entry, target),
                 fingerprint: subtitle.fingerprint,
@@ -455,7 +596,33 @@ class RenameAgent {
         }
       }
     }
-    return output;
+    return (
+      layout == null ? output : applyFolderLayout(output, directory, layout),
+      layout,
+    );
+  }
+
+  static int? _year(Object? date) => date is String && date.length >= 4
+      ? int.tryParse(date.substring(0, 4))
+      : null;
+
+  static String _folderInstruction(FolderLayout layout) {
+    String flag(bool value) => value ? 'true' : 'false';
+    return '目录整理由程序根据 TMDB 结果自动完成，不要在 targetName 中包含目录。'
+        '当前目录结构为 movie_folders=${flag(layout.movieFolders)}（电影放入“片名 (年份)”文件夹）、'
+        'series_folders=${flag(layout.seriesFolders)}（剧集放入“剧名 (年份)”文件夹）、'
+        'season_folders=${flag(layout.seasonFolders)}（剧集按“Season 01”分季）。'
+        '仅当整理要求明确要求调整目录结构时，在 JSON 顶层加入 "folders":{"movie_folders":布尔,"series_folders":布尔,"season_folders":布尔}，否则省略。';
+  }
+
+  static FolderLayout _parseFolders(Object? value, FolderLayout current) {
+    if (value is! Map) return current;
+    bool? flag(String key) => value[key] is bool ? value[key] as bool : null;
+    return current.copyWith(
+      movieFolders: flag('movie_folders'),
+      seriesFolders: flag('series_folders'),
+      seasonFolders: flag('season_folders'),
+    );
   }
 
   void close() {

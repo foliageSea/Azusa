@@ -1506,4 +1506,216 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get logExportError =>
       'Could not export logs. Check available storage and try again.';
+
+  @override
+  String get assistantTab => 'Assistant';
+
+  @override
+  String get filesTab => 'Files';
+
+  @override
+  String get assistantInputHint => 'Describe how to organize';
+
+  @override
+  String get assistantSend => 'Send';
+
+  @override
+  String get assistantStop => 'Stop';
+
+  @override
+  String get assistantNewConversation => 'New conversation';
+
+  @override
+  String get assistantEmptyTitle => 'How should this directory be organized?';
+
+  @override
+  String get assistantPromptOrganize => 'Identify and organize this directory';
+
+  @override
+  String get assistantPromptSeriesOnly =>
+      'Only organize series and skip movies';
+
+  @override
+  String get assistantPromptMoviesOnly =>
+      'Only organize movies and skip series';
+
+  @override
+  String get activityScan => 'Read directory';
+
+  @override
+  String activityModel(int round) {
+    return 'AI analysis · round $round';
+  }
+
+  @override
+  String activitySearchMovie(String query) {
+    return 'Search movies for \"$query\"';
+  }
+
+  @override
+  String activitySearchMovieYear(String query, int year) {
+    return 'Search movies for \"$query\" · $year';
+  }
+
+  @override
+  String activitySearchTv(String query) {
+    return 'Search series for \"$query\"';
+  }
+
+  @override
+  String get activityGetMovie => 'Verify movie details';
+
+  @override
+  String activityMovieVerified(String title) {
+    return 'Verify movie \"$title\"';
+  }
+
+  @override
+  String activitySeason(int season) {
+    return 'Load season $season';
+  }
+
+  @override
+  String activitySeasonOf(String title, int season) {
+    return 'Load \"$title\" season $season';
+  }
+
+  @override
+  String get activityListDirectory => 'Review directory listing';
+
+  @override
+  String activityEntries(int count) {
+    return '$count entries';
+  }
+
+  @override
+  String activityCandidates(int count) {
+    return '$count candidates';
+  }
+
+  @override
+  String activityEpisodes(int count) {
+    return '$count episodes';
+  }
+
+  @override
+  String get activityStopped => 'Stopped';
+
+  @override
+  String get runWorking => 'Working';
+
+  @override
+  String runDone(int count) {
+    return 'Completed $count lookups';
+  }
+
+  @override
+  String get runFailed => 'Did not finish';
+
+  @override
+  String get runStopped => 'Stopped';
+
+  @override
+  String runSeconds(int seconds) {
+    return '${seconds}s';
+  }
+
+  @override
+  String get showActivity => 'Show steps';
+
+  @override
+  String get hideActivity => 'Hide steps';
+
+  @override
+  String get replyPlan => 'The plan is ready. Review it before executing.';
+
+  @override
+  String get replyPlanRevised => 'Updated the plan with your new requirements.';
+
+  @override
+  String planVersion(int version) {
+    return 'Plan · version $version';
+  }
+
+  @override
+  String planMovies(int count) {
+    return '$count movies';
+  }
+
+  @override
+  String planSeries(int count) {
+    return '$count series';
+  }
+
+  @override
+  String planChanges(int count) {
+    return '$count files will change';
+  }
+
+  @override
+  String planUnchanged(int count) {
+    return '$count unchanged';
+  }
+
+  @override
+  String get planSuperseded => 'Replaced';
+
+  @override
+  String planRemaining(int count) {
+    return '$count items not executed';
+  }
+
+  @override
+  String get viewChanges => 'Review changes';
+
+  @override
+  String get planPanelTitle => 'Plan';
+
+  @override
+  String get noPlanYet => 'No plan yet';
+
+  @override
+  String get movieLabel => 'Movie';
+
+  @override
+  String get seriesLabel => 'Series';
+
+  @override
+  String get otherFiles => 'Other files';
+
+  @override
+  String seasonLabel(int season) {
+    return 'Season $season';
+  }
+
+  @override
+  String get assistantPromptFolders =>
+      'Create a folder per title and group seasons';
+
+  @override
+  String get folderLayout => 'Folders';
+
+  @override
+  String get folderMovies => 'Folder per movie';
+
+  @override
+  String get folderSeries => 'Folder per series';
+
+  @override
+  String get folderSeasons => 'Folder per season';
+
+  @override
+  String planFolders(int count) {
+    return '$count new folders';
+  }
+
+  @override
+  String get replyLayout => 'Updated the folder structure.';
+
+  @override
+  String get newFolderBadge => 'New';
+
+  @override
+  String get executeOrganizeDetail =>
+      'New folders will be created and files moved or renamed as planned; original folders remain. Execution stops on failure and never overwrites existing files.';
 }

@@ -1461,4 +1461,213 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get logExportError => '无法导出日志，请检查可用存储空间后重试。';
+
+  @override
+  String get assistantTab => '整理助手';
+
+  @override
+  String get filesTab => '文件';
+
+  @override
+  String get assistantInputHint => '输入整理要求';
+
+  @override
+  String get assistantSend => '发送';
+
+  @override
+  String get assistantStop => '停止';
+
+  @override
+  String get assistantNewConversation => '新对话';
+
+  @override
+  String get assistantEmptyTitle => '要怎么整理这个目录？';
+
+  @override
+  String get assistantPromptOrganize => '识别并整理这个目录';
+
+  @override
+  String get assistantPromptSeriesOnly => '只整理剧集，跳过电影';
+
+  @override
+  String get assistantPromptMoviesOnly => '只整理电影，跳过剧集';
+
+  @override
+  String get activityScan => '读取目录';
+
+  @override
+  String activityModel(int round) {
+    return 'AI 分析 · 第 $round 轮';
+  }
+
+  @override
+  String activitySearchMovie(String query) {
+    return '搜索电影「$query」';
+  }
+
+  @override
+  String activitySearchMovieYear(String query, int year) {
+    return '搜索电影「$query」· $year';
+  }
+
+  @override
+  String activitySearchTv(String query) {
+    return '搜索剧集「$query」';
+  }
+
+  @override
+  String get activityGetMovie => '核对电影详情';
+
+  @override
+  String activityMovieVerified(String title) {
+    return '核对电影「$title」';
+  }
+
+  @override
+  String activitySeason(int season) {
+    return '获取第 $season 季资料';
+  }
+
+  @override
+  String activitySeasonOf(String title, int season) {
+    return '获取「$title」第 $season 季';
+  }
+
+  @override
+  String get activityListDirectory => '查看目录清单';
+
+  @override
+  String activityEntries(int count) {
+    return '$count 个条目';
+  }
+
+  @override
+  String activityCandidates(int count) {
+    return '$count 个候选';
+  }
+
+  @override
+  String activityEpisodes(int count) {
+    return '$count 集';
+  }
+
+  @override
+  String get activityStopped => '已停止';
+
+  @override
+  String get runWorking => '正在处理';
+
+  @override
+  String runDone(int count) {
+    return '已完成 $count 次查询';
+  }
+
+  @override
+  String get runFailed => '未完成';
+
+  @override
+  String get runStopped => '已停止';
+
+  @override
+  String runSeconds(int seconds) {
+    return '$seconds 秒';
+  }
+
+  @override
+  String get showActivity => '展开过程';
+
+  @override
+  String get hideActivity => '收起过程';
+
+  @override
+  String get replyPlan => '已生成整理方案，请核对后执行。';
+
+  @override
+  String get replyPlanRevised => '已按新要求更新整理方案。';
+
+  @override
+  String planVersion(int version) {
+    return '整理方案 · 第 $version 版';
+  }
+
+  @override
+  String planMovies(int count) {
+    return '$count 部电影';
+  }
+
+  @override
+  String planSeries(int count) {
+    return '$count 部剧集';
+  }
+
+  @override
+  String planChanges(int count) {
+    return '$count 个文件将修改';
+  }
+
+  @override
+  String planUnchanged(int count) {
+    return '$count 个无需修改';
+  }
+
+  @override
+  String get planSuperseded => '已替换';
+
+  @override
+  String planRemaining(int count) {
+    return '剩余 $count 项未执行';
+  }
+
+  @override
+  String get viewChanges => '查看变更';
+
+  @override
+  String get planPanelTitle => '整理方案';
+
+  @override
+  String get noPlanYet => '暂无整理方案';
+
+  @override
+  String get movieLabel => '电影';
+
+  @override
+  String get seriesLabel => '剧集';
+
+  @override
+  String get otherFiles => '其他文件';
+
+  @override
+  String seasonLabel(int season) {
+    return '第 $season 季';
+  }
+
+  @override
+  String get assistantPromptFolders => '按作品建立文件夹并分季整理';
+
+  @override
+  String get folderLayout => '目录结构';
+
+  @override
+  String get folderMovies => '电影独立文件夹';
+
+  @override
+  String get folderSeries => '剧集独立文件夹';
+
+  @override
+  String get folderSeasons => '按季分文件夹';
+
+  @override
+  String planFolders(int count) {
+    return '新建 $count 个文件夹';
+  }
+
+  @override
+  String get replyLayout => '已调整目录结构。';
+
+  @override
+  String get newFolderBadge => '新建';
+
+  @override
+  String get executeOrganizeDetail =>
+      '将按方案新建文件夹并逐项移动、重命名文件；原文件夹保留。遇到失败立即停止，不覆盖已有文件。';
 }

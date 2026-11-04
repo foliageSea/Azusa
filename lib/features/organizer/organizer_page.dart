@@ -1151,7 +1151,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
           const _Divider(),
           for (final (index, item) in state.plan.indexed) ...[
             if (index > 0) const _Divider(indent: 16),
-            _RenameRow(
+            RenamePlanRow(
               key: ValueKey(item.source),
               item: item,
               entries: state.analysisEntries.isEmpty
@@ -1597,8 +1597,8 @@ class _EntryRow extends StatelessWidget {
   }
 }
 
-class _RenameRow extends StatefulWidget {
-  const _RenameRow({
+class RenamePlanRow extends StatefulWidget {
+  const RenamePlanRow({
     required this.item,
     required this.entries,
     required this.disabled,
@@ -1612,13 +1612,13 @@ class _RenameRow extends StatefulWidget {
   final ValueChanged<String> onName;
   final ValueChanged<bool> onEnabled;
   @override
-  State<_RenameRow> createState() => _RenameRowState();
+  State<RenamePlanRow> createState() => _RenamePlanRowState();
 }
 
-class _RenameRowState extends State<_RenameRow> {
+class _RenamePlanRowState extends State<RenamePlanRow> {
   late final text = TextEditingController(text: widget.item.targetName);
   @override
-  void didUpdateWidget(covariant _RenameRow oldWidget) {
+  void didUpdateWidget(covariant RenamePlanRow oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (text.text != widget.item.targetName) text.text = widget.item.targetName;
   }

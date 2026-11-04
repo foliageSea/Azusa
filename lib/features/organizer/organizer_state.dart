@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/logging.dart';
 import '../../core/settings/settings.dart';
 import 'ai/agent.dart';
+import 'ai/agent_activity.dart';
+import 'ai/folder_layout.dart';
 import 'ai/ai_usage.dart';
 import 'ai/ai_usage_history.dart';
 import 'ai/model_pricing.dart';
@@ -150,7 +152,12 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     }
   }
 
-  Future<void> propose({String instruction = ''}) async {
+  Future<void> propose({
+    String instruction = '',
+    FolderLayout? folderLayout,
+    void Function(AgentActivity activity)? onActivity,
+    void Function(FolderLayout layout)? onLayout,
+  }) async {
     if (state.busy || state.executing || state.directory.isEmpty) return;
     final generation = ++_analysisGeneration;
     final startedAt = DateTime.now();
@@ -208,21 +215,43 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         tmdb,
         namingFormat: ref.read(settingsProvider).namingFormat,
       );
-      final fresh = await interruptible(dav.list(state.directory));
-      final analysisEntries = <DavEntry>[...fresh];
-      for (final folder in fresh.where((entry) => entry.directory)) {
-        analysisEntries.addAll(await interruptible(dav.list(folder.path)));
+      var scan = AgentActivity(
+        key: 'scan',
+        kind: AgentActivityKind.scan,
+        subject: displayDavPath(state.directory),
+      );
+      onActivity?.call(scan);
+      final List<DavEntry> analysisEntries;
+      final List<DavEntry> fresh;
+      try {
+        fresh = await interruptible(dav.list(state.directory));
+        analysisEntries = <DavEntry>[...fresh];
+        for (final folder in fresh.where((entry) => entry.directory)) {
+          analysisEntries.addAll(await interruptible(dav.list(folder.path)));
+        }
+      } catch (error) {
+        if (!cancelled) onActivity?.call(scan.fail(serviceError(error)));
+        rethrow;
       }
+      scan = scan.succeed(count: analysisEntries.length);
+      onActivity?.call(scan);
       final plan = await interruptible(
         agent.propose(
           state.directory,
           analysisEntries,
           instruction: instruction,
+          folderLayout: folderLayout,
+          onLayout: (layout) {
+            if (!cancelled) onLayout?.call(layout);
+          },
           onStatus: (message) {
             if (!cancelled) state = state.copyWith(message: message);
           },
           onUsage: (usage) {
             if (!cancelled) state = state.copyWith(aiUsage: usage);
+          },
+          onActivity: (activity) {
+            if (!cancelled) onActivity?.call(activity);
           },
         ),
       );
@@ -287,6 +316,14 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     if (state.executing || state.busy) return;
     state = state.copyWith(
       plan: [for (final item in state.plan) item.copyWith(enabled: enabled)],
+    );
+  }
+
+  /// Re-places the current plan with [layout], keeping manual edits.
+  void applyLayout(FolderLayout layout) {
+    if (state.executing || state.busy || state.directory.isEmpty) return;
+    state = state.copyWith(
+      plan: applyFolderLayout(state.plan, state.directory, layout),
     );
   }
 
@@ -417,6 +454,10 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         onCompleted: (item) => _record(
           '完成重命名 ${displayDavPath(item.source)} → ${displayDavPath(item.target)}',
         ),
+        onCreatingDirectory: (path) =>
+            _record('准备 mkdir ${displayDavPath(path)} '),
+        onDirectoryCreated: (path) =>
+            _record('完成 mkdir ${displayDavPath(path)} '),
         onProgress: (done, total) =>
             state = state.copyWith(progress: '$done / $total'),
       );

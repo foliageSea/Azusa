@@ -2827,6 +2827,342 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not export logs. Check available storage and try again.'**
   String get logExportError;
+
+  /// No description provided for @assistantTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant'**
+  String get assistantTab;
+
+  /// No description provided for @filesTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get filesTab;
+
+  /// No description provided for @assistantInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe how to organize'**
+  String get assistantInputHint;
+
+  /// No description provided for @assistantSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get assistantSend;
+
+  /// No description provided for @assistantStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get assistantStop;
+
+  /// No description provided for @assistantNewConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'New conversation'**
+  String get assistantNewConversation;
+
+  /// No description provided for @assistantEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How should this directory be organized?'**
+  String get assistantEmptyTitle;
+
+  /// No description provided for @assistantPromptOrganize.
+  ///
+  /// In en, this message translates to:
+  /// **'Identify and organize this directory'**
+  String get assistantPromptOrganize;
+
+  /// No description provided for @assistantPromptSeriesOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only organize series and skip movies'**
+  String get assistantPromptSeriesOnly;
+
+  /// No description provided for @assistantPromptMoviesOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only organize movies and skip series'**
+  String get assistantPromptMoviesOnly;
+
+  /// No description provided for @activityScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Read directory'**
+  String get activityScan;
+
+  /// No description provided for @activityModel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI analysis · round {round}'**
+  String activityModel(int round);
+
+  /// No description provided for @activitySearchMovie.
+  ///
+  /// In en, this message translates to:
+  /// **'Search movies for \"{query}\"'**
+  String activitySearchMovie(String query);
+
+  /// No description provided for @activitySearchMovieYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Search movies for \"{query}\" · {year}'**
+  String activitySearchMovieYear(String query, int year);
+
+  /// No description provided for @activitySearchTv.
+  ///
+  /// In en, this message translates to:
+  /// **'Search series for \"{query}\"'**
+  String activitySearchTv(String query);
+
+  /// No description provided for @activityGetMovie.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify movie details'**
+  String get activityGetMovie;
+
+  /// No description provided for @activityMovieVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify movie \"{title}\"'**
+  String activityMovieVerified(String title);
+
+  /// No description provided for @activitySeason.
+  ///
+  /// In en, this message translates to:
+  /// **'Load season {season}'**
+  String activitySeason(int season);
+
+  /// No description provided for @activitySeasonOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Load \"{title}\" season {season}'**
+  String activitySeasonOf(String title, int season);
+
+  /// No description provided for @activityListDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Review directory listing'**
+  String get activityListDirectory;
+
+  /// No description provided for @activityEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} entries'**
+  String activityEntries(int count);
+
+  /// No description provided for @activityCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} candidates'**
+  String activityCandidates(int count);
+
+  /// No description provided for @activityEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} episodes'**
+  String activityEpisodes(int count);
+
+  /// No description provided for @activityStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get activityStopped;
+
+  /// No description provided for @runWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Working'**
+  String get runWorking;
+
+  /// No description provided for @runDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed {count} lookups'**
+  String runDone(int count);
+
+  /// No description provided for @runFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Did not finish'**
+  String get runFailed;
+
+  /// No description provided for @runStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get runStopped;
+
+  /// No description provided for @runSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds}s'**
+  String runSeconds(int seconds);
+
+  /// No description provided for @showActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Show steps'**
+  String get showActivity;
+
+  /// No description provided for @hideActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide steps'**
+  String get hideActivity;
+
+  /// No description provided for @replyPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'The plan is ready. Review it before executing.'**
+  String get replyPlan;
+
+  /// No description provided for @replyPlanRevised.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated the plan with your new requirements.'**
+  String get replyPlanRevised;
+
+  /// No description provided for @planVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan · version {version}'**
+  String planVersion(int version);
+
+  /// No description provided for @planMovies.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} movies'**
+  String planMovies(int count);
+
+  /// No description provided for @planSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} series'**
+  String planSeries(int count);
+
+  /// No description provided for @planChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} files will change'**
+  String planChanges(int count);
+
+  /// No description provided for @planUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unchanged'**
+  String planUnchanged(int count);
+
+  /// No description provided for @planSuperseded.
+  ///
+  /// In en, this message translates to:
+  /// **'Replaced'**
+  String get planSuperseded;
+
+  /// No description provided for @planRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items not executed'**
+  String planRemaining(int count);
+
+  /// No description provided for @viewChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Review changes'**
+  String get viewChanges;
+
+  /// No description provided for @planPanelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get planPanelTitle;
+
+  /// No description provided for @noPlanYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No plan yet'**
+  String get noPlanYet;
+
+  /// No description provided for @movieLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Movie'**
+  String get movieLabel;
+
+  /// No description provided for @seriesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Series'**
+  String get seriesLabel;
+
+  /// No description provided for @otherFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Other files'**
+  String get otherFiles;
+
+  /// No description provided for @seasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Season {season}'**
+  String seasonLabel(int season);
+
+  /// No description provided for @assistantPromptFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a folder per title and group seasons'**
+  String get assistantPromptFolders;
+
+  /// No description provided for @folderLayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Folders'**
+  String get folderLayout;
+
+  /// No description provided for @folderMovies.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder per movie'**
+  String get folderMovies;
+
+  /// No description provided for @folderSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder per series'**
+  String get folderSeries;
+
+  /// No description provided for @folderSeasons.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder per season'**
+  String get folderSeasons;
+
+  /// No description provided for @planFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} new folders'**
+  String planFolders(int count);
+
+  /// No description provided for @replyLayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated the folder structure.'**
+  String get replyLayout;
+
+  /// No description provided for @newFolderBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get newFolderBadge;
+
+  /// No description provided for @executeOrganizeDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'New folders will be created and files moved or renamed as planned; original folders remain. Execution stops on failure and never overwrites existing files.'**
+  String get executeOrganizeDetail;
 }
 
 class _AppLocalizationsDelegate

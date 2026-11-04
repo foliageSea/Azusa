@@ -604,6 +604,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      container.read(routerProvider).go('/organize');
+      await tester.pumpAndSettle();
       final region = tester.getRect(
         find.byKey(const ValueKey('nas-empty-state')),
       );
@@ -632,6 +634,8 @@ void main() {
         child: const StarterApp(),
       ),
     );
+    await tester.pumpAndSettle();
+    container.read(routerProvider).go('/organize');
     await tester.pumpAndSettle();
     final field = find.byWidgetPredicate(
       (widget) => widget is FTextField && widget.hint == '搜索文件或文件夹',
@@ -730,6 +734,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      container.read(routerProvider).go('/organize');
+      await tester.pumpAndSettle();
       final controller = container.read(organizerProvider.notifier);
       final longName = List.filled(
         12,
@@ -786,6 +792,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      container.read(routerProvider).go('/organize');
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('directory-sort')));
       await tester.pumpAndSettle();
       expect(find.text('名称：升序'), findsNothing);
@@ -839,6 +847,8 @@ void main() {
         child: const StarterApp(),
       ),
     );
+    await tester.pumpAndSettle();
+    container.read(routerProvider).go('/organize');
     await tester.pumpAndSettle();
     await tester.tap(find.text('整理此目录'));
     await tester.pumpAndSettle();
@@ -1356,6 +1366,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      container.read(routerProvider).go('/organize');
+      await tester.pumpAndSettle();
       final controller =
           container.read(organizerProvider.notifier) as BackNavigationOrganizer;
       Future<void> back() async {
@@ -1416,6 +1428,8 @@ void main() {
           child: const StarterApp(),
         ),
       );
+      await tester.pumpAndSettle();
+      container.read(routerProvider).go('/organize');
       await tester.pumpAndSettle();
       final list = find.byKey(const ValueKey('nas-file-list'));
       final browser = find.byKey(const ValueKey('nas-browser'));
@@ -1497,6 +1511,8 @@ void main() {
         child: const StarterApp(),
       ),
     );
+    await tester.pumpAndSettle();
+    container.read(routerProvider).go('/organize');
     await tester.pumpAndSettle();
     final list = find.byKey(const ValueKey('nas-file-list'));
     final scrollable = find.descendant(
@@ -1666,6 +1682,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      container.read(routerProvider).go('/organize');
+      await tester.pumpAndSettle();
       final controller = container.read(
         organizerProvider.notifier,
       ) as EntryInteractionOrganizer;
@@ -1779,6 +1797,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      container.read(routerProvider).go('/organize');
+      await tester.pumpAndSettle();
       await tester.tap(find.bySemanticsLabel('$original 的更多操作'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('重命名'));
@@ -1849,6 +1869,8 @@ void main() {
         child: const StarterApp(),
       ),
     );
+    await tester.pumpAndSettle();
+    container.read(routerProvider).go('/organize');
     await tester.pumpAndSettle();
     for (final entry in ['a.mkv', 'season']) {
       await tester.tap(find.bySemanticsLabel('$entry 的更多操作'));
@@ -2033,6 +2055,8 @@ void main() {
           child: const StarterApp(),
         ),
       );
+      await tester.pumpAndSettle();
+      container.read(routerProvider).go('/organize');
       await tester.pumpAndSettle();
       final browser = find.byKey(const ValueKey('nas-browser'));
       final browserBefore = tester.getRect(browser);
@@ -2222,6 +2246,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      container.read(routerProvider).go('/organize');
+      await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('nas-connection-toggle')),
         findsOneWidget,
@@ -2234,7 +2260,7 @@ void main() {
       expect(find.byIcon(FLucideIcons.ellipsis), findsNWidgets(2));
       final headerTitle = find.descendant(
         of: find.byWidgetPredicate((widget) => widget is FHeader),
-        matching: find.text('影视整理'),
+        matching: find.text('文件'),
       );
       final card = tester.getRect(find.byType(FCard).first);
       final breadcrumb = tester.getRect(
@@ -2281,7 +2307,7 @@ void main() {
         );
         final menuLabel = find.descendant(
           of: sidebar,
-          matching: find.text('影视整理'),
+          matching: find.text('文件'),
         );
         expect(tester.getSize(sidebar).width, 184);
         expect(

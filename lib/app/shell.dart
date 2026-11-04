@@ -212,15 +212,17 @@ class AppShell extends ConsumerWidget {
       ),
     );
     final showBack =
-        shell.currentIndex == 0 &&
+        shell.currentIndex == 1 &&
         GoRouterState.of(context).uri.path.startsWith('/organize/assistant');
     final labels = [
-      l.organizeSeries,
+      l.assistantTab,
+      l.filesTab,
       l.executionHistory,
       l.aiUsage,
       l.settings,
     ];
     const icons = [
+      FLucideIcons.botMessageSquare,
       FLucideIcons.folderPen,
       FLucideIcons.history,
       FLucideIcons.chartNoAxesCombined,
