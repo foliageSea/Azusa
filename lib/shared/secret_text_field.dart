@@ -12,6 +12,7 @@ class SecretTextField extends StatelessWidget {
     required this.showLabel,
     required this.hideLabel,
     this.enabled = true,
+    this.hint,
     this.fieldKey,
     this.toggleKey,
     super.key,
@@ -19,6 +20,7 @@ class SecretTextField extends StatelessWidget {
 
   final TextEditingController controller;
   final String label;
+  final String? hint;
   final bool visible;
   final ValueChanged<bool> onVisibilityChange;
   final String showLabel;
@@ -31,6 +33,7 @@ class SecretTextField extends StatelessWidget {
   Widget build(BuildContext context) => FTextField(
     key: fieldKey,
     label: Text(label),
+    hint: hint,
     enabled: enabled,
     control: .managed(controller: controller),
     obscureText: !visible,

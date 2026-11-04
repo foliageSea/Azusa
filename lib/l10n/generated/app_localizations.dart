@@ -866,6 +866,60 @@ abstract class AppLocalizations {
   /// **'Connection name'**
   String get connectionName;
 
+  /// No description provided for @connectionNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a connection name'**
+  String get connectionNameHint;
+
+  /// No description provided for @webdavUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a WebDAV URL'**
+  String get webdavUrlHint;
+
+  /// No description provided for @usernameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a username'**
+  String get usernameHint;
+
+  /// No description provided for @passwordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a password'**
+  String get passwordHint;
+
+  /// No description provided for @aiUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an AI service URL'**
+  String get aiUrlHint;
+
+  /// No description provided for @modelNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a model name'**
+  String get modelNameHint;
+
+  /// No description provided for @apiKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an API Key'**
+  String get apiKeyHint;
+
+  /// No description provided for @tmdbTokenHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an API Key or Read Access Token'**
+  String get tmdbTokenHint;
+
+  /// No description provided for @proxyUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a proxy URL'**
+  String get proxyUrlHint;
+
   /// No description provided for @addWebdavConnection.
   ///
   /// In en, this message translates to:

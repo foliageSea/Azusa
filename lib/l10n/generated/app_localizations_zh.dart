@@ -398,6 +398,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connectionName => '连接名称';
 
   @override
+  String get connectionNameHint => '请输入连接名称';
+
+  @override
+  String get webdavUrlHint => '请输入 WebDAV 地址';
+
+  @override
+  String get usernameHint => '请输入用户名';
+
+  @override
+  String get passwordHint => '请输入密码';
+
+  @override
+  String get aiUrlHint => '请输入 AI 服务地址';
+
+  @override
+  String get modelNameHint => '请输入模型名称';
+
+  @override
+  String get apiKeyHint => '请输入 API Key';
+
+  @override
+  String get tmdbTokenHint => '请输入 API Key 或 Read Access Token';
+
+  @override
+  String get proxyUrlHint => '请输入代理地址';
+
+  @override
   String get addWebdavConnection => '新增 WebDAV';
 
   @override

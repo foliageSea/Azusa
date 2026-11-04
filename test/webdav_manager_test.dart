@@ -119,6 +119,24 @@ void main() {
 
         await tester.tap(find.byKey(const ValueKey('add-webdav-connection')));
         await tester.pumpAndSettle();
+        final expectedHints = language == 'zh'
+            ? ['请输入连接名称', '请输入 WebDAV 地址', '请输入用户名', '请输入密码']
+            : [
+                'Enter a connection name',
+                'Enter a WebDAV URL',
+                'Enter a username',
+                'Enter a password',
+              ];
+        for (var i = 0; i < 4; i++) {
+          final key = i == 3
+              ? 'webdav-editor-password'
+              : 'webdav-editor-field-$i';
+          expect(
+            tester.widget<FTextField>(find.byKey(ValueKey(key))).hint,
+            expectedHints[i],
+          );
+          expect(find.text(expectedHints[i]), findsOneWidget);
+        }
         final dialog = tester.getRect(
           find.byKey(const ValueKey('webdav-editor-content')),
         );

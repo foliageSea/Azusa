@@ -400,6 +400,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connectionName => 'Connection name';
 
   @override
+  String get connectionNameHint => 'Enter a connection name';
+
+  @override
+  String get webdavUrlHint => 'Enter a WebDAV URL';
+
+  @override
+  String get usernameHint => 'Enter a username';
+
+  @override
+  String get passwordHint => 'Enter a password';
+
+  @override
+  String get aiUrlHint => 'Enter an AI service URL';
+
+  @override
+  String get modelNameHint => 'Enter a model name';
+
+  @override
+  String get apiKeyHint => 'Enter an API Key';
+
+  @override
+  String get tmdbTokenHint => 'Enter an API Key or Read Access Token';
+
+  @override
+  String get proxyUrlHint => 'Enter a proxy URL';
+
+  @override
   String get addWebdavConnection => 'Add WebDAV';
 
   @override

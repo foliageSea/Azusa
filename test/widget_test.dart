@@ -362,6 +362,9 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(editable(3), 'https://unsaved.test/v1');
+      expect(tester.widget<FTextField>(field(3)).hint, '请输入 AI 服务地址');
+      expect(tester.widget<FTextField>(field(4)).hint, '请输入模型名称');
+      expect(tester.widget<FTextField>(field(5)).hint, '请输入 API Key');
       await tester.enterText(editable(5), 'unsaved-ai-key');
       expect(tester.widget<EditableText>(editable(5)).obscureText, isTrue);
       await tester.tap(find.byKey(const ValueKey('toggle-secret-5')));
@@ -1119,10 +1122,30 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Proxy mode'), findsOneWidget);
       expect(find.text('Use proxy for AI'), findsOneWidget);
+      await tester.tap(find.text('Direct').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Manual proxy').last);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FTextField>(
+              find.byKey(const ValueKey('connection-field-7')),
+            )
+            .hint,
+        'Enter a proxy URL',
+      );
       await tester.ensureVisible(find.text('TMDB').first);
       await tester.tap(find.text('TMDB').first);
       await tester.pumpAndSettle();
       expect(find.text('Naming language'), findsOneWidget);
+      expect(
+        tester
+            .widget<FTextField>(
+              find.byKey(const ValueKey('connection-field-6')),
+            )
+            .hint,
+        'Enter an API Key or Read Access Token',
+      );
       container.read(routerProvider).go('/organize');
       await tester.pumpAndSettle();
       expect(find.text('Disconnect'), findsOneWidget);

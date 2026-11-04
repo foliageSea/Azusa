@@ -222,6 +222,16 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
     final organizer = ref.watch(organizerProvider);
     final locked =
         busy || savingNamingSettings || organizer.busy || organizer.executing;
+    final hints = [
+      l.webdavUrlHint,
+      l.usernameHint,
+      l.passwordHint,
+      l.aiUrlHint,
+      l.modelNameHint,
+      l.apiKeyHint,
+      l.tmdbTokenHint,
+      l.proxyUrlHint,
+    ];
     Widget field(int i, String label) => Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: [2, 5, 6].contains(i)
@@ -230,6 +240,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
               toggleKey: ValueKey('toggle-secret-$i'),
               controller: fields[i],
               label: label,
+              hint: hints[i],
               enabled: !locked,
               visible: visibleSecrets.contains(i),
               showLabel: i == 2 ? l.showPassword : l.showApiKey,
@@ -245,6 +256,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
           : FTextField(
               key: ValueKey('connection-field-$i'),
               label: Text(label),
+              hint: hints[i],
               enabled: !locked,
               control: .managed(controller: fields[i]),
               suffixBuilder: i == 4

@@ -468,6 +468,7 @@ class _ConnectionEditorState extends ConsumerState<_ConnectionEditor> {
     final organizer = ref.watch(organizerProvider);
     final locked = busy || organizer.busy || organizer.executing;
     final labels = [l.connectionName, l.webdavUrl, l.username];
+    final hints = [l.connectionNameHint, l.webdavUrlHint, l.usernameHint];
     return PopScope(
       canPop: !busy,
       child: Padding(
@@ -490,6 +491,7 @@ class _ConnectionEditorState extends ConsumerState<_ConnectionEditor> {
                   child: FTextField(
                     key: ValueKey('webdav-editor-field-$i'),
                     label: Text(labels[i]),
+                    hint: hints[i],
                     enabled: !locked,
                     control: .managed(controller: fields[i]),
                     autocorrect: false,
@@ -502,6 +504,7 @@ class _ConnectionEditorState extends ConsumerState<_ConnectionEditor> {
                 toggleKey: const ValueKey('webdav-editor-toggle-password'),
                 controller: fields[3],
                 label: l.password,
+                hint: l.passwordHint,
                 enabled: !locked,
                 visible: visible,
                 showLabel: l.showPassword,
