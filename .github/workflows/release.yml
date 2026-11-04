@@ -180,8 +180,10 @@ jobs:
           & $iscc "/DAppVersion=$env:VERSION" "/DBuildNumber=$env:BUILD_NUMBER" tool/packaging/windows.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup failed' }
           $installer = Get-Item "dist/Azusa-$env:VERSION-windows-x64-setup.exe"
-          if ($installer.VersionInfo.FileVersion -ne "$env:VERSION.$env:BUILD_NUMBER") {
-            throw 'Installer version mismatch'
+          $versionInfo = $installer.VersionInfo
+          $numericVersion = '{0}.{1}.{2}.{3}' -f $versionInfo.FileMajorPart, $versionInfo.FileMinorPart, $versionInfo.FileBuildPart, $versionInfo.FilePrivatePart
+          if ($numericVersion -ne "$env:VERSION.$env:BUILD_NUMBER") {
+            throw "Installer version mismatch: expected $env:VERSION.$env:BUILD_NUMBER, got $numericVersion (text: $($versionInfo.FileVersion))"
           }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
