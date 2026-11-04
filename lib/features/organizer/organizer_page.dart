@@ -14,8 +14,6 @@ import '../../core/settings/directory_sort.dart';
 import '../../shared/localization.dart';
 import '../../shared/runtime_localization.dart';
 import '../../shared/responsive_button.dart';
-import '../../shared/organizer_stepper.dart';
-import 'ai/ai_usage.dart';
 import 'connections/connection_settings.dart';
 import 'dav/dav_paths.dart';
 import 'dav/directory_breadcrumb.dart';
@@ -23,7 +21,6 @@ import 'dav/directory_sort.dart';
 import 'dav/directory_favorites.dart';
 import 'dav/directory_favorites_bar.dart';
 import 'organizer_state.dart';
-import 'rename_plan.dart';
 import 'dav/webdav.dart';
 import 'connections/webdav_manager.dart';
 import '../settings/settings_tab.dart';
@@ -34,18 +31,13 @@ const _compactPanelWidth = 520.0;
 /// Directories with more entries than this get a name filter.
 const _filterThreshold = 8;
 
-enum OrganizerStep { browse, assistant, preview }
-
 class OrganizerPage extends ConsumerStatefulWidget {
-  const OrganizerPage({this.step = OrganizerStep.browse, super.key});
-
-  final OrganizerStep step;
+  const OrganizerPage({super.key});
   @override
   ConsumerState<OrganizerPage> createState() => _OrganizerPageState();
 }
 
 class _OrganizerPageState extends ConsumerState<OrganizerPage> {
-  final instruction = TextEditingController();
   final filter = TextEditingController();
   final _fileScrollController = ScrollController();
   final _entryFocus = FocusNode(debugLabel: 'NAS entries');
@@ -93,7 +85,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
 
   @override
   void dispose() {
-    instruction.dispose();
     filter.dispose();
     _entryFocus.dispose();
     _fileScrollController.dispose();
@@ -122,47 +113,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     final parent = _parentDirectory(state, root);
     if (parent != null) _openDirectory(parent);
   }
-
-  Future<bool> _confirm(
-    String title, {
-    String? detail,
-    String? action,
-    bool destructive = false,
-  }) async =>
-      await showFDialog<bool>(
-        context: context,
-        builder: (context, style, animation) => FDialog(
-          animation: animation,
-          builder: (context, style) => EscapeDismiss(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(title, style: context.theme.typography.body.lg),
-                  if (detail != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      detail,
-                      style: context.theme.typography.body.sm.copyWith(
-                        color: context.theme.colors.mutedForeground,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  _DialogActions(
-                    action: action ?? context.l10n.confirmAction,
-                    destructive: destructive,
-                    onConfirm: () => Navigator.of(context).pop(true),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ) ??
-      false;
 
   Future<void> _favorites(NasScope scope, String directory) async {
     final connection = ref.read(connectionSettingsProvider).asData?.value;
@@ -209,41 +159,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     }
   }
 
-  Future<void> _propose() async {
-    final connection = ref.read(connectionSettingsProvider).asData?.value;
-    if (await _confirm(
-          context.l10n.analyzeDirectory,
-          detail: context.l10n.analyzeDirectoryDetail,
-          action: context.l10n.startAnalysis,
-        ) &&
-        mounted &&
-        identical(
-          connection,
-          ref.read(connectionSettingsProvider).asData?.value,
-        )) {
-      await _controller.propose(instruction: instruction.text.trim());
-      if (mounted && ref.read(organizerProvider).plan.isNotEmpty) {
-        context.go('/organize/assistant/preview');
-      }
-    }
-  }
-
-  Future<void> _execute() async {
-    final connection = ref.read(connectionSettingsProvider).asData?.value;
-    if (await _confirm(
-          context.l10n.executeRenames,
-          detail: context.l10n.executeRenamesDetail,
-          action: context.l10n.startExecution,
-        ) &&
-        mounted &&
-        identical(
-          connection,
-          ref.read(connectionSettingsProvider).asData?.value,
-        )) {
-      await _controller.execute();
-    }
-  }
-
   Future<void> _renameEntry(DavEntry entry) async {
     final connection = ref.read(connectionSettingsProvider).asData?.value;
     final state = ref.read(organizerProvider);
@@ -279,7 +194,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       (previous, next) {
         if (previous == next) return;
         filter.clear();
-        instruction.clear();
         _selectedEntryPath = null;
         _directoryScrollOffsets.clear();
       },
@@ -330,80 +244,40 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     final root = canonicalDavPath(base.endsWith('/') ? base : '$base/');
 
     final status = _status(context, state);
-    const gap = SizedBox(height: 16);
     final content = ColoredBox(
       key: const ValueKey('organizer-page-background'),
       color: context.theme.colors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Align(
-            alignment: Alignment.center,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: PageContent.maxWidth),
-              child: SizedBox(
-                width: double.infinity,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    PageContent.paddingOf(context),
-                    12,
-                    PageContent.paddingOf(context),
-                    4,
-                  ),
-                  child: _navigation(context, locked: locked),
-                ),
-              ),
-            ),
-          ),
           Expanded(
             child: PageContent(
-              fill: widget.step == OrganizerStep.browse,
+              fill: true,
               topPadding: 8,
               children: [
-                if (status != null) ...[status, gap],
-                if (widget.step != OrganizerStep.browse &&
-                    state.aiUsage != null) ...[
-                  AiUsagePanel(usage: state.aiUsage!, pricing: state.pricing),
-                  gap,
-                ],
-                switch (widget.step) {
-                  OrganizerStep.browse => Expanded(
-                    child: _browser(
-                      context,
-                      state,
-                      locked: locked,
-                      root: root,
-                      scope: nasScope(config),
-                    ),
-                  ),
-                  OrganizerStep.assistant => _assistant(
+                if (status != null) ...[status, const SizedBox(height: 16)],
+                Expanded(
+                  child: _browser(
                     context,
                     state,
                     locked: locked,
+                    root: root,
+                    scope: nasScope(config),
                   ),
-                  OrganizerStep.preview => _plan(
-                    context,
-                    state,
-                    locked: locked,
-                  ),
-                },
+                ),
               ],
             ),
           ),
-          if (widget.step == OrganizerStep.browse ||
-              widget.step == OrganizerStep.preview && state.plan.isNotEmpty)
-            _bottomActions(
-              context,
-              state,
-              locked: locked,
-              root: root,
-              scope: nasScope(config),
-            ),
+          _bottomActions(
+            context,
+            state,
+            locked: locked,
+            root: root,
+            scope: nasScope(config),
+          ),
         ],
       ),
     );
-    if (widget.step != OrganizerStep.browse) return content;
-
     final desktop = _desktop;
     return PopScope<Object?>(
       canPop: _parentDirectory(state, root) == null,
@@ -432,17 +306,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     required String root,
     required NasScope scope,
   }) {
-    final preview = widget.step == OrganizerStep.preview;
-    final canExecute =
-        !locked &&
-        validatePlan(
-              state.plan,
-              state.analysisEntries.isEmpty
-                  ? state.entries
-                  : state.analysisEntries,
-            ) ==
-            null &&
-        state.plan.any((item) => item.enabled && item.source != item.target);
     final padding = PageContent.paddingOf(context);
     return DecoratedBox(
       key: const ValueKey('organizer-bottom-actions'),
@@ -462,47 +325,30 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (preview) ...[
-                    Text(
-                      context.l10n.executionSafety,
-                      style: context.theme.typography.body.sm.copyWith(
-                        color: context.theme.colors.mutedForeground,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  if (preview)
-                    FButton(
-                      builder: responsiveButtonContent,
-                      prefix: const Icon(FLucideIcons.play),
-                      onPress: canExecute ? _execute : null,
-                      child: Text(context.l10n.confirmAndExecute),
-                    )
-                  else
-                    Row(
-                      children: [
-                        if (state.directory.isNotEmpty) ...[
-                          _directoryTools(
-                            context,
-                            state,
-                            locked: locked,
-                            root: root,
-                            scope: scope,
-                          ),
-                          const SizedBox(width: 12),
-                        ],
-                        Expanded(
-                          child: FButton(
-                            builder: responsiveButtonContent,
-                            prefix: const Icon(FLucideIcons.arrowRight),
-                            onPress: locked || state.entries.isEmpty
-                                ? null
-                                : () => context.go('/organize/assistant'),
-                            child: Text(context.l10n.organizeDirectory),
-                          ),
+                  Row(
+                    children: [
+                      if (state.directory.isNotEmpty) ...[
+                        _directoryTools(
+                          context,
+                          state,
+                          locked: locked,
+                          root: root,
+                          scope: scope,
                         ),
+                        const SizedBox(width: 12),
                       ],
-                    ),
+                      Expanded(
+                        child: FButton(
+                          builder: responsiveButtonContent,
+                          prefix: const Icon(FLucideIcons.arrowRight),
+                          onPress: locked || state.entries.isEmpty
+                              ? null
+                              : () => context.go('/assistant'),
+                          child: Text(context.l10n.organizeDirectory),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -573,23 +419,9 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     );
   }
 
-  Widget _navigation(BuildContext context, {required bool locked}) =>
-      OrganizerStepper(
-        key: const ValueKey('organizer-stepper'),
-        currentStep: widget.step.index,
-        locked: locked,
-        onStepSelected: (index) => context.go(
-          const [
-            '/organize',
-            '/organize/assistant',
-            '/organize/assistant/preview',
-          ][index],
-        ),
-      );
-
   Widget? _status(BuildContext context, OrganizerState state) {
     final theme = context.theme;
-    if (widget.step == OrganizerStep.browse && state.busy && !state.executing) {
+    if (state.busy && !state.executing) {
       return null;
     }
     if (state.executing || state.busy) {
@@ -886,314 +718,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       ),
     );
   }
-
-  Widget _assistant(
-    BuildContext context,
-    OrganizerState state, {
-    required bool locked,
-  }) {
-    final theme = context.theme;
-    final hasFiles = state.entries.isNotEmpty;
-    final canPropose = !locked && state.directory.isNotEmpty && hasFiles;
-    final hint = state.directory.isEmpty
-        ? context.l10n.openSeriesDirectory
-        : !hasFiles
-        ? context.l10n.openNonemptyDirectory
-        : null;
-    if (hint != null) {
-      return EmptyNotice(
-        hint,
-        icon: FLucideIcons.folderOpen,
-        child: FButton(
-          variant: .outline,
-          mainAxisSize: MainAxisSize.min,
-          onPress: locked ? null : () => context.go('/organize'),
-          child: Text(context.l10n.selectDirectory),
-        ),
-      );
-    }
-    return Surface(
-      padding: 20,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Icon(
-                FLucideIcons.sparkles,
-                size: 18,
-                color: theme.colors.mutedForeground,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  context.l10n.aiSuggestions,
-                  style: theme.typography.body.lg,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            displayDavPath(state.directory),
-            style: theme.typography.body.sm,
-          ),
-          const SizedBox(height: 16),
-          FTextField.multiline(
-            key: const ValueKey('organizing-requirements'),
-            control: .managed(controller: instruction),
-            label: Text(context.l10n.optionalRequirements),
-            hint: context.l10n.requirementsHint,
-            enabled: !locked,
-            minLines: 3,
-            maxLines: 6,
-            textInputAction: TextInputAction.newline,
-          ),
-          const SizedBox(height: 12),
-          FButton(
-            builder: responsiveButtonContent,
-            prefix: Icon(
-              state.analyzing ? FLucideIcons.square : FLucideIcons.sparkles,
-            ),
-            onPress: state.analyzing
-                ? _controller.cancelSuggestions
-                : canPropose
-                ? _propose
-                : null,
-            child: Text(
-              state.analyzing
-                  ? context.l10n.stopSuggestions
-                  : context.l10n.generateSuggestions,
-            ),
-          ),
-          if (state.plan.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            FButton(
-              variant: .outline,
-              onPress: locked
-                  ? null
-                  : () => context.go('/organize/assistant/preview'),
-              child: Text(context.l10n.viewRenamePreview),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _plan(
-    BuildContext context,
-    OrganizerState state, {
-    required bool locked,
-  }) {
-    final theme = context.theme;
-    if (state.plan.isEmpty) {
-      return Surface(
-        padding: 20,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  FLucideIcons.listChecks,
-                  size: 18,
-                  color: theme.colors.mutedForeground,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  context.l10n.renamePreview,
-                  style: theme.typography.body.lg,
-                ),
-              ],
-            ),
-            EmptyState(
-              context.l10n.noPendingChanges,
-              icon: FLucideIcons.listChecks,
-            ),
-            if (state.message.startsWith('已完成 ')) ...[
-              FButton(
-                onPress: locked ? null : () => context.go('/organize'),
-                child: Text(context.l10n.backToNasDirectory),
-              ),
-              const SizedBox(height: 12),
-            ],
-            FButton(
-              variant: .outline,
-              onPress: locked ? null : () => context.go('/organize/assistant'),
-              child: Text(context.l10n.backToRequirements),
-            ),
-          ],
-        ),
-      );
-    }
-    final error = validatePlan(
-      state.plan,
-      state.analysisEntries.isEmpty ? state.entries : state.analysisEntries,
-    );
-    final selected = state.plan.where((e) => e.enabled).length;
-    final changes = state.plan
-        .where((p) => p.enabled && p.source != p.target)
-        .length;
-    final allSelected = selected == state.plan.length;
-    return Surface(
-      padding: 0,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 16, 14),
-            child: Row(
-              children: [
-                Icon(
-                  FLucideIcons.listChecks,
-                  size: 18,
-                  color: theme.colors.mutedForeground,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        context.l10n.renamePreview,
-                        style: theme.typography.body.lg,
-                      ),
-                      Text(
-                        context.l10n.selectedChanges(
-                          selected,
-                          state.plan.length,
-                          changes,
-                        ),
-                        style: theme.typography.body.xs.copyWith(
-                          color: theme.colors.mutedForeground,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                FButton(
-                  variant: .ghost,
-                  size: .sm,
-                  mainAxisSize: MainAxisSize.min,
-                  onPress: locked
-                      ? null
-                      : () => _controller.setAllEnabled(!allSelected),
-                  child: Text(
-                    allSelected
-                        ? context.l10n.deselectAll
-                        : context.l10n.selectAll,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const _Divider(),
-          for (final (index, item) in state.plan.indexed) ...[
-            if (index > 0) const _Divider(indent: 16),
-            RenamePlanRow(
-              key: ValueKey(item.source),
-              item: item,
-              entries: state.analysisEntries.isEmpty
-                  ? state.entries
-                  : state.analysisEntries,
-              disabled: locked,
-              onName: (name) => _controller.edit(index, name: name),
-              onEnabled: (enabled) => _controller.edit(index, enabled: enabled),
-            ),
-          ],
-          if (error != null) ...[
-            const _Divider(),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: FAlert(
-                variant: .destructive,
-                icon: const Icon(FLucideIcons.circleAlert),
-                title: Text(context.l10n.cannotExecute),
-                subtitle: Text(localizeRuntimeMessage(context.l10n, error)),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class AiUsagePanel extends StatelessWidget {
-  const AiUsagePanel({required this.usage, this.pricing, super.key});
-
-  final AiUsage usage;
-  final ModelPricing? pricing;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final available = usage.responses > 0 && !usage.missingUsage;
-    final tps = usage.tokensPerSecond;
-    final cost = pricing?.estimate(usage);
-    final metrics = [
-      (context.l10n.inputTokens, available ? '${usage.inputTokens}' : '—'),
-      (context.l10n.outputTokens, available ? '${usage.outputTokens}' : '—'),
-      (context.l10n.averageTps, tps?.toStringAsFixed(1) ?? '—'),
-    ];
-    return Surface(
-      padding: 20,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(context.l10n.analysisUsage, style: theme.typography.body.lg),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 32,
-            runSpacing: 16,
-            children: [
-              for (final (label, value) in metrics)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      label,
-                      style: theme.typography.body.xs.copyWith(
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(value, style: theme.typography.body.lg),
-                  ],
-                ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    context.l10n.estimatedCost,
-                    style: theme.typography.body.xs.copyWith(
-                      color: theme.colors.mutedForeground,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (cost == null)
-                    Text('—', style: theme.typography.body.lg)
-                  else
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(end: cost),
-                      duration: const Duration(milliseconds: 450),
-                      builder: (context, value, _) => Text(
-                        '\$${value.toStringAsFixed(6)}',
-                        style: theme.typography.body.lg,
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _RenameEntryDialog extends StatefulWidget {
@@ -1307,44 +831,11 @@ class _RenameEntryDialogState extends State<_RenameEntryDialog> {
   );
 }
 
-class _DialogActions extends StatelessWidget {
-  const _DialogActions({
-    required this.action,
-    required this.onConfirm,
-    this.destructive = false,
-  });
-  final String action;
-  final VoidCallback onConfirm;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 12,
-    runSpacing: 10,
-    alignment: WrapAlignment.end,
-    children: [
-      FButton(
-        variant: .outline,
-        mainAxisSize: MainAxisSize.min,
-        onPress: () => Navigator.of(context).pop(),
-        child: Text(context.l10n.cancel),
-      ),
-      FButton(
-        variant: destructive ? .destructive : .primary,
-        mainAxisSize: MainAxisSize.min,
-        onPress: onConfirm,
-        child: Text(action),
-      ),
-    ],
-  );
-}
-
 class _Divider extends StatelessWidget {
-  const _Divider({this.indent = 0});
-  final double indent;
+  const _Divider();
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: indent),
+    padding: EdgeInsets.zero,
     child: SizedBox(
       height: 1,
       child: ColoredBox(color: context.theme.colors.border),
@@ -1532,152 +1023,6 @@ class _EntryRow extends StatelessWidget {
                 const SizedBox(width: 16),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class RenamePlanRow extends StatefulWidget {
-  const RenamePlanRow({
-    required this.item,
-    required this.entries,
-    required this.disabled,
-    required this.onName,
-    required this.onEnabled,
-    super.key,
-  });
-  final RenameItem item;
-  final List<DavEntry> entries;
-  final bool disabled;
-  final ValueChanged<String> onName;
-  final ValueChanged<bool> onEnabled;
-  @override
-  State<RenamePlanRow> createState() => _RenamePlanRowState();
-}
-
-class _RenamePlanRowState extends State<RenamePlanRow> {
-  late final text = TextEditingController(text: widget.item.targetName);
-  @override
-  void didUpdateWidget(covariant RenamePlanRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (text.text != widget.item.targetName) text.text = widget.item.targetName;
-  }
-
-  @override
-  void dispose() {
-    text.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.theme;
-    final item = widget.item;
-    final original = item.targetDirectory == null
-        ? Uri.decodeComponent(item.source.split('/').last)
-        : displayDavPath(item.source);
-    final unchanged = item.source == item.target;
-    final issue = item.enabled ? validatePlan([item], widget.entries) : null;
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 160),
-      opacity: item.enabled ? 1 : .55,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: FCheckbox(
-                value: item.enabled,
-                enabled: !widget.disabled,
-                onChange: widget.onEnabled,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          original,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.typography.body.sm.copyWith(
-                            color: theme.colors.mutedForeground,
-                          ),
-                        ),
-                      ),
-                      if (unchanged) ...[
-                        const SizedBox(width: 8),
-                        FBadge(
-                          variant: .outline,
-                          child: Text(context.l10n.unchanged),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  FTextField(
-                    control: .managed(
-                      controller: text,
-                      onChange: (value) => widget.onName(value.text),
-                    ),
-                    enabled: !widget.disabled,
-                    hint: context.l10n.newFileName,
-                  ),
-                  if (item.targetDirectory != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      '→ ${displayDavPath(item.target)}',
-                      style: theme.typography.body.xs.copyWith(
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                  ],
-                  if (issue != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      localizeRuntimeMessage(context.l10n, issue),
-                      style: theme.typography.body.xs.copyWith(
-                        color: theme.colors.destructive,
-                      ),
-                    ),
-                  ],
-                  if (item.reason.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      localizeRuntimeMessage(context.l10n, item.reason),
-                      style: theme.typography.body.xs.copyWith(
-                        color: theme.colors.mutedForeground,
-                      ),
-                    ),
-                  ],
-                  if (item.tmdbUrl case final url?) ...[
-                    const SizedBox(height: 6),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: FButton(
-                        key: ValueKey('tmdb-link-${item.source}'),
-                        variant: .ghost,
-                        size: .sm,
-                        mainAxisSize: MainAxisSize.min,
-                        prefix: const Icon(FLucideIcons.externalLink),
-                        onPress: () =>
-                            openDocumentation(context, url.toString()),
-                        child: Text(context.l10n.viewOnTmdb),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

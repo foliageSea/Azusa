@@ -16,7 +16,6 @@ import 'package:azusa/features/organizer/ai/ai_usage.dart';
 import 'package:azusa/features/organizer/ai/ai_usage_history.dart';
 import 'package:azusa/features/organizer/dav/directory_favorites.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
-import 'package:azusa/features/organizer/startup_connection.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
 import 'package:azusa/shared/azusa_logo.dart';
@@ -316,6 +315,16 @@ class FlattenOrganizer extends TestOrganizer {
 }
 
 void main() {
+  setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized()
+        .platformDispatcher
+        .localesTestValue = const [Locale('zh')];
+  });
+  tearDown(() {
+    TestWidgetsFlutterBinding.ensureInitialized()
+        .platformDispatcher
+        .clearLocalesTestValue();
+  });
   for (final width in [390.0, 1280.0]) {
     testWidgets('模型获取选择及密钥显隐在 $width 宽度可用', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
@@ -554,33 +563,6 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
-  testWidgets('AI 生成期间可点击停止并恢复生成按钮', (tester) async {
-    final window = NoWindow();
-    final container = ProviderContainer(
-      overrides: [
-        desktopWindowProvider.overrideWithValue(window),
-        connectionSettingsProvider.overrideWith(TestConnections.new),
-        organizerProvider.overrideWith(AnalyzingOrganizer.new),
-      ],
-    );
-    addTearDown(container.dispose);
-    addTearDown(window.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const StarterApp(),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-    container.read(routerProvider).go('/organize/assistant');
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('停止生成'));
-    await tester.pumpAndSettle();
-    expect(container.read(organizerProvider).busy, isFalse);
-    expect(find.text('AI 生成重命名建议'), findsOneWidget);
-  });
   for (final width in [390.0, 1280.0]) {
     testWidgets('空目录提示在 $width 宽度下位于列表区域中心', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
@@ -655,62 +637,6 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('空目录整理要求仅展示选择目录入口', (tester) async {
-    final window = NoWindow();
-    final container = ProviderContainer(
-      overrides: [
-        desktopWindowProvider.overrideWithValue(window),
-        connectionSettingsProvider.overrideWith(TestConnections.new),
-        organizerProvider.overrideWith(EmptyDirectoryOrganizer.new),
-      ],
-    );
-    addTearDown(container.dispose);
-    addTearDown(window.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const StarterApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    container.read(routerProvider).go('/organize/assistant');
-    await tester.pumpAndSettle();
-    expect(find.text('当前目录没有可整理的文件'), findsOneWidget);
-    expect(find.byKey(const ValueKey('organizing-requirements')), findsNothing);
-    expect(find.text('AI 生成重命名建议'), findsNothing);
-    await tester.tap(find.text('选择目录'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('nas-empty-state')), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('修改预览显示已核验匹配的 TMDB 跳转入口', (tester) async {
-    final window = NoWindow();
-    final container = ProviderContainer(
-      overrides: [
-        desktopWindowProvider.overrideWithValue(window),
-        connectionSettingsProvider.overrideWith(TestConnections.new),
-        organizerProvider.overrideWith(TestOrganizer.new),
-      ],
-    );
-    addTearDown(container.dispose);
-    addTearDown(window.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const StarterApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    container.read(routerProvider).go('/organize/assistant/preview');
-    await tester.pumpAndSettle();
-    expect(find.text('在 TMDB 查看'), findsOneWidget);
-    final button = tester.widget<FButton>(
-      find.byKey(const ValueKey('tmdb-link-/dav/a.mkv')),
-    );
-    expect(button.onPress, isNotNull);
-    expect(tester.takeException(), isNull);
-  });
   for (final width in [390.0, 800.0, 1280.0]) {
     testWidgets('长目录面包屑在 $width 宽度省略并支持上级跳转', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
@@ -830,51 +756,6 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
-  testWidgets('只有单集文件夹时可进入整理，平铺预览可执行', (tester) async {
-    final window = NoWindow();
-    addTearDown(window.dispose);
-    final container = ProviderContainer(
-      overrides: [
-        desktopWindowProvider.overrideWithValue(window),
-        connectionSettingsProvider.overrideWith(TestConnections.new),
-        organizerProvider.overrideWith(FlattenOrganizer.new),
-      ],
-    );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const StarterApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    container.read(routerProvider).go('/organize');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('整理此目录'));
-    await tester.pumpAndSettle();
-    expect(find.text('AI 生成重命名建议'), findsOneWidget);
-    container.read(routerProvider).go('/organize/assistant/preview');
-    await tester.pumpAndSettle();
-    expect(find.text('/dav/01/raw.mkv'), findsOneWidget);
-    expect(find.text('→ /dav/Show - S03E01.mkv'), findsOneWidget);
-    expect(find.text('无法执行'), findsNothing);
-    final button = tester.widget<FButton>(
-      find.ancestor(of: find.text('确认并执行'), matching: find.byType(FButton)),
-    );
-    expect(button.onPress, isNotNull);
-  });
-
-  setUp(() {
-    TestWidgetsFlutterBinding.ensureInitialized()
-        .platformDispatcher
-        .localesTestValue = const [
-      Locale('zh'),
-    ];
-  });
-  tearDown(() {
-    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
-        .clearLocalesTestValue();
-  });
   for (final macOS in [false, true]) {
     testWidgets('亮暗切换位于窗口标题栏并在全屏时回退 macOS=$macOS', (tester) async {
       tester.view.physicalSize = const Size(1280, 1000);
@@ -1021,7 +902,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
   for (final width in [390.0, 1280.0]) {
-    testWidgets('步骤跳转和快速返回在 $width 宽度不叠加透明页面', (tester) async {
+    testWidgets('文件与助手往返在 $width 宽度不叠加透明页面', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -1043,51 +924,27 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final router = container.read(routerProvider);
-      for (final path in [
-        '/organize/assistant',
-        '/organize/assistant/preview',
-        '/organize/assistant',
+      container.read(routerProvider).go('/organize');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('organizer-stepper')), findsNothing);
+      final background = find.byKey(
+        const ValueKey('organizer-page-background'),
+      );
+      expect(tester.widget<ColoredBox>(background).color.a, 1);
+      await tester.tap(find.text('整理此目录'));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(routerProvider).routeInformationProvider.value.uri.path,
+        '/assistant',
+      );
+      expect(find.text('输入整理要求'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('assistant-directory')));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(routerProvider).routeInformationProvider.value.uri.path,
         '/organize',
-      ]) {
-        router.go(path);
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 16));
-        expect(find.byKey(const ValueKey('organizer-stepper')), findsOneWidget);
-        final background = find.byKey(
-          const ValueKey('organizer-page-background'),
-        );
-        expect(background, findsOneWidget);
-        final color = tester.widget<ColoredBox>(background).color;
-        expect(color.a, 1);
-        final bounds = tester.getRect(background);
-        expect(
-          bounds.contains(
-            tester.getCenter(find.byKey(const ValueKey('organizer-stepper'))),
-          ),
-          isTrue,
-        );
-        if (path.endsWith('/preview')) {
-          expect(find.text('整理要求（可选）'), findsNothing);
-          expect(find.text('确认并执行'), findsOneWidget);
-        } else if (path.endsWith('/assistant')) {
-          expect(
-            find.byKey(const ValueKey('nas-connection-toggle')),
-            findsNothing,
-          );
-          expect(find.text('整理要求（可选）'), findsOneWidget);
-        } else {
-          expect(find.text('整理要求（可选）'), findsNothing);
-          expect(
-            find.byKey(const ValueKey('nas-connection-toggle')),
-            findsOneWidget,
-          );
-        }
-        expect(tester.takeException(), isNull);
-      }
-      await tester.pumpAndSettle();
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
+      );
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('English 界面在 $width 宽度下即时切换且不影响命名语言', (tester) async {
@@ -1166,41 +1023,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('Disconnect'), findsOneWidget);
       expect(find.text('Organize this directory'), findsOneWidget);
-      for (var index = 0; index < 3; index++) {
-        expect(
-          tester
-              .widget<FTappable>(find.byKey(ValueKey('organizer-step-$index')))
-              .onPress,
-          isNull,
-        );
-      }
-      container.read(routerProvider).go('/organize/assistant');
-      await tester.pumpAndSettle();
-      expect(find.text('Generate rename suggestions'), findsOneWidget);
-      expect(find.text('Organizing requirements (optional)'), findsOneWidget);
-      expect(
-        tester
-            .widget<FTappable>(find.byKey(const ValueKey('organizer-step-0')))
-            .onPress,
-        isNotNull,
-      );
-      expect(
-        tester
-            .widget<FTappable>(find.byKey(const ValueKey('organizer-step-2')))
-            .onPress,
-        isNull,
-      );
-      container.read(routerProvider).go('/organize/assistant/preview');
-      await tester.pumpAndSettle();
-      expect(find.text('Confirm and execute'), findsOneWidget);
-      expect(find.text('New file name'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('organizer-step-1')));
+      expect(find.byKey(const ValueKey('organizer-stepper')), findsNothing);
+      await tester.tap(find.text('Organize this directory'));
       await tester.pumpAndSettle();
       expect(
         container.read(routerProvider).routeInformationProvider.value.uri.path,
-        '/organize/assistant',
+        '/assistant',
       );
-      await tester.tap(find.byKey(const ValueKey('organizer-step-0')));
+      expect(find.text('Describe how to organize'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('assistant-directory')));
       await tester.pumpAndSettle();
       expect(
         container.read(routerProvider).routeInformationProvider.value.uri.path,
@@ -1540,35 +1371,6 @@ void main() {
     expect(find.text('folder25'), findsOneWidget);
   });
 
-  testWidgets('执行完成后可直接从空预览返回目录选择', (tester) async {
-    final window = NoWindow();
-    addTearDown(window.dispose);
-    final container = ProviderContainer(
-      overrides: [
-        desktopWindowProvider.overrideWithValue(window),
-        connectionSettingsProvider.overrideWith(TestConnections.new),
-        organizerProvider.overrideWith(CompletedOrganizer.new),
-      ],
-    );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const StarterApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    container.read(routerProvider).go('/organize/assistant/preview');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('返回目录选择'));
-    await tester.pumpAndSettle();
-    expect(
-      container.read(routerProvider).routeInformationProvider.value.uri.path,
-      '/organize',
-    );
-    expect(find.text('目录选择'), findsWidgets);
-  });
-
   testWidgets('共享连接配置 Tab 使用保存气泡提示', (tester) async {
     tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1;
@@ -1684,9 +1486,9 @@ void main() {
       await tester.pumpAndSettle();
       container.read(routerProvider).go('/organize');
       await tester.pumpAndSettle();
-      final controller = container.read(
-        organizerProvider.notifier,
-      ) as EntryInteractionOrganizer;
+      final controller =
+          container.read(organizerProvider.notifier)
+              as EntryInteractionOrganizer;
       final input = find.descendant(
         of: find.byKey(const ValueKey('rename-entry-name')),
         matching: find.byType(EditableText),
@@ -1942,56 +1744,12 @@ void main() {
       find.descendant(of: test, matching: find.byType(FCircularProgress)),
       findsNothing,
     );
-    (container.read(
-      connectionSettingsProvider.notifier,
-    ) as PendingTestConnections).pending.complete();
+    (container.read(connectionSettingsProvider.notifier)
+            as PendingTestConnections)
+        .pending
+        .complete();
     await tester.pumpAndSettle();
     expect(tester.widget<LoadingButton>(save).loading, isFalse);
-  });
-
-  testWidgets('AI 用量卡片在价格到达及用量增长时更新费用', (tester) async {
-    tester.view.physicalSize = const Size(1280, 1000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final window = NoWindow();
-    addTearDown(window.dispose);
-    final container = ProviderContainer(
-      overrides: [
-        desktopWindowProvider.overrideWithValue(window),
-        connectionSettingsProvider.overrideWith(TestConnections.new),
-        organizerProvider.overrideWith(TestOrganizer.new),
-      ],
-    );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const StarterApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    container.read(routerProvider).go('/organize/assistant');
-    await tester.pumpAndSettle();
-    final controller =
-        container.read(organizerProvider.notifier) as TestOrganizer;
-    controller.updateAnalysis(
-      usage: const AiUsage(responses: 1, inputTokens: 1000),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('—'), findsWidgets);
-    controller.updateAnalysis(
-      pricing: const ModelPricing(input: 2, output: 8, source: 'test'),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('\$0.002000'), findsOneWidget);
-    controller.updateAnalysis(
-      usage: const AiUsage(responses: 2, inputTokens: 2000, outputTokens: 100),
-    );
-    await tester.pump(const Duration(milliseconds: 225));
-    expect(find.text('\$0.004800'), findsNothing);
-    await tester.pumpAndSettle();
-    expect(find.text('\$0.004800'), findsOneWidget);
   });
 
   testWidgets('亮暗模式快捷切换并保存设置', (tester) async {
@@ -2122,85 +1880,8 @@ void main() {
     });
   }
 
-  testWidgets('底部操作固定，完成提示使用气泡且不重复显示', (tester) async {
-    tester.view.physicalSize = const Size(390, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final window = NoWindow();
-    addTearDown(window.dispose);
-    final container = ProviderContainer(
-      overrides: [
-        desktopWindowProvider.overrideWithValue(window),
-        connectionSettingsProvider.overrideWith(TestConnections.new),
-        organizerProvider.overrideWith(LongOrganizer.new),
-      ],
-    );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const StarterApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    for (final (path, label) in [
-      ('/organize', '整理此目录'),
-      ('/organize/assistant/preview', '确认并执行'),
-    ]) {
-      container.read(routerProvider).go(path);
-      await tester.pumpAndSettle();
-      final button = find.text(label);
-      final before = tester.getRect(button);
-      final breadcrumb = find.byKey(const ValueKey('organizer-stepper'));
-      final breadcrumbBefore = tester.getRect(breadcrumb);
-      expect(before.bottom, lessThan(800));
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, -600));
-      await tester.pumpAndSettle();
-      expect(tester.getRect(button), before);
-      expect(tester.getRect(breadcrumb), breadcrumbBefore);
-      expect(
-        find.ancestor(
-          of: breadcrumb,
-          matching: find.byWidgetPredicate(
-            (widget) =>
-                widget is Scrollable &&
-                axisDirectionToAxis(widget.axisDirection) == Axis.vertical,
-          ),
-        ),
-        findsNothing,
-      );
-      expect(
-        find.ancestor(of: button, matching: find.byType(Scrollable)),
-        findsNothing,
-      );
-      expect(tester.takeException(), isNull);
-    }
-    (container.read(organizerProvider.notifier) as LongOrganizer)
-        .completeProposal();
-    await tester.pumpAndSettle();
-    expect(find.text('建议已生成'), findsOneWidget);
-    expect(find.byIcon(FLucideIcons.circleCheck), findsOneWidget);
-    expect(
-      tester.widget<Icon>(find.byIcon(FLucideIcons.circleCheck)).semanticLabel,
-      '成功',
-    );
-    expect(
-      find.ancestor(of: find.text('建议已生成'), matching: find.byType(FAlert)),
-      findsNothing,
-    );
-    await tester.pump(const Duration(seconds: 10));
-    await tester.pumpAndSettle();
-    expect(find.text('建议已生成'), findsNothing);
-    container.read(routerProvider).go('/organize/assistant');
-    await tester.pumpAndSettle();
-    expect(find.text('建议已生成'), findsNothing);
-    await tester.pumpWidget(const SizedBox());
-    await tester.pumpAndSettle();
-  });
-
   for (final width in [390.0, 800.0, 1280.0, 1920.0]) {
-    testWidgets('浏览、预览、设置在 $width 宽度下无布局异常', (tester) async {
+    testWidgets('文件页在 $width 宽度下无布局异常', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -2263,12 +1944,8 @@ void main() {
         matching: find.text('文件'),
       );
       final card = tester.getRect(find.byType(FCard).first);
-      final breadcrumb = tester.getRect(
-        find.byKey(const ValueKey('organizer-stepper')),
-      );
+      expect(find.byKey(const ValueKey('organizer-stepper')), findsNothing);
       expect(tester.getRect(headerTitle).left, closeTo(card.left, .1));
-      expect(breadcrumb.left, closeTo(card.left, .1));
-      expect(card.top - breadcrumb.bottom, lessThanOrEqualTo(16));
       expect(find.text('Azusa'), width >= 1024 ? findsOneWidget : findsNothing);
       expect(
         find.byType(AzusaLogo),
@@ -2320,247 +1997,8 @@ void main() {
         );
       }
       expect(tester.takeException(), isNull);
-      expect(find.text('AI 生成重命名建议'), findsNothing);
-      expect(find.text('确认并执行'), findsNothing);
-      await tester.tap(find.text('整理此目录'));
-      await tester.pumpAndSettle();
-      expect(
-        container.read(routerProvider).routeInformationProvider.value.uri.path,
-        '/organize/assistant',
-      );
-      expect(find.text('连接 NAS'), findsNothing);
-      expect(find.text('AI 生成重命名建议'), findsOneWidget);
-      expect(find.text('输入 Tok'), findsOneWidget);
-      expect(find.text('1200'), findsOneWidget);
-      expect(find.text('40.0'), findsOneWidget);
-      expect(find.text('\$0.003360'), findsOneWidget);
-      final instruction = find.byType(FTextField);
-      final editable = tester.widget<EditableText>(
-        find.descendant(of: instruction, matching: find.byType(EditableText)),
-      );
-      expect(editable.minLines, 3);
-      expect(editable.maxLines, 6);
-      expect(editable.keyboardType, TextInputType.multiline);
-      expect(editable.textInputAction, TextInputAction.newline);
-      expect(editable.onSubmitted, isNull);
-      await tester.enterText(
-        find.descendant(of: instruction, matching: find.byType(EditableText)),
-        '保留中文剧名',
-      );
-      await tester.tap(find.text('查看修改预览'));
-      await tester.pumpAndSettle();
-      expect(
-        container.read(routerProvider).routeInformationProvider.value.uri.path,
-        '/organize/assistant/preview',
-      );
-      expect(find.text('AI 生成重命名建议'), findsNothing);
-      expect(find.text('AI 分析用量'), findsOneWidget);
-      expect(find.textContaining('串行'), findsNothing);
-      expect(
-        find.ancestor(
-          of: find.bySemanticsLabel('返回上一步'),
-          matching: find.byWidgetPredicate((widget) => widget is FHeader),
-        ),
-        findsOneWidget,
-      );
-      final vertical = find
-          .byWidgetPredicate(
-            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
-          )
-          .last;
-      await tester.scrollUntilVisible(
-        find.text('确认并执行'),
-        300,
-        scrollable: vertical,
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('确认并执行'), findsOneWidget);
-      final newName = find.byType(FTextField).last;
-      await tester.enterText(
-        find.descendant(of: newName, matching: find.byType(EditableText)),
-        '用户修改 - S01E01.mkv',
-      );
-      await tester.pump();
-      expect(
-        container.read(organizerProvider).plan.single.targetName,
-        '用户修改 - S01E01.mkv',
-      );
+      expect(find.text('整理此目录'), findsOneWidget);
       expect(tester.takeException(), isNull);
-      await tester.tap(find.bySemanticsLabel('返回上一步'));
-      await tester.pumpAndSettle();
-      expect(find.text('保留中文剧名'), findsOneWidget);
-      await tester.tap(find.text('查看修改预览'));
-      await tester.pumpAndSettle();
-      expect(find.text('用户修改 - S01E01.mkv'), findsOneWidget);
-      container.read(routerProvider).go('/ai-usage');
-      await tester.pumpAndSettle();
-      expect(find.text('累计输入 Tok'), findsOneWidget);
-      expect(find.text('累计输出 Tok'), findsOneWidget);
-      expect(find.text('预估总花费（USD）'), findsOneWidget);
-      if (width < mobileBreakpoint) {
-        final cost = tester.getRect(find.text('预估总花费（USD）'));
-        final analyses = tester.getRect(find.text('分析次数').first);
-        expect(cost.top, closeTo(analyses.top, 0.1));
-        expect(analyses.left, greaterThan(cost.right));
-        final input = tester.getRect(find.text('累计输入 Tok'));
-        expect(input.left, closeTo(analyses.left, 0.1));
-        final analysesCard = tester.getRect(
-          find
-              .ancestor(
-                of: find.text('分析次数').first,
-                matching: find.byType(FCard),
-              )
-              .first,
-        );
-        expect(input.top, greaterThan(analysesCard.bottom));
-      }
-      await tester.scrollUntilVisible(
-        find.text('分析记录'),
-        300,
-        scrollable: find
-            .byWidgetPredicate(
-              (widget) =>
-                  widget is Scrollable &&
-                  widget.axisDirection == AxisDirection.down,
-            )
-            .last,
-      );
-      expect(find.text('分析记录'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      container.read(routerProvider).go('/connections');
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('AI Agent').first);
-      await tester.tap(find.text('AI Agent').first);
-      await tester.pumpAndSettle();
-      expect(find.text('OpenAI 兼容 API 基础地址'), findsOneWidget);
-      expect(find.text('WebDAV 地址'), findsNothing);
-      final webdavUrl = find.descendant(
-        of: find.byType(FTextField).first,
-        matching: find.byType(EditableText),
-      );
-      await tester.enterText(webdavUrl, '');
-      await tester.tap(find.text('测试 AI'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('连接失败：'), findsOneWidget);
-      expect(find.byIcon(FLucideIcons.circleX), findsOneWidget);
-      expect(
-        tester.widget<Icon>(find.byIcon(FLucideIcons.circleX)).semanticLabel,
-        '错误',
-      );
-      expect(
-        find.ancestor(
-          of: find.textContaining('连接失败：'),
-          matching: find.byType(PageContent),
-        ),
-        findsNothing,
-      );
-      await tester.pump(const Duration(seconds: 10));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('连接失败：'), findsNothing);
-      await tester.enterText(webdavUrl, 'https://unsaved.test/v1');
-      final username = find.byType(FTextField).at(1);
-      await tester.enterText(
-        find.descendant(of: username, matching: find.byType(EditableText)),
-        '未保存的模型',
-      );
-      await tester.tap(find.text('AI Agent').first);
-      await tester.pumpAndSettle();
-      expect(find.text('OpenAI 兼容 API 基础地址'), findsOneWidget);
-      expect(find.text('WebDAV 地址'), findsNothing);
-      expect(tester.takeException(), isNull);
-      await tester.ensureVisible(find.text('TMDB').first);
-      await tester.tap(find.text('TMDB').first);
-      await tester.pumpAndSettle();
-      expect(find.text('API Key / Read Access Token'), findsOneWidget);
-      await tester.ensureVisible(find.text('HTTP 代理').first);
-      await tester.tap(find.text('HTTP 代理').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('AI 使用代理'));
-      await tester.pumpAndSettle();
-      expect(find.text('AI 使用代理'), findsOneWidget);
-      await tester.ensureVisible(find.text('关于').first);
-      await tester.tap(find.text('关于').first);
-      await tester.pumpAndSettle();
-      expect(find.text('MiSans 字体许可'), findsOneWidget);
-      expect(find.text('保存配置'), findsNothing);
-      await tester.ensureVisible(find.text('AI Agent').first);
-      await tester.tap(find.text('AI Agent').first);
-      await tester.pumpAndSettle();
-      expect(find.text('未保存的模型'), findsOneWidget);
-      expect(find.text('保存配置'), findsOneWidget);
-      expect(
-        find.ancestor(of: find.text('保存配置'), matching: find.byType(FCard)),
-        findsOneWidget,
-      );
-      await tester.ensureVisible(find.text('HTTP 代理').first);
-      await tester.tap(find.text('HTTP 代理').first);
-      await tester.pumpAndSettle();
-      final proxyCheckbox = tester.widget<FCheckbox>(
-        find.ancestor(
-          of: find.text('AI 使用代理'),
-          matching: find.byType(FCheckbox),
-        ),
-      );
-      expect(proxyCheckbox.value, isFalse);
-      expect(find.text('保存配置'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      container.read(routerProvider).go('/organize/assistant/preview');
-      await tester.pumpAndSettle();
-      expect(find.text('用户修改 - S01E01.mkv'), findsOneWidget);
-      container.read(routerProvider).pop();
-      await tester.pumpAndSettle();
-      expect(find.text('AI 生成重命名建议'), findsOneWidget);
-      container.read(routerProvider).pop();
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('nas-connection-toggle')),
-        findsOneWidget,
-      );
-      expect(
-        container.read(organizerProvider).plan.single.targetName,
-        '用户修改 - S01E01.mkv',
-      );
-      container.read(routerProvider).go('/history');
-      await tester.pumpAndSettle();
-      expect(find.text('2 项操作'), findsOneWidget);
-      expect(find.text('old.mkv'), findsOneWidget);
-      expect(find.text('new.mkv'), findsOneWidget);
-      expect(find.text('已完成'), findsNWidgets(2));
-      expect(find.textContaining('/dav/Season 01/old.mkv'), findsNothing);
-      await tester.tap(find.bySemanticsLabel('展开记录详情').first);
-      await tester.pumpAndSettle();
-      expect(find.textContaining('/dav/Season 01/old.mkv'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
     });
   }
-
-  testWidgets('未选择目录时，整理子路由返回目录页', (tester) async {
-    final window = NoWindow();
-    addTearDown(window.dispose);
-    final container = ProviderContainer(
-      overrides: [
-        startupConnectionProvider.overrideWith((ref) async {}),
-        desktopWindowProvider.overrideWithValue(window),
-        connectionSettingsProvider.overrideWith(TestConnections.new),
-      ],
-    );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const StarterApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    final router = container.read(routerProvider);
-    for (final path in ['/organize/assistant', '/organize/assistant/preview']) {
-      router.go(path);
-      await tester.pumpAndSettle();
-      expect(router.routeInformationProvider.value.uri.path, '/organize');
-    }
-    await tester.pumpWidget(const SizedBox());
-    await tester.pumpAndSettle();
-  });
 }

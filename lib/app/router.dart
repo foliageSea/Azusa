@@ -5,7 +5,6 @@ import '../features/assistant/assistant_page.dart';
 import '../features/organizer/organizer_page.dart';
 import '../features/organizer/connections/connections_page.dart';
 import '../features/organizer/history/history_page.dart';
-import '../features/organizer/organizer_state.dart';
 import '../features/organizer/ai/ai_usage_page.dart';
 import 'shell.dart';
 import '../features/settings/settings_tab.dart';
@@ -41,30 +40,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                   key: state.pageKey,
                   child: const OrganizerPage(),
                 ),
-                routes: [
-                  GoRoute(
-                    path: 'assistant',
-                    redirect: (_, _) =>
-                        ref.read(organizerProvider).directory.isEmpty
-                        ? '/organize'
-                        : null,
-                    pageBuilder: (_, state) => NoTransitionPage<void>(
-                      key: state.pageKey,
-                      child: const OrganizerPage(step: OrganizerStep.assistant),
-                    ),
-                    routes: [
-                      GoRoute(
-                        path: 'preview',
-                        pageBuilder: (_, state) => NoTransitionPage<void>(
-                          key: state.pageKey,
-                          child: const OrganizerPage(
-                            step: OrganizerStep.preview,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
               ),
             ],
           ),

@@ -177,7 +177,6 @@ class AppShell extends ConsumerWidget {
       notifyUser(context, next.message, type: NoticeType.success);
     });
     final window = ref.watch(desktopWindowProvider);
-    final organizer = ref.watch(organizerProvider);
     final settings = ref.watch(settingsProvider);
     final dark = switch (settings.themeMode) {
       ThemeMode.dark => true,
@@ -211,9 +210,6 @@ class AppShell extends ConsumerWidget {
         child: Icon(dark ? FLucideIcons.sun : FLucideIcons.moon),
       ),
     );
-    final showBack =
-        shell.currentIndex == 1 &&
-        GoRouterState.of(context).uri.path.startsWith('/organize/assistant');
     final labels = [
       l.assistantTab,
       l.filesTab,
@@ -441,21 +437,6 @@ class AppShell extends ConsumerWidget {
                                     ),
                                     child: Row(
                                       children: [
-                                        if (showBack) ...[
-                                          FButton.icon(
-                                            variant: .ghost,
-                                            semanticsLabel: l.previousStep,
-                                            onPress:
-                                                organizer.busy ||
-                                                    organizer.executing
-                                                ? null
-                                                : () => context.pop(),
-                                            child: const Icon(
-                                              FLucideIcons.arrowLeft,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                        ],
                                         Expanded(
                                           child: Text(
                                             labels[shell.currentIndex],

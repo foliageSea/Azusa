@@ -14,7 +14,6 @@ import '../organizer/ai/folder_layout.dart';
 import '../organizer/connections/connection_settings.dart';
 import '../organizer/connections/webdav_manager.dart';
 import '../organizer/dav/dav_paths.dart';
-import '../organizer/dav/directory_picker.dart';
 import '../organizer/organizer_state.dart';
 import '../organizer/rename_plan.dart';
 import '../settings/settings_tab.dart';
@@ -57,37 +56,10 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
 
   AssistantController get _assistant => ref.read(assistantProvider.notifier);
 
-  Future<void> _selectDirectory() async {
+  void _selectDirectory() {
     final organizer = ref.read(organizerProvider);
-    final connection = ref.read(connectionSettingsProvider).asData?.value;
-    if (organizer.busy || organizer.executing || connection == null) return;
-    final directory = await showDirectoryPicker(
-      context,
-      connection: connection,
-      directory: organizer.directory,
-    );
-    if (!mounted ||
-        directory == null ||
-        !identical(
-          connection,
-          ref.read(connectionSettingsProvider).asData?.value,
-        )) {
-      return;
-    }
-    final current = ref.read(organizerProvider);
-    if (current.busy || current.executing || current.directory == directory) {
-      return;
-    }
-    await ref.read(organizerProvider.notifier).open(directory);
-    if (!mounted) return;
-    final result = ref.read(organizerProvider);
-    if (result.hasError) {
-      notifyUser(
-        context,
-        localizeRuntimeMessage(context.l10n, result.message),
-        type: NoticeType.error,
-      );
-    }
+    if (organizer.busy || organizer.executing) return;
+    context.go('/organize');
   }
 
   void _scrollToEnd() {
