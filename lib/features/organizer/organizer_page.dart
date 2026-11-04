@@ -18,6 +18,7 @@ import '../../shared/organizer_stepper.dart';
 import 'ai/ai_usage.dart';
 import 'connections/connection_settings.dart';
 import 'dav/dav_paths.dart';
+import 'dav/directory_breadcrumb.dart';
 import 'dav/directory_sort.dart';
 import 'dav/directory_favorites.dart';
 import 'dav/directory_favorites_bar.dart';
@@ -646,22 +647,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
   }) {
     final connected = state.directory.isNotEmpty;
 
-    final crumbs = <(String, String)>[];
-    if (state.directory.startsWith(root)) {
-      crumbs.add((context.l10n.rootDirectory, root));
-      var path = root;
-      for (final segment
-          in state.directory
-              .substring(root.length)
-              .split('/')
-              .where((s) => s.isNotEmpty)) {
-        path = '$path$segment/';
-        crumbs.add((Uri.decodeComponent(segment), path));
-      }
-    } else if (connected) {
-      crumbs.add((displayDavPath(state.directory), state.directory));
-    }
-
     final query = filter.text.trim().toLowerCase();
     final order = ref.watch(
       settingsProvider.select((settings) => settings.directorySort),
@@ -792,57 +777,13 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
               if (connected) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: FBreadcrumb(
+                  child: DirectoryBreadcrumb(
                     key: const ValueKey('directory-breadcrumb'),
-                    children: [
-                      if (crumbs.length > 1)
-                        FBreadcrumbItem(
-                          onPress: locked ? null : () => _openDirectory(root),
-                          child: Text(crumbs.first.$1),
-                        ),
-                      if (crumbs.length > 2)
-                        FBreadcrumbItem.collapsed(
-                          key: const ValueKey('directory-ancestors'),
-                          semanticsLabel: context.l10n.parentDirectories,
-                          maxHeight: 320,
-                          menu: [
-                            FItemGroup(
-                              children: [
-                                for (final (label, path)
-                                    in crumbs.skip(1).take(crumbs.length - 2))
-                                  FItem(
-                                    key: ValueKey('directory-ancestor-$path'),
-                                    title: Text(
-                                      label,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    onPress: locked
-                                        ? null
-                                        : () => _openDirectory(path),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      if (crumbs.isNotEmpty)
-                        Expanded(
-                          child: FTooltip(
-                            tipBuilder: (_, _) =>
-                                Text(displayDavPath(state.directory)),
-                            child: FBreadcrumbItem(
-                              current: true,
-                              child: Text(
-                                crumbs.last.$1,
-                                key: const ValueKey('directory-current-crumb'),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                softWrap: false,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                    directory: state.directory,
+                    root: root,
+                    locked: locked,
+                    onOpen: (path) => _openDirectory(path),
+                    currentKey: const ValueKey('directory-current-crumb'),
                   ),
                 ),
                 const SizedBox(height: 6),

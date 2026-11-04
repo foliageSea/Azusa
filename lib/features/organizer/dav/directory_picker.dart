@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
@@ -8,7 +10,7 @@ import '../../../shared/widgets.dart';
 import '../connections/connection_settings.dart';
 import '../connections/http_clients.dart';
 import '../organizer_state.dart';
-import 'dav_paths.dart';
+import 'directory_breadcrumb.dart';
 import 'directory_favorites.dart';
 import 'directory_favorites_bar.dart';
 import 'webdav.dart';
@@ -60,6 +62,20 @@ class _DirectoryPickerState extends ConsumerState<_DirectoryPicker> {
   String? _error;
   bool _loading = true;
   bool _savingFavorite = false;
+
+  bool get _desktop => switch (defaultTargetPlatform) {
+    TargetPlatform.linux ||
+    TargetPlatform.macOS ||
+    TargetPlatform.windows => true,
+    _ => false,
+  };
+
+  String? get _parent {
+    final root = _client?.root;
+    return _directory.isEmpty || _directory == root
+        ? null
+        : _directory.replaceFirst(RegExp(r'[^/]+/$'), '');
+  }
 
   Future<void> _favorites() async {
     final path = await showDirectoryFavoritesDialog(
@@ -151,14 +167,12 @@ class _DirectoryPickerState extends ConsumerState<_DirectoryPicker> {
         .asData
         ?.value;
     final selected = paths?.contains(_directory) ?? false;
-    final parent = _directory.isEmpty || _directory == root
-        ? null
-        : _directory.replaceFirst(RegExp(r'[^/]+/$'), '');
+    final parent = _parent;
     final query = _filter.text.trim().toLowerCase();
     final visible = _folders
         .where((entry) => entry.name.toLowerCase().contains(query))
         .toList();
-    return ColoredBox(
+    final content = ColoredBox(
       color: context.theme.colors.background,
       child: SizedBox(
         key: const ValueKey('directory-picker'),
@@ -195,13 +209,15 @@ class _DirectoryPickerState extends ConsumerState<_DirectoryPicker> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      displayDavPath(_directory),
-                      key: const ValueKey('directory-picker-path'),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.theme.typography.body.sm,
-                    ),
+                    child: root == null
+                        ? const SizedBox.shrink()
+                        : DirectoryBreadcrumb(
+                            key: const ValueKey('directory-picker-path'),
+                            directory: _directory,
+                            root: root,
+                            locked: _loading,
+                            onOpen: _open,
+                          ),
                   ),
                 ],
               ),
@@ -235,10 +251,11 @@ class _DirectoryPickerState extends ConsumerState<_DirectoryPicker> {
                         ),
                       )
                     : visible.isEmpty
-                    ? Center(
-                        child: Text(
-                          query.isEmpty ? l.noSubdirectories : l.noNameMatches,
-                        ),
+                    ? EmptyState(
+                        query.isEmpty ? l.noSubdirectories : l.noNameMatches,
+                        icon: query.isEmpty
+                            ? FLucideIcons.folderOpen
+                            : FLucideIcons.search,
                       )
                     : ListView.builder(
                         primary: false,
@@ -338,6 +355,20 @@ class _DirectoryPickerState extends ConsumerState<_DirectoryPicker> {
           ),
         ),
       ),
+    );
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _desktop
+          ? (event) {
+              if (event.kind == PointerDeviceKind.mouse &&
+                  event.buttons & kBackMouseButton != 0 &&
+                  !_loading &&
+                  _parent != null) {
+                _open(_parent!);
+              }
+            }
+          : null,
+      child: content,
     );
   }
 }

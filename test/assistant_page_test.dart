@@ -13,6 +13,9 @@ import 'package:azusa/features/organizer/dav/directory_favorites.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:azusa/features/organizer/startup_connection.dart';
+import 'package:azusa/shared/widgets.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -273,7 +276,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('/dav/other/'));
       await tester.pumpAndSettle();
-      expect(find.text('/dav/other/'), findsOneWidget);
+      expect(find.text('other'), findsOneWidget);
       expect(container.read(organizerProvider).directory, _root);
       final favorite = find.byKey(const ValueKey('directory-picker-favorite'));
       expect(tester.widget<FButton>(favorite).semanticsLabel, '取消收藏当前目录');
@@ -302,7 +305,13 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('/dav/待整理/'));
       await tester.pumpAndSettle();
-      expect(find.text('/dav/待整理/'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('directory-picker-path')),
+          matching: find.text('待整理'),
+        ),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     });
   }
@@ -394,7 +403,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('directory-picker-parent')));
     await tester.pumpAndSettle();
-    expect(find.text('/dav/'), findsOneWidget);
+    expect(find.text('根目录'), findsOneWidget);
     expect(
       tester
           .widget<FButton>(
@@ -407,7 +416,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('directory-picker-root')));
     await tester.pumpAndSettle();
-    expect(find.text('/dav/'), findsOneWidget);
+    expect(find.text('根目录'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -436,11 +445,63 @@ void main() {
     dav.fail = false;
     await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
-    expect(find.text('/dav/'), findsOneWidget);
+    expect(find.text('根目录'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('directory-picker-confirm')));
     await tester.pumpAndSettle();
     expect(container.read(organizerProvider).directory, '/dav/');
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('目录选择面包屑支持折叠祖先目录和鼠标侧键返回', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final dav = _PickerDav(
+      const ConnectionSettings(webdavUrl: 'https://nas.test/dav/'),
+    );
+    await _pump(
+      tester,
+      1280,
+      directory: '${_root}season/episode/',
+      pickerDav: dav,
+    );
+    await tester.tap(find.byKey(const ValueKey('assistant-directory')));
+    await tester.pumpAndSettle();
+    final path = find.byKey(const ValueKey('directory-picker-path'));
+    expect(path, findsOneWidget);
+    expect(
+      find.descendant(of: path, matching: find.text('episode')),
+      findsOneWidget,
+    );
+    expect(find.text('没有子目录'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(EmptyState),
+        matching: find.byIcon(FLucideIcons.folderOpen),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('directory-ancestors')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('directory-ancestor-$_root')));
+    await tester.pumpAndSettle();
+    expect(find.text('待整理'), findsOneWidget);
+
+    final mouse = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+      buttons: kBackMouseButton,
+    );
+    await mouse.down(
+      tester.getCenter(find.byKey(const ValueKey('directory-picker'))),
+    );
+    await mouse.up();
+    await mouse.removePointer();
+    await tester.pumpAndSettle();
+    expect(find.text('根目录'), findsOneWidget);
+    expect(find.byKey(const ValueKey('directory-picker')), findsOneWidget);
+    expect(dav.requests, 3);
+    expect(tester.takeException(), isNull);
+    debugDefaultTargetPlatformOverride = null;
   });
 
   for (final width in [390.0, 1100.0, 1466.0]) {
