@@ -120,8 +120,18 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
       ) ??
       false;
 
-  Future<void> _send([String? preset]) async {
-    final text = (preset ?? _input.text).trim();
+  void _selectPrompt(String prompt) {
+    final existing = _input.text.trimRight();
+    final text = existing.isEmpty ? prompt : '$existing\n$prompt';
+    _input.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    _inputFocus.requestFocus();
+  }
+
+  Future<void> _send() async {
+    final text = _input.text.trim();
     final organizer = ref.read(organizerProvider);
     if (text.isEmpty || organizer.busy || organizer.executing) return;
     final connection = ref.read(connectionSettingsProvider).asData?.value;
@@ -141,7 +151,7 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
       }
       _assistant.grantConsent();
     }
-    if (preset == null) _input.clear();
+    _input.clear();
     _scrollToEnd();
     await _assistant.send(text);
     _scrollToEnd();
@@ -227,6 +237,7 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
             input: _input,
             inputFocus: _inputFocus,
             onSend: _send,
+            onPrompt: _selectPrompt,
             onStop: _assistant.stop,
             onSelectDirectory: _selectDirectory,
             onViewPlan: split ? null : _showPlanSheet,
@@ -269,6 +280,7 @@ class _Conversation extends ConsumerWidget {
     required this.input,
     required this.inputFocus,
     required this.onSend,
+    required this.onPrompt,
     required this.onStop,
     required this.onSelectDirectory,
     required this.onViewPlan,
@@ -279,7 +291,8 @@ class _Conversation extends ConsumerWidget {
   final ScrollController scroll;
   final TextEditingController input;
   final FocusNode inputFocus;
-  final Future<void> Function([String? preset]) onSend;
+  final Future<void> Function() onSend;
+  final ValueChanged<String> onPrompt;
   final VoidCallback onStop;
   final VoidCallback onSelectDirectory;
   final VoidCallback? onViewPlan;
@@ -360,7 +373,7 @@ class _Conversation extends ConsumerWidget {
               : assistant.messages.isEmpty
               ? _Welcome(
                   enabled: !locked && organizer.entries.isNotEmpty,
-                  onPrompt: onSend,
+                  onPrompt: onPrompt,
                 )
               : ListView.builder(
                   key: const ValueKey('assistant-messages'),
@@ -431,7 +444,7 @@ class _Welcome extends StatelessWidget {
   const _Welcome({required this.enabled, required this.onPrompt});
 
   final bool enabled;
-  final Future<void> Function([String? preset]) onPrompt;
+  final ValueChanged<String> onPrompt;
 
   @override
   Widget build(BuildContext context) {
@@ -985,7 +998,7 @@ class _Composer extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool analyzing, enabled, readOnly;
-  final Future<void> Function([String? preset]) onSend;
+  final Future<void> Function() onSend;
   final VoidCallback onStop;
 
   @override

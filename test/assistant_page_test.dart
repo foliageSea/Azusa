@@ -80,6 +80,7 @@ class _Organizer extends OrganizerController {
 
   final String directory;
   var proposals = 0;
+  final instructions = <String>[];
 
   @override
   Future<void> open(String? path) async {
@@ -106,6 +107,7 @@ class _Organizer extends OrganizerController {
     void Function(FolderLayout layout)? onLayout,
   }) async {
     proposals++;
+    instructions.add(instruction);
     state = state.copyWith(busy: true, analyzing: true);
     const scan = AgentActivity(
       key: 'scan',
@@ -334,7 +336,65 @@ void main() {
     });
   }
 
+  testWidgets('快捷选择会追加到已有输入内容', (tester) async {
+    final (_, organizer) = await _pump(tester, 1280);
+    final input = find.descendant(
+      of: find.byKey(const ValueKey('assistant-input')),
+      matching: find.byType(EditableText),
+    );
+    await tester.enterText(input, '保留字幕');
+    await tester.tap(find.text('只整理剧集，跳过电影'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<EditableText>(input).controller.text,
+      '保留字幕\n只整理剧集，跳过电影',
+    );
+    expect(organizer.proposals, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final width in [390.0, 1280.0]) {
+    testWidgets('快捷选择在 $width 宽度可补充要求后一起发送', (tester) async {
+      final (container, organizer) = await _pump(tester, width);
+      final input = find.descendant(
+        of: find.byKey(const ValueKey('assistant-input')),
+        matching: find.byType(EditableText),
+      );
+
+      await tester.tap(find.text('只整理剧集，跳过电影'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<EditableText>(input).controller.text, '只整理剧集，跳过电影');
+      expect(organizer.proposals, 0);
+      expect(find.text('将此目录发送给 AI 分析？'), findsNothing);
+
+      await tester.enterText(input, '只整理剧集，跳过电影\n保留原文件名中的语言标记');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('assistant-send')));
+      await tester.pumpAndSettle();
+      expect(find.text('将此目录发送给 AI 分析？'), findsOneWidget);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(organizer.proposals, 0);
+      expect(
+        tester.widget<EditableText>(input).controller.text,
+        '只整理剧集，跳过电影\n保留原文件名中的语言标记',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('assistant-send')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('开始分析'));
+      await tester.pumpAndSettle();
+      expect(organizer.instructions, ['只整理剧集，跳过电影\n保留原文件名中的语言标记']);
+      expect(
+        (container.read(assistantProvider).messages.first
+                as AssistantUserMessage)
+            .text,
+        organizer.instructions.single,
+      );
+      expect(tester.widget<EditableText>(input).controller.text, isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('整理助手作为首页在 $width 宽度展示对话、工具过程与方案', (tester) async {
       final (container, organizer) = await _pump(tester, width);
       expect(
@@ -347,12 +407,15 @@ void main() {
 
       await tester.tap(find.text('识别并整理这个目录'));
       await tester.pumpAndSettle();
+      expect(organizer.proposals, 0);
+      await tester.tap(find.byKey(const ValueKey('assistant-send')));
+      await tester.pumpAndSettle();
       expect(find.text('将此目录发送给 AI 分析？'), findsOneWidget);
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
       expect(organizer.proposals, 0);
 
-      await tester.tap(find.text('识别并整理这个目录'));
+      await tester.tap(find.byKey(const ValueKey('assistant-send')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('开始分析'));
       await tester.pumpAndSettle();
