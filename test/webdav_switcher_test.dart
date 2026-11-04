@@ -85,6 +85,33 @@ void main() {
       );
       expect(panel.left, greaterThanOrEqualTo(0));
       expect(panel.right, lessThanOrEqualTo(width));
+      final popoverBorder = find.byKey(
+        const ValueKey('webdav-switcher-popover-border'),
+      );
+      if (width >= 600) {
+        final decoration =
+            tester.widget<Container>(popoverBorder).foregroundDecoration!
+                as BoxDecoration;
+        expect(
+          decoration.border,
+          Border.all(color: tester.element(popoverBorder).theme.colors.border),
+        );
+        final borderRadius = tester
+            .element(popoverBorder)
+            .theme
+            .style
+            .borderRadius
+            .md;
+        expect(decoration.borderRadius, borderRadius);
+        final popover = tester.widget<Container>(popoverBorder);
+        expect(
+          (popover.decoration! as BoxDecoration).borderRadius,
+          borderRadius,
+        );
+        expect(popover.clipBehavior, Clip.antiAlias);
+      } else {
+        expect(popoverBorder, findsNothing);
+      }
       if (width < 600) expect(panel.bottom, closeTo(900, 1));
       final current = tester.widget<FItem>(
         find.byKey(const ValueKey('webdav-switcher-item-0')),

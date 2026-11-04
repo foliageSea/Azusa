@@ -83,8 +83,17 @@ class WebDavSwitcher extends ConsumerWidget {
     return FPopover(
       popoverAnchor: Alignment.topLeft,
       childAnchor: Alignment.bottomLeft,
-      popoverBuilder: (_, controller) => SizedBox(
+      popoverBuilder: (_, controller) => Container(
+        key: const ValueKey('webdav-switcher-popover-border'),
         width: 340,
+        decoration: BoxDecoration(
+          borderRadius: context.theme.style.borderRadius.md,
+        ),
+        clipBehavior: Clip.antiAlias,
+        foregroundDecoration: BoxDecoration(
+          border: Border.all(color: context.theme.colors.border),
+          borderRadius: context.theme.style.borderRadius.md,
+        ),
         child: _ConnectionPanel(
           items: items,
           activeId: activeId,
