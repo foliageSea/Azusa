@@ -644,7 +644,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     required String root,
     required NasScope scope,
   }) {
-    final theme = context.theme;
     final connected = state.directory.isNotEmpty;
 
     final crumbs = <(String, String)>[];
@@ -678,8 +677,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       for (final item in state.plan)
         if (item.enabled && item.source != item.target) item.source,
     };
-    final folders = state.entries.where((e) => e.directory).length;
-    final files = state.entries.length - folders;
 
     return Surface(
       key: const ValueKey('nas-browser'),
@@ -687,12 +684,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       child: LayoutBuilder(
         builder: (context, box) {
           final compact = box.maxWidth < _compactPanelWidth;
-          final connection = WebDavManager(
-            compact: true,
-            subtitle: connected && !compact
-                ? context.l10n.directoryCounts(folders, files)
-                : null,
-          );
+          const connection = WebDavManager(compact: true);
           final actions = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -747,65 +739,53 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 ),
                 const SizedBox(width: 8),
               ],
-              FButton(
-                variant: connected ? .outline : .primary,
-                size: .sm,
-                mainAxisSize: MainAxisSize.min,
-                onPress: locked
-                    ? null
-                    : connected
-                    ? _controller.disconnect
-                    : () => _openDirectory(null),
-                prefix: Icon(
-                  connected ? FLucideIcons.unplug : FLucideIcons.plugZap,
+              if (box.maxWidth < 360 && connected)
+                FTooltip(
+                  tipBuilder: (_, _) => Text(context.l10n.disconnect),
+                  child: FButton.icon(
+                    variant: .outline,
+                    size: .sm,
+                    semanticsLabel: context.l10n.disconnect,
+                    onPress: locked ? null : _controller.disconnect,
+                    child: const Icon(FLucideIcons.unplug),
+                  ),
+                )
+              else
+                FButton(
+                  variant: connected ? .outline : .primary,
+                  size: .sm,
+                  mainAxisSize: MainAxisSize.min,
+                  onPress: locked
+                      ? null
+                      : connected
+                      ? _controller.disconnect
+                      : () => _openDirectory(null),
+                  prefix: Icon(
+                    connected ? FLucideIcons.unplug : FLucideIcons.plugZap,
+                  ),
+                  child: Text(
+                    connected
+                        ? context.l10n.disconnect
+                        : context.l10n.connectNas,
+                  ),
                 ),
-                child: Text(
-                  connected ? context.l10n.disconnect : context.l10n.connectNas,
-                ),
-              ),
             ],
           );
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 16, 12),
-                child: compact
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          connection,
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: connected
-                                    ? Text(
-                                        context.l10n.directoryCounts(
-                                          folders,
-                                          files,
-                                        ),
-                                        style: theme.typography.body.xs
-                                            .copyWith(
-                                              color:
-                                                  theme.colors.mutedForeground,
-                                            ),
-                                      )
-                                    : const SizedBox.shrink(),
-                              ),
-                              const SizedBox(width: 8),
-                              actions,
-                            ],
-                          ),
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          Expanded(child: connection),
-                          const SizedBox(width: 16),
-                          actions,
-                        ],
-                      ),
+                key: const ValueKey('nas-browser-toolbar'),
+                padding: compact
+                    ? const EdgeInsets.fromLTRB(16, 10, 16, 8)
+                    : const EdgeInsets.fromLTRB(20, 18, 16, 12),
+                child: Row(
+                  children: [
+                    Expanded(child: connection),
+                    SizedBox(width: compact ? 8 : 16),
+                    actions,
+                  ],
+                ),
               ),
               if (connected) ...[
                 Padding(

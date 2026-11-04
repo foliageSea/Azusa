@@ -167,7 +167,14 @@ void main() {
         );
         final select = tester.getRect(selector);
         if (width < 600) {
-          expect(sort.top, greaterThanOrEqualTo(select.bottom));
+          expect(sort.center.dy, closeTo(select.center.dy, 1));
+          expect(sort.left, greaterThanOrEqualTo(select.right));
+          expect(
+            tester
+                .getSize(find.byKey(const ValueKey('nas-browser-toolbar')))
+                .height,
+            lessThan(90),
+          );
         } else {
           expect(sort.left, greaterThan(select.right));
         }
