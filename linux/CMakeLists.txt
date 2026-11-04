@@ -81,6 +81,9 @@ set_target_properties(${BINARY_NAME}
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
+# JNI is a transitive Android dependency; the desktop app does not use a JVM.
+# Do not accidentally link to the CI runner's JDK or ship its absolute RPATH.
+set(CMAKE_DISABLE_FIND_PACKAGE_JNI TRUE)
 include(flutter/generated_plugins.cmake)
 
 

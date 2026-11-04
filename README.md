@@ -191,6 +191,19 @@ flutter build windows --release
 flutter build macos --release
 ```
 
+### 自动发版
+
+发布 GitHub Release 后自动构建 Android arm64 正式签名 APK、Windows x64 EXE 安装包、macOS Apple Silicon DMG 和 Linux amd64 DEB，并上传带版本号的安装包及 SHA-256 校验文件。
+
+配置 Android 签名 Secrets 并提交、推送全部改动后，可使用脚本同步版本、打 Tag 和发布 Release：
+
+```bash
+python3 tool/release.py 1.0.1 --dry-run
+python3 tool/release.py 1.0.1
+```
+
+签名配置、环境要求与失败恢复见 [发版说明](docs/releasing.md)。
+
 ## 应用图标
 
 保留圆角版 az 标识，使用 `icons_launcher` 管理平台配置，再从 SVG 按目标尺寸直接渲染，避免位图反复缩放。生成步骤见 [图标工具说明](<tool/icons/README.md>)。

@@ -2145,10 +2145,10 @@ void main() {
       expect(find.text('断开连接'), findsOneWidget);
       expect(find.byIcon(FLucideIcons.upload), findsNothing);
       expect(find.byIcon(FLucideIcons.folderPlus), findsNothing);
-      expect(find.bySemanticsLabel('season 的更多操作'), findsNothing);
-      expect(find.bySemanticsLabel('a.mkv 的更多操作'), findsNothing);
-      expect(find.byType(FPopoverMenu), findsNothing);
-      expect(find.byIcon(FLucideIcons.ellipsis), findsNothing);
+      expect(find.bySemanticsLabel('season 的更多操作'), findsOneWidget);
+      expect(find.bySemanticsLabel('a.mkv 的更多操作'), findsOneWidget);
+      expect(find.byType(FPopoverMenu), findsNWidgets(3));
+      expect(find.byIcon(FLucideIcons.ellipsis), findsNWidgets(2));
       final headerTitle = find.descendant(
         of: find.byWidgetPredicate((widget) => widget is FHeader),
         matching: find.text('影视整理'),
