@@ -89,6 +89,7 @@ python3 tool/release.py 1.0.1
 - **原子推送失败**：远端不会只收到分支或 Tag 中的一部分。核对状态并解决原因后，手动执行 `git push --atomic origin HEAD:refs/heads/<分支> refs/tags/v<版本>`。
 - **推送成功但创建 Release 失败**：执行 `gh release create v<版本> --verify-tag --generate-notes --title 'Azusa <版本>'`，不要重新执行版本递增。
 - **CI 构建失败**：修复 Secrets/外部依赖问题后，在 Actions 中 Re-run failed jobs；若需改源码，请创建新版本，不移动已发布 Tag。
+- **仅修复工作流后重建旧版本**：将工作流修复提交到默认分支，再执行 `gh workflow run release.yml --ref main -f tag=v<版本>`。使用最新工作流，但应用源码、版本校验及打包脚本仍检出该 Tag 的提交；不会移动 Tag。不要对不可信分支运行带签名 Secrets 的工作流。
 - **上传失败或需要补传**：在原始 workflow run 重跑上传 job（构建产物保留 7 天），超期则重跑所有 jobs。`--clobber` 会替换同名文件；替换前原文件会先删除，因此上传失败后需再次补传。
 
 首次发版后应在真实 Android arm64、Windows x64、Apple Silicon macOS 和 Linux amd64 环境验证安装、启动、凭据保存及升级/卸载。CI 的签名/版本/包结构检查不能替代设备验证。
