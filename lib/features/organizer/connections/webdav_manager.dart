@@ -91,8 +91,9 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
   });
 
   Future<void> edit([WebDavConnection? value]) => run(() async {
-    if (value != null &&
-        value.id ==
+    final original = value;
+    if (original != null &&
+        original.id ==
             ref.read(connectionSettingsProvider).requireValue.connectionId &&
         ref.read(organizerProvider).plan.isNotEmpty &&
         !await confirmConnectionChange(
@@ -101,13 +102,18 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
         )) {
       return;
     }
+    final editable = original == null
+        ? null
+        : await ref
+              .read(webDavConnectionsRepositoryProvider)
+              .withPassword(original);
     if (!mounted) return;
     await showFDialog<void>(
       context: context,
       builder: (context, style, animation) => FDialog(
         animation: animation,
         constraints: const BoxConstraints(minWidth: 280, maxWidth: 480),
-        builder: (context, style) => _ConnectionEditor(value: value),
+        builder: (context, style) => _ConnectionEditor(value: editable),
       ),
     );
   });
@@ -129,7 +135,8 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
     WebDavClient? dav;
     try {
       dav = ref.read(webDavFactoryProvider)(
-        item.apply(ref.read(connectionSettingsProvider).requireValue),
+        (await ref.read(webDavConnectionsRepositoryProvider).withPassword(item))
+            .apply(ref.read(connectionSettingsProvider).requireValue),
       );
       await dav.list(dav.root);
       if (mounted) {

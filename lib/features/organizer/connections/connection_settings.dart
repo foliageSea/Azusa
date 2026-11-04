@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/settings/settings.dart';
 import '../organizer_state.dart';
 import 'webdav_connections.dart';
+import 'credential_vault.dart';
 
 enum ProxyMode {
   direct('直连'),
@@ -81,6 +82,7 @@ class ConnectionRepository {
   ConnectionRepository(this.preferences, this.secrets);
   final SharedPreferencesAsync preferences;
   final FlutterSecureStorage secrets;
+  CredentialVault get credentials => CredentialVault.forStorage(secrets);
   static const _key = 'azusa.connections.v1';
 
   Future<ConnectionSettings> load({bool includeWebdav = true}) async {
@@ -101,10 +103,10 @@ class ConnectionRepository {
       proxyTmdb: data['proxyTmdb'] as bool? ?? true,
       proxyWebdav: data['proxyWebdav'] as bool? ?? false,
       webdavPassword: includeWebdav
-          ? await secrets.read(key: 'azusa.webdavPassword') ?? ''
+          ? await credentials.read('azusa.webdavPassword') ?? ''
           : '',
-      aiKey: await secrets.read(key: 'azusa.aiKey') ?? '',
-      tmdbToken: await secrets.read(key: 'azusa.tmdbToken') ?? '',
+      aiKey: await credentials.read('azusa.aiKey') ?? '',
+      tmdbToken: await credentials.read('azusa.tmdbToken') ?? '',
     );
   }
 
@@ -112,14 +114,11 @@ class ConnectionRepository {
     ConnectionSettings value, {
     bool includeWebdav = true,
   }) async {
-    if (includeWebdav) {
-      await secrets.write(
-        key: 'azusa.webdavPassword',
-        value: value.webdavPassword,
-      );
-    }
-    await secrets.write(key: 'azusa.aiKey', value: value.aiKey);
-    await secrets.write(key: 'azusa.tmdbToken', value: value.tmdbToken);
+    await credentials.update({
+      if (includeWebdav) 'azusa.webdavPassword': value.webdavPassword,
+      'azusa.aiKey': value.aiKey,
+      'azusa.tmdbToken': value.tmdbToken,
+    });
     await preferences.setString(
       _key,
       jsonEncode({
@@ -137,16 +136,20 @@ class ConnectionRepository {
   }
 }
 
-final connectionRepositoryProvider = Provider(
-  (ref) => ConnectionRepository(
-    ref.watch(preferencesProvider),
-    Platform.isMacOS
-        ? const FlutterSecureStorage(
-            mOptions: MacOsOptions(usesDataProtectionKeychain: false),
-          )
-        : const FlutterSecureStorage(),
-  ),
-);
+final connectionRepositoryProvider = Provider((ref) {
+  final storage = Platform.isMacOS
+      ? const FlutterSecureStorage(mOptions: CredentialVault.macOsOptions)
+      : const FlutterSecureStorage();
+  if (Platform.isMacOS) {
+    CredentialVault.forStorage(
+      storage,
+      legacyStorage: const FlutterSecureStorage(
+        mOptions: CredentialVault.legacyMacOsOptions,
+      ),
+    );
+  }
+  return ConnectionRepository(ref.watch(preferencesProvider), storage);
+});
 final connectionSettingsProvider =
     AsyncNotifierProvider<ConnectionSettingsController, ConnectionSettings>(
       ConnectionSettingsController.new,
@@ -154,6 +157,11 @@ final connectionSettingsProvider =
 
 class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
   bool _mutating = false;
+  void retryLoad() {
+    ref.read(connectionRepositoryProvider).credentials.retryFailedLoad();
+    ref.invalidateSelf();
+  }
+
   @override
   Future<ConnectionSettings> build() async {
     final repository = ref.read(webDavConnectionsRepositoryProvider);
@@ -167,7 +175,7 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
   Future<ConnectionSettings> _resolve(ConnectionSettings globals) async {
     final repository = ref.read(webDavConnectionsRepositoryProvider);
     final id = await repository.activeId();
-    final connections = await repository.load();
+    final connections = await repository.load(includePasswords: false);
     final active = connections.where((item) => item.id == id).firstOrNull;
     final cleared = ConnectionSettings(
       aiUrl: globals.aiUrl,
@@ -181,7 +189,9 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
     );
     return active == null
         ? cleared
-        : active.apply(cleared).copyWith(connectionId: active.id);
+        : (await repository.withPassword(active))
+              .apply(cleared)
+              .copyWith(connectionId: active.id);
   }
 
   Future<void> _change(

@@ -327,7 +327,8 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
             ),
           ),
           FButton(
-            onPress: () => ref.invalidate(connectionSettingsProvider),
+            onPress: () =>
+                ref.read(connectionSettingsProvider.notifier).retryLoad(),
             child: Text(l.retry),
           ),
         ],

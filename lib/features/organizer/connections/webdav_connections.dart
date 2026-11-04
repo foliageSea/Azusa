@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/database/app_database.dart';
 import 'connection_settings.dart';
 import '../dav/webdav.dart';
+import 'credential_vault.dart';
 
 String newConnectionId() => List.generate(
   16,
@@ -34,9 +35,15 @@ class WebDavConnection {
 }
 
 class WebDavConnectionsRepository {
-  WebDavConnectionsRepository(this.database, this.secrets);
+  WebDavConnectionsRepository(this.database, this.secrets) {
+    credentials.legacyWebDavKeys = () async => (await database.connection())
+        .select('SELECT secret_key FROM webdav_connections')
+        .map((row) => row['secret_key'] as String)
+        .toList();
+  }
   final AppDatabase database;
   final FlutterSecureStorage secrets;
+  CredentialVault get credentials => CredentialVault.forStorage(secrets);
 
   Future<bool> migrated() async =>
       (await database.connection())
@@ -47,7 +54,6 @@ class WebDavConnectionsRepository {
   Future<void> initialize(ConnectionSettings legacy) async {
     final db = await database.connection();
     if (await migrated()) {
-      await _cleanup('azusa.webdavPassword');
       return;
     }
     if (legacy.webdavUrl.trim().isNotEmpty) {
@@ -70,7 +76,25 @@ class WebDavConnectionsRepository {
     db.execute('UPDATE webdav_state SET migrated = 1 WHERE id = 1');
   }
 
-  Future<List<WebDavConnection>> load() async {
+  Future<WebDavConnection> withPassword(WebDavConnection value) async {
+    final db = await database.connection();
+    final rows = db.select(
+      'SELECT secret_key FROM webdav_connections WHERE id = ?',
+      [value.id],
+    );
+    if (rows.isEmpty) throw StateError('连接已不存在');
+    return WebDavConnection(
+      id: value.id,
+      name: value.name,
+      url: value.url,
+      username: value.username,
+      useProxy: value.useProxy,
+      password:
+          await credentials.read(rows.single['secret_key'] as String) ?? '',
+    );
+  }
+
+  Future<List<WebDavConnection>> load({bool includePasswords = true}) async {
     final db = await database.connection();
     final result = <WebDavConnection>[];
     for (final row in db.select(
@@ -83,7 +107,9 @@ class WebDavConnectionsRepository {
           url: row['url'] as String,
           username: row['username'] as String,
           useProxy: row['proxy_enabled'] == 1,
-          password: await secrets.read(key: row['secret_key'] as String) ?? '',
+          password: includePasswords
+              ? await credentials.read(row['secret_key'] as String) ?? ''
+              : '',
         ),
       );
     }
@@ -120,9 +146,17 @@ class WebDavConnectionsRepository {
       'SELECT secret_key FROM webdav_connections WHERE id = ?',
       [value.id],
     );
-    // Versioned secrets keep the previous password intact until SQLite commits.
-    final key = 'azusa.webdav.${value.id}.${newConnectionId()}';
-    await secrets.write(key: key, value: value.password);
+    // Version logical references inside the single vault, not OS keychain items.
+    // This preserves the previous password until SQLite commits.
+    final oldKey = previous.isEmpty
+        ? null
+        : previous.single['secret_key'] as String;
+    final unchanged =
+        oldKey != null && await credentials.read(oldKey) == value.password;
+    final key = unchanged
+        ? oldKey
+        : 'azusa.webdav.${value.id}.${newConnectionId()}';
+    if (!unchanged) await credentials.write(key, value.password);
     try {
       db.execute('BEGIN IMMEDIATE');
       try {
@@ -157,10 +191,10 @@ class WebDavConnectionsRepository {
         rethrow;
       }
     } catch (_) {
-      await _cleanup(key);
+      if (!unchanged) await _cleanup(key);
       rethrow;
     }
-    if (previous.isNotEmpty) {
+    if (previous.isNotEmpty && !unchanged) {
       await _cleanup(previous.single['secret_key'] as String);
     }
   }
@@ -168,7 +202,7 @@ class WebDavConnectionsRepository {
   Future<void> _cleanup(String key) async {
     // A cleanup failure must not turn a committed save into an apparent failure.
     try {
-      await secrets.delete(key: key);
+      await credentials.write(key, null);
     } catch (_) {
       /* Orphaned, never referenced. */
     }
@@ -207,5 +241,7 @@ final webDavConnectionsProvider = FutureProvider<List<WebDavConnection>>((
   ref,
 ) async {
   await ref.watch(connectionSettingsProvider.future);
-  return ref.watch(webDavConnectionsRepositoryProvider).load();
+  return ref
+      .watch(webDavConnectionsRepositoryProvider)
+      .load(includePasswords: false);
 });

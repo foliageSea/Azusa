@@ -7,6 +7,9 @@ import 'package:sqlite3/sqlite3.dart';
 
 class MemorySecrets extends FlutterSecureStorage {
   final values = <String, String>{};
+  final reads = <String>[];
+  final writes = <String>[];
+  final deletes = <String>[];
   bool failWrite = false;
   bool failDelete = false;
   @override
@@ -18,7 +21,11 @@ class MemorySecrets extends FlutterSecureStorage {
     dynamic wOptions,
     dynamic mOptions,
     dynamic webOptions,
-  }) async => values[key];
+  }) async {
+    reads.add(key);
+    return values[key];
+  }
+
   @override
   Future<void> write({
     required String key,
@@ -30,6 +37,7 @@ class MemorySecrets extends FlutterSecureStorage {
     dynamic mOptions,
     dynamic webOptions,
   }) async {
+    writes.add(key);
     if (failWrite) throw StateError('secure storage unavailable');
     if (value != null) values[key] = value;
   }
@@ -44,6 +52,7 @@ class MemorySecrets extends FlutterSecureStorage {
     dynamic mOptions,
     dynamic webOptions,
   }) async {
+    deletes.add(key);
     if (failDelete) throw StateError('secure storage unavailable');
     values.remove(key);
   }
@@ -124,7 +133,17 @@ void main() {
     (await database.connection()).execute(
       "CREATE TRIGGER reject_update BEFORE UPDATE ON webdav_connections BEGIN SELECT RAISE(ABORT, 'failure'); END",
     );
-    await expectLater(repository.save(first), throwsA(isA<SqliteException>()));
+    await expectLater(
+      repository.save(
+        WebDavConnection(
+          id: first.id,
+          name: 'Changed',
+          url: first.url,
+          password: 'changed-password',
+        ),
+      ),
+      throwsA(isA<SqliteException>()),
+    );
     expect(secrets.values.length, 1);
     expect((await repository.load()).single.password, first.password);
   });
@@ -159,6 +178,7 @@ void main() {
       0,
     );
     secrets.failWrite = false;
+    repository.credentials.retryFailedLoad();
     await repository.initialize(legacy);
     await repository.initialize(legacy);
     final loaded = (await repository.load()).single;

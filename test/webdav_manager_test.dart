@@ -301,7 +301,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(await repository.load(), isEmpty);
       expect(await repository.activeId(), isNull);
-      expect(secrets.values, isEmpty);
+      expect(secrets.values.keys, ['azusa.credentials.v1']);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();

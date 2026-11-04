@@ -230,6 +230,7 @@ class _MemoryPreferences implements SharedPreferencesAsync {
 }
 
 class _EmptySecrets extends FlutterSecureStorage {
+  final values = <String, String>{};
   @override
   Future<String?> read({
     required String key,
@@ -239,7 +240,7 @@ class _EmptySecrets extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) async => null;
+  }) async => values[key];
 
   @override
   Future<void> write({
@@ -251,5 +252,7 @@ class _EmptySecrets extends FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) async {}
+  }) async {
+    if (value != null) values[key] = value;
+  }
 }

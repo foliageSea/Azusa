@@ -410,6 +410,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get passwordHint => '请输入密码';
 
   @override
+  String get invalidCredentialVault => '凭据仓库格式无效';
+
+  @override
+  String get credentialMigrationVerificationFailed => '凭据仓库迁移验证失败';
+
+  @override
   String get aiUrlHint => '请输入 AI 服务地址';
 
   @override

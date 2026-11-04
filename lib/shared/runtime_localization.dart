@@ -11,6 +11,9 @@ String localizeRuntimeMessage(AppLocalizations l, String message) {
     zh.favoriteOutsideRoot: l.favoriteOutsideRoot,
     zh.webdavUrlParameters: l.webdavUrlParameters,
     zh.connectionNameRequired: l.connectionNameRequired,
+    zh.invalidCredentialVault: l.invalidCredentialVault,
+    zh.credentialMigrationVerificationFailed:
+        l.credentialMigrationVerificationFailed,
     zh.connectionMissing: l.connectionMissing,
     zh.waitForCurrentOperation: l.waitForCurrentOperation,
     zh.pathOutsideConnection: l.pathOutsideConnection,
