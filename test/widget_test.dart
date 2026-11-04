@@ -1061,11 +1061,17 @@ void main() {
           expect(find.text('整理要求（可选）'), findsNothing);
           expect(find.text('确认并执行'), findsOneWidget);
         } else if (path.endsWith('/assistant')) {
-          expect(find.text('断开连接'), findsNothing);
+          expect(
+            find.byKey(const ValueKey('nas-connection-toggle')),
+            findsNothing,
+          );
           expect(find.text('整理要求（可选）'), findsOneWidget);
         } else {
           expect(find.text('整理要求（可选）'), findsNothing);
-          expect(find.text('断开连接'), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('nas-connection-toggle')),
+            findsOneWidget,
+          );
         }
         expect(tester.takeException(), isNull);
       }
@@ -1148,7 +1154,7 @@ void main() {
       );
       container.read(routerProvider).go('/organize');
       await tester.pumpAndSettle();
-      expect(find.text('Disconnect'), findsOneWidget);
+      expect(find.bySemanticsLabel('Disconnect'), findsOneWidget);
       expect(find.text('Organize this directory'), findsOneWidget);
       for (var index = 0; index < 3; index++) {
         expect(
@@ -1413,7 +1419,7 @@ void main() {
       await tester.pumpAndSettle();
       final list = find.byKey(const ValueKey('nas-file-list'));
       final browser = find.byKey(const ValueKey('nas-browser'));
-      final disconnect = find.text('断开连接');
+      final disconnect = find.byKey(const ValueKey('nas-connection-toggle'));
       final refresh = find.byIcon(FLucideIcons.refreshCw);
       final breadcrumb = find.text('根目录');
       final action = find.text('整理此目录');
@@ -2077,7 +2083,7 @@ void main() {
       await tester.tapAt(Offset(barrier.center.dx, barrier.top + 10));
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('收藏当前目录'), findsOneWidget);
-      await tester.tap(find.text('断开连接'));
+      await tester.tap(find.byKey(const ValueKey('nas-connection-toggle')));
       await tester.pumpAndSettle();
       expect(find.text('连接 NAS'), findsOneWidget);
       expect(container.read(organizerProvider).directory, isEmpty);
@@ -2216,7 +2222,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('断开连接'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('nas-connection-toggle')),
+        findsOneWidget,
+      );
       expect(find.byIcon(FLucideIcons.upload), findsNothing);
       expect(find.byIcon(FLucideIcons.folderPlus), findsNothing);
       expect(find.bySemanticsLabel('season 的更多操作'), findsOneWidget);
@@ -2477,7 +2486,10 @@ void main() {
       expect(find.text('AI 生成重命名建议'), findsOneWidget);
       container.read(routerProvider).pop();
       await tester.pumpAndSettle();
-      expect(find.text('断开连接'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('nas-connection-toggle')),
+        findsOneWidget,
+      );
       expect(
         container.read(organizerProvider).plan.single.targetName,
         '用户修改 - S01E01.mkv',

@@ -743,6 +743,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 FTooltip(
                   tipBuilder: (_, _) => Text(context.l10n.disconnect),
                   child: FButton.icon(
+                    key: const ValueKey('nas-connection-toggle'),
                     variant: .outline,
                     size: .sm,
                     semanticsLabel: context.l10n.disconnect,
@@ -752,6 +753,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 )
               else
                 FButton(
+                  key: const ValueKey('nas-connection-toggle'),
                   variant: connected ? .outline : .primary,
                   size: .sm,
                   mainAxisSize: MainAxisSize.min,
