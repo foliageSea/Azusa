@@ -10,6 +10,7 @@ import '../../../shared/runtime_localization.dart';
 import '../../../shared/secret_text_field.dart';
 import '../../../shared/widgets.dart';
 import '../organizer_state.dart';
+import '../../settings/settings_tab.dart';
 import '../dav/webdav.dart';
 import 'connection_settings.dart';
 import 'http_clients.dart';
@@ -201,7 +202,9 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
                     key: const ValueKey('manage-webdav-connections'),
                     label: l.manageWebdavConnections,
                     icon: FLucideIcons.settings2,
-                    onPress: locked ? null : () => context.go('/connections'),
+                    onPress: locked
+                        ? null
+                        : () => context.go(SettingsTab.webdav.location),
                   ),
                 ),
               ],

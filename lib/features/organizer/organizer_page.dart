@@ -25,6 +25,7 @@ import 'organizer_state.dart';
 import 'rename_plan.dart';
 import 'dav/webdav.dart';
 import 'connections/webdav_manager.dart';
+import '../settings/settings_tab.dart';
 
 /// Panel width below which toolbars collapse to icon buttons.
 const _compactPanelWidth = 520.0;
@@ -316,7 +317,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
             child: FButton(
               mainAxisSize: MainAxisSize.min,
               prefix: const Icon(FLucideIcons.settings2),
-              onPress: () => context.go('/connections'),
+              onPress: () => context.go(SettingsTab.webdav.location),
               child: Text(context.l10n.configureConnection),
             ),
           ),

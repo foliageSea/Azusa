@@ -16,6 +16,7 @@ import '../../../core/settings/settings.dart';
 import '../../../core/settings/naming_language.dart';
 import '../../../core/settings/naming_format.dart';
 import '../../settings/settings_page.dart';
+import '../../settings/settings_tab.dart';
 import 'connection_settings.dart';
 import 'webdav_manager.dart';
 import 'ai_models.dart';
@@ -29,7 +30,8 @@ import '../dav/webdav.dart';
 enum _ConnectionAction { save, webdav, ai, tmdb, models }
 
 class ConnectionsPage extends ConsumerStatefulWidget {
-  const ConnectionsPage({super.key});
+  const ConnectionsPage({this.tab = SettingsTab.general, super.key});
+  final SettingsTab tab;
   @override
   ConsumerState<ConnectionsPage> createState() => _ConnectionsPageState();
 }
@@ -352,6 +354,21 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
           loaded = true;
         }
         return SettingsPage(
+          selectedTab: widget.tab.index,
+          onTabChanged: (index) {
+            if (index >= SettingsTab.values.length) return;
+            final uri = GoRouterState.of(context).uri;
+            context.go(
+              uri
+                  .replace(
+                    queryParameters: {
+                      ...uri.queryParameters,
+                      'tab': SettingsTab.values[index].name,
+                    },
+                  )
+                  .toString(),
+            );
+          },
           connectionTabs: [
             FTabEntry(
               label: const Text('WebDAV'),

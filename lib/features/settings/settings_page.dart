@@ -26,9 +26,16 @@ const _showDiagnostics = false;
 final packageInfoProvider = FutureProvider((ref) => PackageInfo.fromPlatform());
 
 class SettingsPage extends ConsumerStatefulWidget {
-  const SettingsPage({this.connectionTabs = const [], super.key});
+  const SettingsPage({
+    this.connectionTabs = const [],
+    this.selectedTab,
+    this.onTabChanged,
+    super.key,
+  });
 
   final List<FTabEntry> connectionTabs;
+  final int? selectedTab;
+  final ValueChanged<int>? onTabChanged;
   @override
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
@@ -175,8 +182,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           child: _SettingsTabs(
             key: const ValueKey('settings-tabs'),
             control: FTabControl.lifted(
-              index: _settingsTab,
-              onChange: (index) => setState(() => _settingsTab = index),
+              index: widget.selectedTab ?? _settingsTab,
+              onChange: (index) {
+                if (widget.onTabChanged case final onChange?) {
+                  onChange(index);
+                } else {
+                  setState(() => _settingsTab = index);
+                }
+              },
             ),
             children: [
               FTabEntry(

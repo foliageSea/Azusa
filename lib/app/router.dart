@@ -7,12 +7,17 @@ import '../features/organizer/history/history_page.dart';
 import '../features/organizer/organizer_state.dart';
 import '../features/organizer/ai/ai_usage_page.dart';
 import 'shell.dart';
+import '../features/settings/settings_tab.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: '/organize',
     routes: [
-      GoRoute(path: '/settings', redirect: (_, _) => '/connections'),
+      GoRoute(
+        path: '/settings',
+        redirect: (_, state) =>
+            state.uri.replace(path: '/connections').toString(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppShell(shell: shell),
         branches: [
@@ -68,7 +73,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/connections',
-                builder: (_, _) => const ConnectionsPage(),
+                builder: (_, state) => ConnectionsPage(
+                  tab: SettingsTab.fromParameter(
+                    state.uri.queryParameters['tab'],
+                  ),
+                ),
               ),
             ],
           ),
