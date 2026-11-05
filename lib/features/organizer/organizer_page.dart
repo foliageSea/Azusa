@@ -347,6 +347,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                         child: Text(context.l10n.selectAllDirectories),
                       ),
                       if (state.selectedDirectories.isNotEmpty) ...[
+                        const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             context.l10n.selectedDirectoryCount(
@@ -365,6 +366,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                       ],
                     ],
                   ),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       if (state.directory.isNotEmpty) ...[
