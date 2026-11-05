@@ -10,6 +10,69 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get includeSubdirectories => 'Include subdirectories';
+
+  @override
+  String analysisBatchProgress(String progress) {
+    return 'Analyzing batch $progress';
+  }
+
+  @override
+  String get noVideoFilesFound =>
+      'No video files found. Check the selected folder or enable subdirectories.';
+
+  @override
+  String get cleanupCancelled => 'Cleanup cancelled';
+
+  @override
+  String get cleanupOutsideScope => 'Folder is outside the cleanup scope';
+
+  @override
+  String cleanupScanStopped(String error) {
+    return 'Scan stopped: $error';
+  }
+
+  @override
+  String cleanupCompleted(String deleted, String skipped) {
+    return 'Cleanup complete: deleted $deleted empty folders, skipped $skipped folders';
+  }
+
+  @override
+  String cleanupStopped(String deleted, String skipped, String error) {
+    return 'Cleanup stopped: deleted $deleted empty folders, skipped $skipped folders; $error';
+  }
+
+  @override
+  String get analyzeRecursiveDetail =>
+      'All subdirectories will be scanned. Directory paths, video filenames and your instructions will be sent to the configured AI service; file contents will not be uploaded. Suggestions require confirmation before execution.';
+
+  @override
+  String get cleanEmptyDirectories => 'Clean empty folders';
+
+  @override
+  String get scanningOrCleaning => 'Scanning / cleaning…';
+
+  @override
+  String get noEmptyDirectories => 'No empty folders found';
+
+  @override
+  String emptyDirectoriesFound(int count) {
+    return 'Found $count empty folders';
+  }
+
+  @override
+  String cleanSelectedDirectories(int count) {
+    return 'Clean selected ($count)';
+  }
+
+  @override
+  String get confirmDeleteEmptyDirectories => 'Confirm deletion';
+
+  @override
+  String get emptyDirectoryDeleteWarning =>
+      'Selected folders will be deleted permanently, deepest first. Contents are checked again before deletion; non-empty folders are skipped. WebDAV folder deletion can be recursive: do not write files into these folders during cleanup.';
+
+  @override
   String get appTitle => 'Azusa';
 
   @override

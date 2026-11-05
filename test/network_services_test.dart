@@ -44,6 +44,33 @@ String listing(String href, {bool collection = false, int status = 200}) =>
 </d:prop><d:status>HTTP/1.1 $status OK</d:status></d:propstat></d:response>''';
 
 void main() {
+  test('empty-folder listings include hidden files and reject partial or missing properties', () async {
+    var children = listing('/dav/.keep');
+    var self = listing('/dav/', collection: true);
+    final dio = Dio()
+      ..httpClientAdapter = TestAdapter(
+        (_) => ResponseBody.fromString(
+          '<d:multistatus xmlns:d="DAV:">$self$children</d:multistatus>',
+          207,
+        ),
+      );
+    final dav = WebDavClient(
+      const ConnectionSettings(webdavUrl: 'https://nas.test/dav/'),
+      client: dio,
+    );
+    addTearDown(dav.close);
+    expect(await dav.list('/dav/'), isEmpty);
+    expect((await dav.listAll('/dav/')).single.name, '.keep');
+    children = listing('/dav/private/', status: 403);
+    await expectLater(dav.listAll('/dav/'), throwsFormatException);
+    children = listing('/outside/file');
+    await expectLater(dav.listAll('/dav/'), throwsFormatException);
+    children = listing('/dav/deep/hidden-file');
+    await expectLater(dav.listAll('/dav/'), throwsFormatException);
+    children = '';
+    self = '';
+    await expectLater(dav.listAll('/dav/'), throwsFormatException);
+  });
   test('关闭 AI 传输会取消尚未响应的网络请求', () async {
     final started = Completer<void>();
     final dio = Dio()

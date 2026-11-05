@@ -206,7 +206,7 @@ class AssistantController extends Notifier<AssistantState> {
     final directory = ref.read(organizerProvider).directory;
     if (directory.isEmpty) return null;
     final connection = ref.read(connectionSettingsProvider).asData?.value;
-    return '${connection?.connectionId ?? connection?.webdavUrl}|$directory';
+    return '${connection?.connectionId ?? connection?.webdavUrl}|$directory|${ref.read(organizerProvider).includeSubdirectories}';
   }
 
   bool get hasConsent => scope != null && state.consentScope == scope;
@@ -321,7 +321,7 @@ class AssistantController extends Notifier<AssistantState> {
         AssistantRunStatus.stopped,
         AssistantReply(_id(), AssistantReplyKind.stopped, detail: m),
       ),
-      OrganizerState(message: final m) when m.startsWith('未找到可靠') => (
+      OrganizerState(message: final m) when m.startsWith('未找到') => (
         AssistantRunStatus.succeeded,
         AssistantReply(_id(), AssistantReplyKind.empty, detail: m),
       ),

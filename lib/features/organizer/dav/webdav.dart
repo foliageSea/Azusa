@@ -62,7 +62,11 @@ class WebDavClient {
     responseType: ResponseType.plain,
   );
 
-  Future<List<DavEntry>> _properties(String path, String depth) async {
+  Future<List<DavEntry>> _properties(
+    String path,
+    String depth, {
+    bool strict = false,
+  }) async {
     final response = await dio.requestUri<String>(
       url(path),
       options: options(
@@ -87,9 +91,15 @@ class WebDavClient {
           .firstOrNull
           ?.innerText;
       final href = text(node, 'href');
-      if (href == null) continue;
+      if (href == null) {
+        if (strict) throw const FormatException('WebDAV 未返回有效属性');
+        continue;
+      }
       final uri = url(path).resolve(href);
-      if (uri.origin != base.origin) continue;
+      if (uri.origin != base.origin) {
+        if (strict) throw const FormatException('WebDAV 未返回有效属性');
+        continue;
+      }
       final successful = node.childElements
           .where((e) => e.name.local == 'propstat')
           .where(
@@ -98,7 +108,18 @@ class WebDavClient {
                     .hasMatch(text(e, 'status') ?? ''),
           )
           .toList();
-      if (successful.isEmpty) continue;
+      if (successful.isEmpty) {
+        if (strict) throw const FormatException('无法确定文件状态，请检查 WebDAV 权限');
+        continue;
+      }
+      if (strict &&
+          !successful.any(
+            (s) => s.descendants.whereType<XmlElement>().any(
+              (e) => e.name.local == 'resourcetype',
+            ),
+          )) {
+        throw const FormatException('无法确定文件状态，请检查 WebDAV 权限');
+      }
       final isDirectory = successful.any(
         (s) => s.descendants.whereType<XmlElement>().any(
           (e) => e.name.local == 'collection',
@@ -107,7 +128,10 @@ class WebDavClient {
       String? property(String key) =>
           successful.map((s) => text(s, key)).whereType<String>().firstOrNull;
       final entryPath = canonicalDavPath(uri.path);
-      if (!entryPath.startsWith(root)) continue;
+      if (!entryPath.startsWith(root)) {
+        if (strict) throw const FormatException('WebDAV 未返回有效属性');
+        continue;
+      }
       results.add(
         DavEntry(
           isDirectory && !entryPath.endsWith('/') ? '$entryPath/' : entryPath,
@@ -118,20 +142,51 @@ class WebDavClient {
         ),
       );
     }
+    if (strict && !results.any((e) => e.path == path && e.directory)) {
+      throw const FormatException('无法确定文件状态，请检查 WebDAV 权限');
+    }
     return results;
   }
 
   Future<List<DavEntry>> list(String path) async {
+    final results = await _listChildren(path, strict: false);
+    return results
+        .where(
+          (e) =>
+              !e.name.startsWith('.') &&
+              !(e.directory && (e.name == '#recycle' || e.name == '__MACOSX')),
+        )
+        .toList();
+  }
+
+  /// Unfiltered immediate children. Required for safe empty-folder checks.
+  Future<List<DavEntry>> listAll(String path) async {
+    return _listChildren(path, strict: true);
+  }
+
+  Future<List<DavEntry>> _listChildren(
+    String path, {
+    required bool strict,
+  }) async {
     final directory = normalize(path.endsWith('/') ? path : '$path/');
-    final results = await _properties(directory, '1');
+    final results = await _properties(directory, '1', strict: strict);
+    if (strict &&
+        results.any(
+          (e) =>
+              !e.path.startsWith(directory) ||
+              (e.path != directory &&
+                  e.path
+                      .substring(directory.length)
+                      .replaceFirst(RegExp(r'/$'), '')
+                      .contains('/')),
+        )) {
+      throw const FormatException('WebDAV 未返回有效属性');
+    }
     return results
         .where(
           (e) =>
               e.path != directory &&
               e.path.startsWith(directory) &&
-              !e.name.startsWith('.') &&
-              !(e.directory &&
-                  (e.name == '#recycle' || e.name == '__MACOSX')) &&
               !e.path
                   .substring(directory.length)
                   .replaceFirst(RegExp(r'/$'), '')

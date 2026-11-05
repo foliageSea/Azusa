@@ -163,17 +163,20 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
     if (widget.compact) {
       final items = connections.asData?.value ?? const <WebDavConnection>[];
       return Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 280),
             child: items.isEmpty
                 ? Text(l.nasDirectory, style: context.theme.typography.body.lg)
-                : WebDavSwitcher(
-                    items: items,
-                    activeId: active,
-                    locked: locked,
-                    onSelect: select,
+                : IntrinsicWidth(
+                    child: WebDavSwitcher(
+                      items: items,
+                      activeId: active,
+                      locked: locked,
+                      onSelect: select,
+                    ),
                   ),
           ),
           if (widget.subtitle != null)

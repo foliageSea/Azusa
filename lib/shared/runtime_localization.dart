@@ -39,6 +39,9 @@ String localizeRuntimeMessage(AppLocalizations l, String message) {
     zh.suggestionsCancelled: l.suggestionsCancelled,
     zh.suggestionsGenerated: l.suggestionsGenerated,
     zh.noReliableSuggestions: l.noReliableSuggestions,
+    zh.noVideoFilesFound: l.noVideoFilesFound,
+    zh.cleanupCancelled: l.cleanupCancelled,
+    zh.cleanupOutsideScope: l.cleanupOutsideScope,
     zh.usageSaveFailed: l.usageSaveFailed,
     zh.operationCompleted: l.operationCompleted,
     zh.downloading: l.downloading,
@@ -105,6 +108,18 @@ String localizeRuntimeMessage(AppLocalizations l, String message) {
 
   String nested(String text) => localizeRuntimeMessage(l, text);
   return template(
+        zh.cleanupScanStopped('{0}'),
+        (a) => l.cleanupScanStopped(nested(a[0])),
+      ) ??
+      template(
+        zh.cleanupCompleted('{0}', '{1}'),
+        (a) => l.cleanupCompleted(a[0], a[1]),
+      ) ??
+      template(
+        zh.cleanupStopped('{0}', '{1}', '{2}'),
+        (a) => l.cleanupStopped(a[0], a[1], nested(a[2])),
+      ) ??
+      template(
         zh.directoryReadFailed('{0}'),
         (a) => l.directoryReadFailed(nested(a[0])),
       ) ??

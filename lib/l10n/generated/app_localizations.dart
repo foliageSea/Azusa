@@ -98,6 +98,102 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @includeSubdirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'Include subdirectories'**
+  String get includeSubdirectories;
+
+  /// No description provided for @analysisBatchProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing batch {progress}'**
+  String analysisBatchProgress(String progress);
+
+  /// No description provided for @noVideoFilesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No video files found. Check the selected folder or enable subdirectories.'**
+  String get noVideoFilesFound;
+
+  /// No description provided for @cleanupCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleanup cancelled'**
+  String get cleanupCancelled;
+
+  /// No description provided for @cleanupOutsideScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder is outside the cleanup scope'**
+  String get cleanupOutsideScope;
+
+  /// No description provided for @cleanupScanStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan stopped: {error}'**
+  String cleanupScanStopped(String error);
+
+  /// No description provided for @cleanupCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleanup complete: deleted {deleted} empty folders, skipped {skipped} folders'**
+  String cleanupCompleted(String deleted, String skipped);
+
+  /// No description provided for @cleanupStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleanup stopped: deleted {deleted} empty folders, skipped {skipped} folders; {error}'**
+  String cleanupStopped(String deleted, String skipped, String error);
+
+  /// No description provided for @analyzeRecursiveDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'All subdirectories will be scanned. Directory paths, video filenames and your instructions will be sent to the configured AI service; file contents will not be uploaded. Suggestions require confirmation before execution.'**
+  String get analyzeRecursiveDetail;
+
+  /// No description provided for @cleanEmptyDirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean empty folders'**
+  String get cleanEmptyDirectories;
+
+  /// No description provided for @scanningOrCleaning.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning / cleaning…'**
+  String get scanningOrCleaning;
+
+  /// No description provided for @noEmptyDirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'No empty folders found'**
+  String get noEmptyDirectories;
+
+  /// No description provided for @emptyDirectoriesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Found {count} empty folders'**
+  String emptyDirectoriesFound(int count);
+
+  /// No description provided for @cleanSelectedDirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean selected ({count})'**
+  String cleanSelectedDirectories(int count);
+
+  /// No description provided for @confirmDeleteEmptyDirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm deletion'**
+  String get confirmDeleteEmptyDirectories;
+
+  /// No description provided for @emptyDirectoryDeleteWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected folders will be deleted permanently, deepest first. Contents are checked again before deletion; non-empty folders are skipped. WebDAV folder deletion can be recursive: do not write files into these folders during cleanup.'**
+  String get emptyDirectoryDeleteWarning;
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:

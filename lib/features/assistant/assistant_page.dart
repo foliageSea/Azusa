@@ -143,7 +143,9 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
       final l = context.l10n;
       if (!await _confirm(
             l.analyzeDirectory,
-            l.analyzeDirectoryDetail,
+            organizer.includeSubdirectories
+                ? l.analyzeRecursiveDetail
+                : l.analyzeDirectoryDetail,
             l.startAnalysis,
           ) ||
           !mounted ||
@@ -324,49 +326,114 @@ class _Conversation extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            children: [
-              const Expanded(child: WebDavManager(compact: true)),
-              if (directory.isNotEmpty) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: FButton(
-                      key: const ValueKey('assistant-directory'),
-                      variant: .outline,
-                      size: .sm,
-                      mainAxisSize: MainAxisSize.min,
-                      builder: responsiveButtonContent,
-                      semanticsLabel: displayDavPath(directory),
-                      prefix: const Icon(FLucideIcons.folderOpen),
-                      onPress: locked ? null : onSelectDirectory,
-                      child: Text(
-                        _directoryName(directory, l.rootDirectory),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+          child: LayoutBuilder(
+            key: const ValueKey('assistant-toolbar'),
+            builder: (context, box) {
+              final narrow = box.maxWidth < 480;
+              final checkboxStyle = theme.typography.body.sm;
+              final labelPainter = TextPainter(
+                text: TextSpan(
+                  text: l.includeSubdirectories,
+                  style: checkboxStyle,
+                ),
+                textDirection: Directionality.of(context),
+                textScaler: MediaQuery.textScalerOf(context),
+                maxLines: 1,
+              )..layout();
+              final checkboxWidth = labelPainter.width.ceilToDouble() + 40;
+              labelPainter.dispose();
+              final controls = Row(
+                mainAxisAlignment: narrow
+                    ? MainAxisAlignment.end
+                    : MainAxisAlignment.start,
+                children: [
+                  if (!narrow)
+                    const Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: WebDavManager(compact: true),
                       ),
                     ),
+                  if (directory.isNotEmpty) ...[
+                    if (!narrow) const SizedBox(width: 12),
+                    SizedBox(
+                      width: checkboxWidth,
+                      child: FCheckbox(
+                        key: const ValueKey('include-subdirectories'),
+                        value: organizer.includeSubdirectories,
+                        enabled: !locked,
+                        label: Text(
+                          l.includeSubdirectories,
+                          style: checkboxStyle,
+                          maxLines: 1,
+                          softWrap: false,
+                        ),
+                        onChange: ref
+                            .read(organizerProvider.notifier)
+                            .setIncludeSubdirectories,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth:
+                            (box.maxWidth -
+                                    checkboxWidth -
+                                    12 -
+                                    (assistant.messages.isNotEmpty ? 48 : 0) -
+                                    (narrow ? 0 : 120))
+                                .clamp(0, 180),
+                      ),
+                      child: FButton(
+                        key: const ValueKey('assistant-directory'),
+                        variant: .outline,
+                        size: .sm,
+                        mainAxisSize: MainAxisSize.min,
+                        builder: responsiveButtonContent,
+                        semanticsLabel: displayDavPath(directory),
+                        prefix: const Icon(FLucideIcons.folderOpen),
+                        onPress: locked ? null : onSelectDirectory,
+                        child: Text(
+                          _directoryName(directory, l.rootDirectory),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (assistant.messages.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    FTooltip(
+                      tipBuilder: (_, _) => Text(l.assistantNewConversation),
+                      child: FButton.icon(
+                        key: const ValueKey('assistant-reset'),
+                        variant: .ghost,
+                        size: .sm,
+                        semanticsLabel: l.assistantNewConversation,
+                        onPress: locked
+                            ? null
+                            : ref.read(assistantProvider.notifier).reset,
+                        child: const Icon(FLucideIcons.squarePen),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+              if (!narrow) return controls;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: WebDavManager(compact: true),
                   ),
-                ),
-              ],
-              if (assistant.messages.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                FTooltip(
-                  tipBuilder: (_, _) => Text(l.assistantNewConversation),
-                  child: FButton.icon(
-                    key: const ValueKey('assistant-reset'),
-                    variant: .ghost,
-                    size: .sm,
-                    semanticsLabel: l.assistantNewConversation,
-                    onPress: locked
-                        ? null
-                        : ref.read(assistantProvider.notifier).reset,
-                    child: const Icon(FLucideIcons.squarePen),
-                  ),
-                ),
-              ],
-            ],
+                  if (directory.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    controls,
+                  ],
+                ],
+              );
+            },
           ),
         ),
         Expanded(
@@ -412,6 +479,14 @@ class _Conversation extends ConsumerWidget {
         ),
         if (directory.isNotEmpty) ...[
           const SizedBox(height: 8),
+          if (organizer.analyzing && organizer.progress.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                l.analysisBatchProgress(organizer.progress),
+                style: theme.typography.body.sm,
+              ),
+            ),
           _Composer(
             controller: input,
             focusNode: inputFocus,

@@ -83,6 +83,61 @@ class RenameAgent {
     'idx',
   };
 
+  static bool isVideo(DavEntry entry) =>
+      !entry.directory &&
+      _videoExtensions.contains(entry.name.split('.').last.toLowerCase());
+
+  /// Group by top-level work folder, then bound each request by video count.
+  static List<List<DavEntry>> batches(String root, List<DavEntry> entries) {
+    final groups = <String, List<DavEntry>>{};
+    for (final entry in entries.where(isVideo)) {
+      final relative = entry.path.substring(root.length);
+      final group = relative.contains('/') ? relative.split('/').first : '';
+      groups.putIfAbsent(group, () => []).add(entry);
+    }
+    final result = <List<DavEntry>>[];
+    for (final videos in groups.values) {
+      for (var start = 0; start < videos.length; start += 100) {
+        final chunk = videos.skip(start).take(100).toList();
+        final parents = {
+          for (final e in chunk)
+            e.path.substring(0, e.path.lastIndexOf('/') + 1),
+        };
+        result.add([
+          ...chunk,
+          ...entries.where(
+            (e) =>
+                !e.directory &&
+                !isVideo(e) &&
+                _subtitleExtensions.contains(
+                  e.name.split('.').last.toLowerCase(),
+                ) &&
+                parents.contains(
+                  e.path.substring(0, e.path.lastIndexOf('/') + 1),
+                ) &&
+                videos
+                        .where(
+                          (v) =>
+                              v.path.substring(
+                                    0,
+                                    v.path.lastIndexOf('/') + 1,
+                                  ) ==
+                                  e.path.substring(
+                                    0,
+                                    e.path.lastIndexOf('/') + 1,
+                                  ) &&
+                              subtitleMatchesVideo(e.name, v.name),
+                        )
+                        .length ==
+                    1 &&
+                chunk.any((v) => subtitleMatchesVideo(e.name, v.name)),
+          ),
+        ]);
+      }
+    }
+    return result;
+  }
+
   String _extension(String name) => name.contains('.')
       ? name.substring(name.lastIndexOf('.') + 1).toLowerCase()
       : '';
@@ -129,7 +184,7 @@ class RenameAgent {
                 e.path.startsWith(directory) &&
                     e.path.substring(directory.length).contains('/')
                 ? Uri.decodeComponent(
-                    e.path.substring(directory.length).split('/').first,
+                    e.path.substring(directory.length, e.path.lastIndexOf('/')),
                   )
                 : '',
           },

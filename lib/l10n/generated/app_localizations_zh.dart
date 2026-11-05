@@ -10,6 +10,68 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get includeSubdirectories => '包含子目录';
+
+  @override
+  String analysisBatchProgress(String progress) {
+    return '正在分析第 $progress 批';
+  }
+
+  @override
+  String get noVideoFilesFound => '未找到视频文件，请检查所选目录或启用包含子目录';
+
+  @override
+  String get cleanupCancelled => '清理已中止';
+
+  @override
+  String get cleanupOutsideScope => '目录超出清理范围';
+
+  @override
+  String cleanupScanStopped(String error) {
+    return '扫描已停止：$error';
+  }
+
+  @override
+  String cleanupCompleted(String deleted, String skipped) {
+    return '清理完成：已删除 $deleted 个空目录，跳过 $skipped 个目录';
+  }
+
+  @override
+  String cleanupStopped(String deleted, String skipped, String error) {
+    return '清理已停止：已删除 $deleted 个空目录，跳过 $skipped 个目录；$error';
+  }
+
+  @override
+  String get analyzeRecursiveDetail =>
+      '将递归扫描所有子目录，并向配置的 AI 服务发送目录路径、视频文件名和整理要求，不会上传文件内容。生成的建议需经确认后才会执行。';
+
+  @override
+  String get cleanEmptyDirectories => '清理空目录';
+
+  @override
+  String get scanningOrCleaning => '正在扫描 / 清理…';
+
+  @override
+  String get noEmptyDirectories => '未发现空目录';
+
+  @override
+  String emptyDirectoriesFound(int count) {
+    return '发现 $count 个空目录';
+  }
+
+  @override
+  String cleanSelectedDirectories(int count) {
+    return '清理选中项（$count）';
+  }
+
+  @override
+  String get confirmDeleteEmptyDirectories => '确认删除';
+
+  @override
+  String get emptyDirectoryDeleteWarning =>
+      '选中目录将从最深层开始永久删除。删除前会重新检查，非空目录会跳过。WebDAV 删除目录可能递归删除内容，清理期间请勿向这些目录写入文件。';
+
+  @override
   String get appTitle => 'Azusa';
 
   @override

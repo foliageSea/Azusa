@@ -13,6 +13,15 @@ class AiUsage {
   final Duration modelTime;
   final bool missingUsage;
 
+  AiUsage plus(AiUsage other) => AiUsage(
+    inputTokens: inputTokens + other.inputTokens,
+    outputTokens: outputTokens + other.outputTokens,
+    cachedTokens: cachedTokens + other.cachedTokens,
+    responses: responses + other.responses,
+    modelTime: modelTime + other.modelTime,
+    missingUsage: missingUsage || other.missingUsage,
+  );
+
   double? get tokensPerSecond =>
       responses == 0 || missingUsage || modelTime.inMicroseconds == 0
       ? null

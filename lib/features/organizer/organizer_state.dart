@@ -12,6 +12,7 @@ import 'ai/ai_usage_history.dart';
 import 'ai/model_pricing.dart';
 import 'connections/connection_settings.dart';
 import 'dav/dav_paths.dart';
+import 'dav/directory_scan.dart';
 import 'history/execution_history.dart';
 import 'connections/http_clients.dart';
 import 'rename_plan.dart';
@@ -31,6 +32,7 @@ class OrganizerState {
     this.message = '',
     this.aiUsage,
     this.pricing,
+    this.includeSubdirectories = true,
   });
   final String directory, progress, message;
   final List<DavEntry> entries;
@@ -40,6 +42,7 @@ class OrganizerState {
   final bool analyzing;
   final AiUsage? aiUsage;
   final ModelPricing? pricing;
+  final bool includeSubdirectories;
 
   bool get hasError =>
       RegExp('失败|停止|无效|错误|未找到|不能|冲突|已变化|已存在').hasMatch(message);
@@ -57,6 +60,7 @@ class OrganizerState {
     AiUsage? aiUsage,
     ModelPricing? pricing,
     bool clearAnalysis = false,
+    bool? includeSubdirectories,
   }) => OrganizerState(
     directory: directory ?? this.directory,
     entries: entries ?? this.entries,
@@ -71,6 +75,7 @@ class OrganizerState {
     message: message ?? this.message,
     aiUsage: clearAnalysis ? null : aiUsage ?? this.aiUsage,
     pricing: clearAnalysis ? null : pricing ?? this.pricing,
+    includeSubdirectories: includeSubdirectories ?? this.includeSubdirectories,
   );
 }
 
@@ -85,6 +90,18 @@ final modelPricingLookupProvider =
     Provider<Future<ModelPricing?> Function(ConnectionSettings)>(
       (ref) => ModelPricingCatalog.lookup,
     );
+final renameAgentFactoryProvider =
+    Provider<
+      RenameAgent Function(ConnectionSettings, WebDavClient, TmdbClient)
+    >(
+      (ref) =>
+          (settings, dav, tmdb) => RenameAgent(
+            settings,
+            dav,
+            tmdb,
+            namingFormat: ref.read(settingsProvider).namingFormat,
+          ),
+    );
 final executionHistoryProvider = FutureProvider<List<String>>(
   (ref) => ref.watch(executionHistoryRepositoryProvider).load(),
 );
@@ -92,8 +109,107 @@ final executionHistoryProvider = FutureProvider<List<String>>(
 class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   int _analysisGeneration = 0;
   void Function()? _cancelAnalysis;
+  bool _maintenanceCancelled = false;
+  Set<String> _emptyCandidates = {};
+  String? _emptyScope;
+
+  String get _cleanupScope =>
+      '${config.connectionId}|${config.webdavUrl}|${config.username}|${state.directory}';
+
+  void cancelMaintenance() => _maintenanceCancelled = true;
+
+  void _checkMaintenance() {
+    if (_maintenanceCancelled) throw StateError('清理已中止');
+  }
+
+  Future<List<String>> scanEmptyDirectories() async {
+    if (state.busy || state.executing || state.directory.isEmpty) return [];
+    _emptyCandidates = {};
+    _emptyScope = null;
+    _maintenanceCancelled = false;
+    state = state.copyWith(busy: true, message: '', progress: '');
+    WebDavClient? dav;
+    try {
+      dav = client();
+      final result = await EmptyDirectoryCleaner(dav).scan(
+        state.directory,
+        checkCancelled: _checkMaintenance,
+        onProgress: (path) =>
+            state = state.copyWith(progress: displayDavPath(path)),
+      );
+      _emptyCandidates = result.toSet();
+      _emptyScope = _cleanupScope;
+      return result;
+    } catch (e) {
+      state = state.copyWith(message: '扫描已停止：${serviceError(e)}');
+      return [];
+    } finally {
+      dav?.close();
+      state = state.copyWith(busy: false, progress: '');
+    }
+  }
+
+  Future<void> cleanEmptyDirectories(Iterable<String> selected) async {
+    if (state.busy || state.executing || _emptyScope != _cleanupScope) return;
+    final paths = selected.toSet();
+    if (paths.isEmpty || !paths.every(_emptyCandidates.contains)) return;
+    _maintenanceCancelled = false;
+    state = state.copyWith(
+      busy: true,
+      message: '',
+      progress: '0 / ${paths.length}',
+    );
+    WebDavClient? dav;
+    var deleted = 0;
+    var skipped = 0;
+    try {
+      dav = client();
+      await EmptyDirectoryCleaner(dav).clean(
+        state.directory,
+        paths,
+        checkCancelled: _checkMaintenance,
+        onDeleting: (path) => _record('准备 delete ${displayDavPath(path)}'),
+        onDeleted: (path) => _record('完成 delete ${displayDavPath(path)}'),
+        onProgress: (done, ignored) {
+          deleted = done;
+          skipped = ignored;
+          state = state.copyWith(
+            progress: '${done + ignored} / ${paths.length}',
+          );
+        },
+      );
+      state = state.copyWith(message: '清理完成：已删除 $deleted 个空目录，跳过 $skipped 个目录');
+    } catch (e) {
+      state = state.copyWith(
+        message: '清理已停止：已删除 $deleted 个空目录，跳过 $skipped 个目录；${serviceError(e)}',
+      );
+    } finally {
+      _emptyCandidates = {};
+      _emptyScope = null;
+      try {
+        if (dav != null) {
+          state = state.copyWith(entries: await dav.list(state.directory));
+        }
+      } catch (e) {
+        state = state.copyWith(
+          message: '${state.message}；刷新目录失败：${serviceError(e)}',
+        );
+      }
+      dav?.close();
+      state = state.copyWith(busy: false, progress: '');
+    }
+  }
 
   void cancelSuggestions() => _cancelAnalysis?.call();
+
+  void setIncludeSubdirectories(bool value) {
+    if (state.busy || state.executing) return;
+    state = state.copyWith(
+      includeSubdirectories: value,
+      plan: [],
+      clearAnalysis: true,
+    );
+  }
 
   void clearPlan() {
     if (state.busy || state.executing) return;
@@ -185,6 +301,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       analyzing: true,
       plan: [],
       message: '正在查询影视资料…',
+      progress: '',
       clearAnalysis: true,
     );
     Future<ModelPricing?>? pricing;
@@ -219,12 +336,6 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         settings,
         namingLanguage: ref.read(settingsProvider).namingLanguage,
       );
-      agent = RenameAgent(
-        settings,
-        dav,
-        tmdb,
-        namingFormat: ref.read(settingsProvider).namingFormat,
-      );
       var scan = AgentActivity(
         key: 'scan',
         kind: AgentActivityKind.scan,
@@ -235,43 +346,109 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       final List<DavEntry> fresh;
       try {
         fresh = await interruptible(dav.list(state.directory));
-        analysisEntries = <DavEntry>[...fresh];
-        for (final folder in fresh.where((entry) => entry.directory)) {
-          analysisEntries.addAll(await interruptible(dav.list(folder.path)));
-        }
+        analysisEntries = await interruptible(
+          scanMediaDirectories(
+            dav,
+            directory,
+            recursive: state.includeSubdirectories,
+            checkCancelled: () {
+              if (cancelled) throw StateError('AI 建议已中断');
+            },
+            onProgress: (path, count) {
+              if (!cancelled) {
+                onActivity?.call(
+                  AgentActivity(
+                    key: 'scan',
+                    kind: AgentActivityKind.scan,
+                    subject: displayDavPath(path),
+                    count: count,
+                  ),
+                );
+              }
+            },
+          ),
+        );
       } catch (error) {
         if (!cancelled) onActivity?.call(scan.fail(serviceError(error)));
         rethrow;
       }
       scan = scan.succeed(count: analysisEntries.length);
       onActivity?.call(scan);
-      final plan = await interruptible(
-        agent.propose(
-          state.directory,
-          analysisEntries,
-          instruction: instruction,
-          folderLayout: folderLayout,
-          onLayout: (layout) {
-            if (!cancelled) onLayout?.call(layout);
-          },
-          onStatus: (message) {
-            if (!cancelled) state = state.copyWith(message: message);
-          },
-          onUsage: (usage) {
-            if (!cancelled) state = state.copyWith(aiUsage: usage);
-          },
-          onActivity: (activity) {
-            if (!cancelled) onActivity?.call(activity);
-          },
-        ),
-      );
+      final plan = <RenameItem>[];
+      final batches = RenameAgent.batches(directory, analysisEntries);
+      var accumulatedUsage = const AiUsage();
+      var effectiveLayout = folderLayout;
+      for (final (batchIndex, batch) in batches.indexed) {
+        if (cancelled) return;
+        state = state.copyWith(
+          progress: '${batchIndex + 1} / ${batches.length}',
+        );
+        agent = ref.read(renameAgentFactoryProvider)(settings, dav, tmdb);
+        final previousUsage = accumulatedUsage;
+        var batchUsage = const AiUsage();
+        final result = await interruptible(
+          agent.propose(
+            directory,
+            batch,
+            instruction: instruction,
+            folderLayout: effectiveLayout,
+            onLayout: (layout) {
+              effectiveLayout = layout;
+              if (!cancelled) onLayout?.call(layout);
+            },
+            onStatus: (message) {
+              if (!cancelled) {
+                state = state.copyWith(
+                  message: '${batchIndex + 1}/${batches.length} · $message',
+                );
+              }
+            },
+            onUsage: (usage) {
+              batchUsage = usage;
+              if (!cancelled) {
+                state = state.copyWith(aiUsage: previousUsage.plus(usage));
+              }
+            },
+            onActivity: (activity) {
+              if (!cancelled) {
+                onActivity?.call(
+                  AgentActivity(
+                    key: 'batch-$batchIndex-${activity.key}',
+                    kind: activity.kind,
+                    status: activity.status,
+                    subject: activity.subject,
+                    number: activity.number,
+                    count: activity.count,
+                    title: activity.title,
+                    date: activity.date,
+                    error: activity.error,
+                  ),
+                );
+              }
+            },
+          ),
+        );
+        accumulatedUsage = previousUsage.plus(batchUsage);
+        agent.close();
+        plan.addAll(result);
+      }
+      if (effectiveLayout != null) {
+        final placed = applyFolderLayout(plan, directory, effectiveLayout!);
+        plan
+          ..clear()
+          ..addAll(placed);
+      }
       if (cancelled) return;
       succeeded = true;
       state = state.copyWith(
         entries: fresh,
         analysisEntries: analysisEntries,
         plan: plan,
-        message: plan.isEmpty ? '未找到可靠的重命名建议，请补充片名和年份或剧名和季数后重试' : '建议已生成',
+        message: batches.isEmpty
+            ? '未找到视频文件，请检查所选目录或启用包含子目录'
+            : plan.isEmpty
+            ? '未找到可靠的重命名建议，请补充片名和年份或剧名和季数后重试'
+            : '建议已生成',
       );
     } catch (e) {
       state = state.copyWith(
@@ -311,7 +488,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         }
       }
       _cancelAnalysis = null;
-      state = state.copyWith(busy: false, analyzing: false);
+      state = state.copyWith(busy: false, analyzing: false, progress: '');
     }
   }
 

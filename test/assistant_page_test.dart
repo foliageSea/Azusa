@@ -23,6 +23,7 @@ import 'package:forui/forui.dart';
 class _Connections extends ConnectionSettingsController {
   @override
   Future<ConnectionSettings> build() async => const ConnectionSettings(
+    connectionId: 'local',
     webdavUrl: 'https://nas.test/dav/',
     model: 'test-model',
   );
@@ -159,6 +160,20 @@ class _SelectableOrganizer extends _Organizer {
   }
 }
 
+class _CleanupOrganizer extends _Organizer {
+  List<String>? cleaned;
+  @override
+  Future<List<String>> scanEmptyDirectories() async => [
+    '${_root}empty/child/',
+    '${_root}empty/',
+  ];
+  @override
+  Future<void> cleanEmptyDirectories(Iterable<String> selected) async {
+    cleaned = selected.toList();
+    state = state.copyWith(message: '清理完成：已删除 1 个空目录，跳过 0 个目录');
+  }
+}
+
 class _Favorites extends DirectoryFavoritesRepository {
   _Favorites()
     : super(AppDatabase(open: () async => throw UnimplementedError()));
@@ -182,6 +197,7 @@ Future<(ProviderContainer, _Organizer)> _pump(
   double width, {
   String? directory,
   _Organizer? organizerOverride,
+  bool withConnections = false,
 }) async {
   tester.view.physicalSize = Size(width, 900);
   tester.view.devicePixelRatio = 1;
@@ -198,7 +214,17 @@ Future<(ProviderContainer, _Organizer)> _pump(
       startupConnectionProvider.overrideWith((ref) async {}),
       connectionSettingsProvider.overrideWith(_Connections.new),
       organizerProvider.overrideWith(() => organizer),
-      webDavConnectionsProvider.overrideWith((ref) async => []),
+      webDavConnectionsProvider.overrideWith(
+        (ref) async => withConnections
+            ? [
+                const WebDavConnection(
+                  id: 'local',
+                  name: 'local',
+                  url: 'https://nas.test/dav/',
+                ),
+              ]
+            : [],
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -224,6 +250,57 @@ void main() {
   });
 
   for (final width in [390.0, 1280.0]) {
+    testWidgets('实际连接选择器在 $width 宽度贴左且子目录标签横排', (tester) async {
+      await _pump(tester, width, withConnections: true);
+      final toolbar = tester.getRect(
+        find.byKey(const ValueKey('assistant-toolbar')),
+      );
+      final selector = tester.getRect(
+        find.byKey(const ValueKey('webdav-switcher-trigger')),
+      );
+      expect(selector.left, closeTo(toolbar.left, 1));
+      expect(selector.width, lessThan(150));
+      final label = tester.getSize(find.text('包含子目录'));
+      expect(label.width, greaterThan(50));
+      expect(label.height, lessThan(30));
+      expect(tester.takeException(), isNull);
+    });
+    testWidgets('空目录清理在 $width 宽度先预览勾选再确认删除', (tester) async {
+      final organizer = _CleanupOrganizer();
+      final (container, _) = await _pump(
+        tester,
+        width,
+        organizerOverride: organizer,
+      );
+      final assistant = container.read(assistantProvider.notifier);
+      assistant.grantConsent();
+      expect(assistant.hasConsent, isTrue);
+      await tester.tap(find.byKey(const ValueKey('include-subdirectories')));
+      await tester.pumpAndSettle();
+      expect(container.read(organizerProvider).includeSubdirectories, isFalse);
+      expect(assistant.hasConsent, isFalse);
+      expect(
+        find.byKey(const ValueKey('empty-directory-cleanup')),
+        findsNothing,
+      );
+      container.read(routerProvider).go('/organize');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('empty-directory-cleanup')));
+      await tester.pumpAndSettle();
+      expect(find.text('发现 2 个空目录'), findsOneWidget);
+      expect(organizer.cleaned, isNull);
+      await tester.tap(find.text(Uri.decodeComponent('${_root}empty/')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('清理选中项（1）'));
+      await tester.pumpAndSettle();
+      expect(organizer.cleaned, isNull);
+      await tester.tap(find.text('确认删除'));
+      await tester.pumpAndSettle();
+      expect(organizer.cleaned, ['${_root}empty/child/']);
+      expect(find.text('清理完成：已删除 1 个空目录，跳过 0 个目录'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('助手在 $width 宽度跳转文件页选择目录', (tester) async {
       final (container, _) = await _pump(tester, width);
       final scope = nasScope(

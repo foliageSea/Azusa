@@ -21,6 +21,7 @@ import 'dav/directory_sort.dart';
 import 'dav/directory_favorites.dart';
 import 'dav/directory_favorites_bar.dart';
 import 'organizer_state.dart';
+import 'dav/empty_directory_dialog.dart';
 import 'dav/webdav.dart';
 import 'connections/webdav_manager.dart';
 import '../settings/settings_tab.dart';
@@ -555,6 +556,8 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                const EmptyDirectoryButton(),
+                const SizedBox(width: 8),
               ],
               if (box.maxWidth < 360 && connected)
                 FTooltip(
@@ -598,13 +601,31 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 padding: compact
                     ? const EdgeInsets.fromLTRB(16, 10, 16, 8)
                     : const EdgeInsets.fromLTRB(20, 18, 16, 12),
-                child: Row(
-                  children: [
-                    Expanded(child: connection),
-                    SizedBox(width: compact ? 8 : 16),
-                    actions,
-                  ],
-                ),
+                child: connected && box.maxWidth < 500
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              const Expanded(child: connection),
+                              const SizedBox(width: 8),
+                              actions.children.first,
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: actions.children.skip(2).toList(),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(child: connection),
+                          SizedBox(width: compact ? 8 : 16),
+                          actions,
+                        ],
+                      ),
               ),
               if (connected) ...[
                 Padding(
