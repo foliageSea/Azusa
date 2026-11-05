@@ -249,6 +249,44 @@ void main() {
         .clearLocalesTestValue();
   });
 
+  for (final width in [600.0, 1466.0]) {
+    testWidgets('桌面助手在 $width 宽度为滚动条保留消息间距', (tester) async {
+      final (container, _) = await _pump(tester, width);
+      final assistant = container.read(assistantProvider.notifier);
+      assistant.grantConsent();
+      for (var i = 0; i < 4; i++) {
+        await assistant.send('按作品建立文件夹并分季整理');
+        await tester.pumpAndSettle();
+      }
+
+      final messages = find.byKey(const ValueKey('assistant-messages'));
+      final list = tester.widget<ListView>(messages);
+      final bounds = tester.getRect(messages);
+      final controller = list.controller!;
+      expect(controller.position.maxScrollExtent, greaterThan(0));
+
+      void expectMessageSpacing() {
+        for (final message in container.read(assistantProvider).messages) {
+          final item = find.byKey(ValueKey('assistant-message-${message.id}'));
+          if (item.evaluate().isEmpty) continue;
+          expect(
+            tester.getRect(item).right,
+            lessThanOrEqualTo(bounds.right - 16),
+          );
+        }
+      }
+
+      expectMessageSpacing();
+      controller.jumpTo(0);
+      await tester.pumpAndSettle();
+      await tester.drag(messages, const Offset(0, -200));
+      await tester.pumpAndSettle();
+      expect(controller.offset, greaterThan(0));
+      expectMessageSpacing();
+      expect(tester.takeException(), isNull);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+  }
+
   for (final width in [390.0, 1280.0]) {
     testWidgets('实际连接选择器在 $width 宽度贴左且子目录标签横排', (tester) async {
       await _pump(tester, width, withConnections: true);

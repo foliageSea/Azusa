@@ -439,7 +439,7 @@ class _Conversation extends ConsumerWidget {
                   key: const ValueKey('assistant-messages'),
                   controller: scroll,
                   primary: false,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsetsDirectional.fromSTEB(0, 8, 16, 8),
                   itemCount: assistant.messages.length,
                   itemBuilder: (context, index) {
                     final message = assistant.messages[index];
