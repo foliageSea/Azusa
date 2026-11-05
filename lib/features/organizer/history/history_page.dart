@@ -198,7 +198,7 @@ class _HistoryRowState extends State<_HistoryRow> {
             Text(
               entry.sourceSummary!,
               style: entry.target == null ? theme.typography.body.sm : muted,
-              maxLines: entry.directoryChanged ? 3 : 2,
+              maxLines: 2,
               overflow: expanded ? null : TextOverflow.ellipsis,
             ),
             if (entry.target != null) ...[
@@ -216,7 +216,7 @@ class _HistoryRowState extends State<_HistoryRow> {
                     child: Text(
                       entry.targetSummary!,
                       style: theme.typography.body.sm,
-                      maxLines: entry.directoryChanged ? 3 : 2,
+                      maxLines: 2,
                       overflow: expanded ? null : TextOverflow.ellipsis,
                     ),
                   ),

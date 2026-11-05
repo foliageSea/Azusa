@@ -38,21 +38,9 @@ class HistoryEntry {
     return renamed ? HistoryPathChange.rename : null;
   }
 
-  bool get directoryChanged =>
-      pathChange == HistoryPathChange.move ||
-      pathChange == HistoryPathChange.moveAndRename;
+  String? get sourceSummary => source == null ? null : _fileName(source!);
 
-  String? get sourceSummary => source == null
-      ? null
-      : directoryChanged
-      ? source
-      : _fileName(source!);
-
-  String? get targetSummary => target == null
-      ? null
-      : directoryChanged
-      ? target
-      : _fileName(target!);
+  String? get targetSummary => target == null ? null : _fileName(target!);
 
   static final _timestamp = RegExp(
     r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?) ',

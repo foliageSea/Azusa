@@ -10,7 +10,6 @@ void main() {
 
       expect(entry.pathChange, HistoryPathChange.rename);
       expect(entry.title, '重命名');
-      expect(entry.directoryChanged, isFalse);
       expect(entry.sourceSummary, 'old.mkv');
       expect(entry.targetSummary, 'new.mkv');
     });
@@ -22,9 +21,8 @@ void main() {
 
       expect(entry.pathChange, HistoryPathChange.move);
       expect(entry.title, '移动');
-      expect(entry.directoryChanged, isTrue);
-      expect(entry.sourceSummary, '/dav/old/episode.mkv');
-      expect(entry.targetSummary, '/dav/new/episode.mkv');
+      expect(entry.sourceSummary, 'episode.mkv');
+      expect(entry.targetSummary, 'episode.mkv');
     });
 
     test('identifies moving and renaming from legacy rename records', () {
@@ -35,8 +33,8 @@ void main() {
 
       expect(entry.pathChange, HistoryPathChange.moveAndRename);
       expect(entry.title, '移动并重命名');
-      expect(entry.sourceSummary, source);
-      expect(entry.targetSummary, target);
+      expect(entry.sourceSummary, 'Breaking.Bad.S01E01.1080p.mkv');
+      expect(entry.targetSummary, '绝命毒师 - S01E01 - 向导.mkv');
     });
 
     test('parses source and target in move records too', () {
@@ -87,8 +85,8 @@ void main() {
       expect(entries.single.startedAt, DateTime(2026, 11, 5, 9, 14, 20));
       expect(entries.single.time, DateTime(2026, 11, 5, 9, 14, 21));
       expect(entries.single.pathChange, HistoryPathChange.moveAndRename);
-      expect(entries.single.sourceSummary, '/dav/old/a.mkv');
-      expect(entries.single.targetSummary, '/dav/new/b.mkv');
+      expect(entries.single.sourceSummary, 'a.mkv');
+      expect(entries.single.targetSummary, 'b.mkv');
     });
   });
 }
