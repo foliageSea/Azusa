@@ -580,23 +580,50 @@ class _UserBubble extends StatelessWidget {
     final theme = context.theme;
     return Align(
       alignment: Alignment.centerRight,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: theme.colors.primary,
-            borderRadius: theme.style.borderRadius.lg,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            child: Text(
-              message.text,
-              style: theme.typography.body.sm.copyWith(
-                color: theme.colors.primaryForeground,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colors.primary,
+                  borderRadius: theme.style.borderRadius.lg,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  child: Text(
+                    message.text,
+                    style: theme.typography.body.sm.copyWith(
+                      color: theme.colors.primaryForeground,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+          const SizedBox(width: 10),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colors.secondary,
+              shape: BoxShape.circle,
+            ),
+            child: SizedBox.square(
+              key: ValueKey('assistant-user-avatar-${message.id}'),
+              dimension: 28,
+              child: Icon(
+                FLucideIcons.userRound,
+                size: 14,
+                color: theme.colors.secondaryForeground,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

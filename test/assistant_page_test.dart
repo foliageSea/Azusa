@@ -288,6 +288,38 @@ void main() {
   }
 
   for (final width in [390.0, 1280.0]) {
+    testWidgets('用户消息在 $width 宽度显示右侧头像且长文本不溢出', (tester) async {
+      final (container, _) = await _pump(tester, width);
+      final assistant = container.read(assistantProvider.notifier);
+      assistant.grantConsent();
+      final text = List.filled(8, '按作品建立文件夹并分季整理，保留字幕。').join();
+      await assistant.send(text);
+      await tester.pumpAndSettle();
+      final message = container
+          .read(assistantProvider)
+          .messages
+          .whereType<AssistantUserMessage>()
+          .single;
+      final item = find.byKey(ValueKey('assistant-message-${message.id}'));
+      final avatar = find.byKey(
+        ValueKey('assistant-user-avatar-${message.id}'),
+      );
+      final messages = find.byKey(const ValueKey('assistant-messages'));
+      tester.widget<ListView>(messages).controller!.jumpTo(0);
+      await tester.pumpAndSettle();
+
+      final avatarRect = tester.getRect(avatar);
+      final textRect = tester.getRect(
+        find.descendant(of: item, matching: find.text(text)),
+      );
+      expect(avatarRect.size, const Size(28, 28));
+      expect(avatarRect.top, tester.getRect(item).top);
+      expect(avatarRect.right, tester.getRect(item).right);
+      expect(textRect.right, lessThanOrEqualTo(avatarRect.left - 10));
+      expect(textRect.left, greaterThanOrEqualTo(tester.getRect(item).left));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('实际连接选择器在 $width 宽度贴左且子目录标签横排', (tester) async {
       await _pump(tester, width, withConnections: true);
       final toolbar = tester.getRect(
