@@ -35,6 +35,7 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
   final _input = TextEditingController();
   final _inputFocus = FocusNode(debugLabel: 'assistant input');
   final _scroll = ScrollController();
+  String? _selectedPrompt;
 
   @override
   void initState() {
@@ -121,17 +122,20 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
       false;
 
   void _selectPrompt(String prompt) {
-    final existing = _input.text.trimRight();
-    final text = existing.isEmpty ? prompt : '$existing\n$prompt';
-    _input.value = TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
-    );
+    setState(() => _selectedPrompt = prompt);
+    _inputFocus.requestFocus();
+  }
+
+  void _removePrompt() {
+    setState(() => _selectedPrompt = null);
     _inputFocus.requestFocus();
   }
 
   Future<void> _send() async {
-    final text = _input.text.trim();
+    final text = [
+      ?_selectedPrompt,
+      if (_input.text.trim().isNotEmpty) _input.text.trim(),
+    ].join('\n');
     final organizer = ref.read(organizerProvider);
     if (text.isEmpty || organizer.busy || organizer.executing) return;
     final connection = ref.read(connectionSettingsProvider).asData?.value;
@@ -151,6 +155,7 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
       }
       _assistant.grantConsent();
     }
+    setState(() => _selectedPrompt = null);
     _input.clear();
     _scrollToEnd();
     await _assistant.send(text);
@@ -236,6 +241,8 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
             scroll: _scroll,
             input: _input,
             inputFocus: _inputFocus,
+            selectedPrompt: _selectedPrompt,
+            onRemovePrompt: _removePrompt,
             onSend: _send,
             onPrompt: _selectPrompt,
             onStop: _assistant.stop,
@@ -279,6 +286,8 @@ class _Conversation extends ConsumerWidget {
     required this.scroll,
     required this.input,
     required this.inputFocus,
+    required this.selectedPrompt,
+    required this.onRemovePrompt,
     required this.onSend,
     required this.onPrompt,
     required this.onStop,
@@ -291,6 +300,8 @@ class _Conversation extends ConsumerWidget {
   final ScrollController scroll;
   final TextEditingController input;
   final FocusNode inputFocus;
+  final String? selectedPrompt;
+  final VoidCallback onRemovePrompt;
   final Future<void> Function() onSend;
   final ValueChanged<String> onPrompt;
   final VoidCallback onStop;
@@ -404,11 +415,13 @@ class _Conversation extends ConsumerWidget {
           _Composer(
             controller: input,
             focusNode: inputFocus,
+            selectedPrompt: selectedPrompt,
+            onRemovePrompt: onRemovePrompt,
             analyzing: organizer.analyzing,
             enabled:
                 !locked &&
                 organizer.entries.isNotEmpty &&
-                input.text.trim().isNotEmpty,
+                (selectedPrompt != null || input.text.trim().isNotEmpty),
             readOnly: locked,
             onSend: onSend,
             onStop: onStop,
@@ -988,6 +1001,8 @@ class _Composer extends StatelessWidget {
   const _Composer({
     required this.controller,
     required this.focusNode,
+    required this.selectedPrompt,
+    required this.onRemovePrompt,
     required this.analyzing,
     required this.enabled,
     required this.readOnly,
@@ -997,6 +1012,8 @@ class _Composer extends StatelessWidget {
 
   final TextEditingController controller;
   final FocusNode focusNode;
+  final String? selectedPrompt;
+  final VoidCallback onRemovePrompt;
   final bool analyzing, enabled, readOnly;
   final Future<void> Function() onSend;
   final VoidCallback onStop;
@@ -1008,6 +1025,15 @@ class _Composer extends StatelessWidget {
       canRequestFocus: false,
       skipTraversal: true,
       onKeyEvent: (_, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace &&
+            !readOnly &&
+            selectedPrompt != null &&
+            controller.text.isEmpty &&
+            !controller.value.composing.isValid) {
+          onRemovePrompt();
+          return KeyEventResult.handled;
+        }
         if (event is! KeyDownEvent ||
             event.logicalKey != LogicalKeyboardKey.enter ||
             HardwareKeyboard.instance.isShiftPressed ||
@@ -1021,16 +1047,70 @@ class _Composer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: FTextField(
-              key: const ValueKey('assistant-input'),
-              control: .managed(controller: controller),
-              focusNode: focusNode,
-              hint: l.assistantInputHint,
-              readOnly: readOnly,
-              minLines: 1,
-              maxLines: 5,
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.newline,
+            child: LayoutBuilder(
+              builder: (context, constraints) => FTextField(
+                key: const ValueKey('assistant-input'),
+                style: .delta(constraints: BoxConstraints(minHeight: 44)),
+                control: .managed(controller: controller),
+                focusNode: focusNode,
+                hint: l.assistantInputHint,
+                readOnly: readOnly,
+                textAlignVertical: TextAlignVertical.center,
+                minLines: 1,
+                maxLines: 5,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                prefixBuilder: selectedPrompt == null
+                    ? (context, style, variants) =>
+                          const SizedBox(width: 10, height: 44)
+                    : (context, style, variants) => Padding(
+                        padding: const EdgeInsets.fromLTRB(6, 8, 4, 8),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: constraints.maxWidth * 0.65,
+                          ),
+                          child: FBadge(
+                            key: const ValueKey('assistant-prompt-tag'),
+                            variant: .secondary,
+                            style: .delta(
+                              padding: .value(EdgeInsets.fromLTRB(8, 2, 2, 2)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    selectedPrompt!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                FButton.icon(
+                                  key: const ValueKey(
+                                    'assistant-remove-prompt',
+                                  ),
+                                  variant: .ghost,
+                                  size: .sm,
+                                  style: .delta(
+                                    iconContentStyle: .delta(
+                                      constraints: BoxConstraints.tightFor(
+                                        width: 24,
+                                        height: 24,
+                                      ),
+                                      padding: .value(EdgeInsets.all(5)),
+                                    ),
+                                  ),
+                                  semanticsLabel: l.close,
+                                  onPress: readOnly ? null : onRemovePrompt,
+                                  child: const Icon(FLucideIcons.x, size: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -1039,6 +1119,11 @@ class _Composer extends StatelessWidget {
               tipBuilder: (_, _) => Text(l.assistantStop),
               child: FButton.icon(
                 key: const ValueKey('assistant-stop'),
+                style: .delta(
+                  iconContentStyle: .delta(
+                    constraints: BoxConstraints.tightFor(width: 44, height: 44),
+                  ),
+                ),
                 variant: .outline,
                 semanticsLabel: l.assistantStop,
                 onPress: onStop,
@@ -1050,6 +1135,11 @@ class _Composer extends StatelessWidget {
               tipBuilder: (_, _) => Text(l.assistantSend),
               child: FButton.icon(
                 key: const ValueKey('assistant-send'),
+                style: .delta(
+                  iconContentStyle: .delta(
+                    constraints: BoxConstraints.tightFor(width: 44, height: 44),
+                  ),
+                ),
                 semanticsLabel: l.assistantSend,
                 onPress: enabled ? onSend : null,
                 child: const Icon(FLucideIcons.sendHorizontal),

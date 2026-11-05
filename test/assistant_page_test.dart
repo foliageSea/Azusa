@@ -14,6 +14,7 @@ import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:azusa/features/organizer/startup_connection.dart';
 import 'package:flutter/widgets.dart';
+import 'package:material_ui/material_ui.dart' show InputDecorator;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -336,7 +337,7 @@ void main() {
     });
   }
 
-  testWidgets('快捷选择会追加到已有输入内容', (tester) async {
+  testWidgets('快捷选择替换单个 Tag 并保留补充输入，可单独移除', (tester) async {
     final (_, organizer) = await _pump(tester, 1280);
     final input = find.descendant(
       of: find.byKey(const ValueKey('assistant-input')),
@@ -345,15 +346,145 @@ void main() {
     await tester.enterText(input, '保留字幕');
     await tester.tap(find.text('只整理剧集，跳过电影'));
     await tester.pumpAndSettle();
+    final tag = find.byKey(const ValueKey('assistant-prompt-tag'));
+    expect(tester.widget<EditableText>(input).controller.text, '保留字幕');
+    expect(tag, findsOneWidget);
     expect(
-      tester.widget<EditableText>(input).controller.text,
-      '保留字幕\n只整理剧集，跳过电影',
+      find.descendant(of: tag, matching: find.text('只整理剧集，跳过电影')),
+      findsOneWidget,
     );
+    final organize = find.byKey(const ValueKey('assistant-prompt-识别并整理这个目录'));
+    await tester.tap(organize);
+    await tester.pumpAndSettle();
+    await tester.tap(organize);
+    await tester.pumpAndSettle();
+    expect(tag, findsOneWidget);
+    expect(
+      find.descendant(of: tag, matching: find.text('识别并整理这个目录')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: tag, matching: find.text('只整理剧集，跳过电影')),
+      findsNothing,
+    );
+    expect(tester.widget<EditableText>(input).controller.text, '保留字幕');
+    await tester.tap(find.byKey(const ValueKey('assistant-remove-prompt')));
+    await tester.pumpAndSettle();
+    expect(tag, findsNothing);
+    expect(tester.widget<EditableText>(input).controller.text, '保留字幕');
     expect(organizer.proposals, 0);
     expect(tester.takeException(), isNull);
   });
 
   for (final width in [390.0, 1280.0]) {
+    testWidgets(
+      '快捷 Tag 在 $width 宽度添加、替换和移除不改变单行输入框高度',
+      (tester) async {
+        await _pump(tester, width);
+        final field = find.byKey(const ValueKey('assistant-input'));
+        final border = find.descendant(
+          of: field,
+          matching: find.byType(InputDecorator),
+        );
+        final send = find.byKey(const ValueKey('assistant-send'));
+        final initialRect = tester.getRect(border);
+        final height = initialRect.height;
+        void expectAligned() {
+          final rect = tester.getRect(border);
+          final button = tester.getRect(send);
+          expect(rect, initialRect);
+          expect(button.height, rect.height);
+          expect(button.top, rect.top);
+          expect(button.bottom, rect.bottom);
+        }
+
+        expectAligned();
+        for (final prompt in ['只整理剧集，跳过电影', '按作品建立文件夹并分季整理']) {
+          await tester.tap(find.byKey(ValueKey('assistant-prompt-$prompt')));
+          for (var frame = 0; frame < 15; frame++) {
+            await tester.pump(const Duration(milliseconds: 16));
+            expectAligned();
+          }
+          await tester.pumpAndSettle();
+          expectAligned();
+        }
+        await tester.tap(find.byKey(const ValueKey('assistant-remove-prompt')));
+        for (var frame = 0; frame < 15; frame++) {
+          await tester.pump(const Duration(milliseconds: 16));
+          expectAligned();
+        }
+        await tester.pumpAndSettle();
+        expectAligned();
+
+        final input = find.descendant(
+          of: field,
+          matching: find.byType(EditableText),
+        );
+        await tester.enterText(input, '保留字幕\n保留语言标记\n保留原文件');
+        await tester.pumpAndSettle();
+        expect(tester.getSize(field).height, greaterThan(height));
+        expect(tester.takeException(), isNull);
+      },
+      variant: TargetPlatformVariant({
+        TargetPlatform.windows,
+        TargetPlatform.android,
+      }),
+    );
+
+    testWidgets('Backspace 在 $width 宽度仅在输入为空时删除 Tag', (tester) async {
+      await _pump(tester, width);
+      final field = find.byKey(const ValueKey('assistant-input'));
+      final input = find.descendant(
+        of: field,
+        matching: find.byType(EditableText),
+      );
+      final tag = find.byKey(const ValueKey('assistant-prompt-tag'));
+      await tester.tap(
+        find.byKey(const ValueKey('assistant-prompt-只整理剧集，跳过电影')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(input, '保留字幕');
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump();
+      expect(tag, findsOneWidget);
+
+      await tester.enterText(input, '');
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pumpAndSettle();
+      expect(tag, findsNothing);
+      expect(tester.widget<EditableText>(input).focusNode.hasFocus, isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('快捷 Tag 背景在 $width 宽度下留在输入框内部', (tester) async {
+      await _pump(tester, width);
+      final field = find.byKey(const ValueKey('assistant-input'));
+      final input = find.descendant(
+        of: field,
+        matching: find.byType(EditableText),
+      );
+      final tag = find.byKey(const ValueKey('assistant-prompt-tag'));
+
+      for (final prompt in ['只整理剧集，跳过电影', '按作品建立文件夹并分季整理']) {
+        await tester.tap(find.byKey(ValueKey('assistant-prompt-$prompt')));
+        await tester.pumpAndSettle();
+        for (final text in ['', '保留字幕\n保留语言标记']) {
+          await tester.enterText(input, text);
+          await tester.pumpAndSettle();
+          final fieldRect = tester.getRect(field);
+          final tagRect = tester.getRect(tag);
+          expect(tagRect.left, greaterThanOrEqualTo(fieldRect.left + 6));
+          expect(tagRect.top, greaterThanOrEqualTo(fieldRect.top + 6));
+          expect(tagRect.right, lessThan(fieldRect.right));
+          expect(tagRect.bottom, lessThanOrEqualTo(fieldRect.bottom - 6));
+          expect(tester.takeException(), isNull);
+        }
+      }
+    });
+
     testWidgets('快捷选择在 $width 宽度可补充要求后一起发送', (tester) async {
       final (container, organizer) = await _pump(tester, width);
       final input = find.descendant(
@@ -363,11 +494,16 @@ void main() {
 
       await tester.tap(find.text('只整理剧集，跳过电影'));
       await tester.pumpAndSettle();
-      expect(tester.widget<EditableText>(input).controller.text, '只整理剧集，跳过电影');
+      final tag = find.byKey(const ValueKey('assistant-prompt-tag'));
+      expect(tester.widget<EditableText>(input).controller.text, isEmpty);
+      expect(
+        find.descendant(of: tag, matching: find.text('只整理剧集，跳过电影')),
+        findsOneWidget,
+      );
       expect(organizer.proposals, 0);
       expect(find.text('将此目录发送给 AI 分析？'), findsNothing);
 
-      await tester.enterText(input, '只整理剧集，跳过电影\n保留原文件名中的语言标记');
+      await tester.enterText(input, '保留原文件名中的语言标记');
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('assistant-send')));
       await tester.pumpAndSettle();
@@ -377,8 +513,9 @@ void main() {
       expect(organizer.proposals, 0);
       expect(
         tester.widget<EditableText>(input).controller.text,
-        '只整理剧集，跳过电影\n保留原文件名中的语言标记',
+        '保留原文件名中的语言标记',
       );
+      expect(tag, findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('assistant-send')));
       await tester.pumpAndSettle();
@@ -392,6 +529,7 @@ void main() {
         organizer.instructions.single,
       );
       expect(tester.widget<EditableText>(input).controller.text, isEmpty);
+      expect(tag, findsNothing);
       expect(tester.takeException(), isNull);
     });
 
