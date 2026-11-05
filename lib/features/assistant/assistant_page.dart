@@ -342,20 +342,16 @@ class _Conversation extends ConsumerWidget {
               )..layout();
               final checkboxWidth = labelPainter.width.ceilToDouble() + 40;
               labelPainter.dispose();
-              final controls = Row(
-                mainAxisAlignment: narrow
-                    ? MainAxisAlignment.end
-                    : MainAxisAlignment.start,
+              return Row(
                 children: [
-                  if (!narrow)
-                    const Expanded(
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: WebDavManager(compact: true),
-                      ),
+                  const Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: WebDavManager(compact: true),
                     ),
+                  ),
                   if (directory.isNotEmpty) ...[
-                    if (!narrow) const SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     SizedBox(
                       width: checkboxWidth,
                       child: FCheckbox(
@@ -379,10 +375,10 @@ class _Conversation extends ConsumerWidget {
                         maxWidth:
                             (box.maxWidth -
                                     checkboxWidth -
-                                    12 -
+                                    24 -
                                     (assistant.messages.isNotEmpty ? 48 : 0) -
-                                    (narrow ? 0 : 120))
-                                .clamp(0, 180),
+                                    (narrow ? 72 : 120))
+                                .clamp(0, narrow ? 112 : 180),
                       ),
                       child: FButton(
                         key: const ValueKey('assistant-directory'),
@@ -416,20 +412,6 @@ class _Conversation extends ConsumerWidget {
                         child: const Icon(FLucideIcons.squarePen),
                       ),
                     ),
-                  ],
-                ],
-              );
-              if (!narrow) return controls;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: WebDavManager(compact: true),
-                  ),
-                  if (directory.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    controls,
                   ],
                 ],
               );
