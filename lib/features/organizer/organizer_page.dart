@@ -328,6 +328,45 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 children: [
                   Row(
                     children: [
+                      FButton(
+                        variant: .ghost,
+                        size: .sm,
+                        onPress:
+                            locked || !state.entries.any((e) => e.directory)
+                            ? null
+                            : () => _controller.selectDirectories([
+                                ...state.selectedDirectories,
+                                for (final entry in state.entries)
+                                  if (entry.directory &&
+                                      (filter.text.isEmpty ||
+                                          entry.name.toLowerCase().contains(
+                                            filter.text.toLowerCase(),
+                                          )))
+                                    entry.path,
+                              ]),
+                        child: Text(context.l10n.selectAllDirectories),
+                      ),
+                      if (state.selectedDirectories.isNotEmpty) ...[
+                        Expanded(
+                          child: Text(
+                            context.l10n.selectedDirectoryCount(
+                              state.selectedDirectories.length,
+                            ),
+                          ),
+                        ),
+                        FButton(
+                          variant: .ghost,
+                          size: .sm,
+                          onPress: locked
+                              ? null
+                              : () => _controller.selectDirectories([]),
+                          child: Text(context.l10n.clearDirectorySelection),
+                        ),
+                      ],
+                    ],
+                  ),
+                  Row(
+                    children: [
                       if (state.directory.isNotEmpty) ...[
                         _directoryTools(
                           context,
@@ -342,10 +381,19 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                         child: FButton(
                           builder: responsiveButtonContent,
                           prefix: const Icon(FLucideIcons.arrowRight),
-                          onPress: locked || state.entries.isEmpty
+                          onPress:
+                              locked ||
+                                  (state.entries.isEmpty &&
+                                      state.selectedDirectories.isEmpty)
                               ? null
                               : () => context.go('/assistant'),
-                          child: Text(context.l10n.organizeDirectory),
+                          child: Text(
+                            state.selectedDirectories.isEmpty
+                                ? context.l10n.organizeDirectory
+                                : context.l10n.organizeSelectedDirectories(
+                                    state.selectedDirectories.length,
+                                  ),
+                          ),
                         ),
                       ),
                     ],
@@ -778,6 +826,11 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                                 planned: planned.contains(entry.path),
                                 onOpen: () => _openDirectory(entry.path),
                                 onRename: () => _renameEntry(entry),
+                                checked: state.selectedDirectories.contains(
+                                  entry.path,
+                                ),
+                                onToggle: () =>
+                                    _controller.toggleDirectory(entry.path),
                               );
                             },
                           ),
@@ -968,6 +1021,8 @@ class _EntryRow extends StatelessWidget {
     required this.onSelect,
     required this.onOpen,
     required this.onRename,
+    required this.checked,
+    required this.onToggle,
     super.key,
   });
   final DavEntry entry;
@@ -975,6 +1030,8 @@ class _EntryRow extends StatelessWidget {
   final VoidCallback onSelect;
   final VoidCallback onOpen;
   final VoidCallback onRename;
+  final bool checked;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -1018,6 +1075,14 @@ class _EntryRow extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
           child: Row(
             children: [
+              if (entry.directory) ...[
+                FCheckbox(
+                  value: checked,
+                  enabled: !locked,
+                  onChange: (_) => onToggle(),
+                ),
+                const SizedBox(width: 12),
+              ],
               Icon(
                 _entryIcon(entry),
                 size: 20,

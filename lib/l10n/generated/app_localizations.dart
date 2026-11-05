@@ -98,6 +98,54 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @addDirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'Add folders'**
+  String get addDirectories;
+
+  /// No description provided for @removeSelectedDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove folder: {name}'**
+  String removeSelectedDirectory(String name);
+
+  /// No description provided for @assistantEmptyTitleMultiple.
+  ///
+  /// In en, this message translates to:
+  /// **'How should these folders be organized?'**
+  String get assistantEmptyTitleMultiple;
+
+  /// No description provided for @assistantPromptOrganizeMultiple.
+  ///
+  /// In en, this message translates to:
+  /// **'Identify and organize these folders'**
+  String get assistantPromptOrganizeMultiple;
+
+  /// No description provided for @selectAllDirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'Select folders'**
+  String get selectAllDirectories;
+
+  /// No description provided for @clearDirectorySelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get clearDirectorySelection;
+
+  /// No description provided for @selectedDirectoryCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} folders selected'**
+  String selectedDirectoryCount(int count);
+
+  /// No description provided for @organizeSelectedDirectories.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize selected folders ({count})'**
+  String organizeSelectedDirectories(int count);
+
   /// No description provided for @includeSubdirectories.
   ///
   /// In en, this message translates to:

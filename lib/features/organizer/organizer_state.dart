@@ -29,12 +29,15 @@ class OrganizerState {
     this.executing = false,
     this.analyzing = false,
     this.progress = '',
+    this.analysisDirectory = '',
     this.message = '',
     this.aiUsage,
     this.pricing,
     this.includeSubdirectories = true,
+    this.selectedDirectories = const [],
   });
   final String directory, progress, message;
+  final String analysisDirectory;
   final List<DavEntry> entries;
   final List<DavEntry> analysisEntries;
   final List<RenameItem> plan;
@@ -43,6 +46,19 @@ class OrganizerState {
   final AiUsage? aiUsage;
   final ModelPricing? pricing;
   final bool includeSubdirectories;
+  final List<String> selectedDirectories;
+
+  List<String> get organizingDirectories {
+    final paths = selectedDirectories.isEmpty
+        ? [if (directory.isNotEmpty) directory]
+        : selectedDirectories;
+    return [
+      for (final path in paths)
+        if (!includeSubdirectories ||
+            !paths.any((other) => other != path && path.startsWith(other)))
+          path,
+    ];
+  }
 
   bool get hasError =>
       RegExp('失败|停止|无效|错误|未找到|不能|冲突|已变化|已存在').hasMatch(message);
@@ -50,6 +66,7 @@ class OrganizerState {
   OrganizerState copyWith({
     String? directory,
     String? progress,
+    String? analysisDirectory,
     String? message,
     List<DavEntry>? entries,
     List<DavEntry>? analysisEntries,
@@ -61,6 +78,7 @@ class OrganizerState {
     ModelPricing? pricing,
     bool clearAnalysis = false,
     bool? includeSubdirectories,
+    List<String>? selectedDirectories,
   }) => OrganizerState(
     directory: directory ?? this.directory,
     entries: entries ?? this.entries,
@@ -72,10 +90,14 @@ class OrganizerState {
     executing: executing ?? this.executing,
     analyzing: analyzing ?? this.analyzing,
     progress: progress ?? this.progress,
+    analysisDirectory: clearAnalysis
+        ? ''
+        : analysisDirectory ?? this.analysisDirectory,
     message: message ?? this.message,
     aiUsage: clearAnalysis ? null : aiUsage ?? this.aiUsage,
     pricing: clearAnalysis ? null : pricing ?? this.pricing,
     includeSubdirectories: includeSubdirectories ?? this.includeSubdirectories,
+    selectedDirectories: selectedDirectories ?? this.selectedDirectories,
   );
 }
 
@@ -202,6 +224,37 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
 
   void cancelSuggestions() => _cancelAnalysis?.call();
 
+  void selectDirectories(Iterable<String> paths) {
+    if (state.busy || state.executing) return;
+    final dav = client();
+    try {
+      final selected =
+          paths
+              .map(
+                (path) => dav.normalize(path.endsWith('/') ? path : '$path/'),
+              )
+              .toSet()
+              .toList()
+            ..sort();
+      state = state.copyWith(
+        selectedDirectories: List.unmodifiable(selected),
+        plan: [],
+        clearAnalysis: true,
+        message: '',
+      );
+    } finally {
+      dav.close();
+    }
+  }
+
+  void toggleDirectory(String path) {
+    selectDirectories([
+      for (final selected in state.selectedDirectories)
+        if (selected != path) selected,
+      if (!state.selectedDirectories.contains(path)) path,
+    ]);
+  }
+
   void setIncludeSubdirectories(bool value) {
     if (state.busy || state.executing) return;
     state = state.copyWith(
@@ -288,6 +341,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     final generation = ++_analysisGeneration;
     final startedAt = DateTime.now();
     final directory = state.directory;
+    final directories = state.organizingDirectories;
     String? model;
     var succeeded = false;
     var cancelled = false;
@@ -342,32 +396,40 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         subject: displayDavPath(state.directory),
       );
       onActivity?.call(scan);
-      final List<DavEntry> analysisEntries;
+      final analysisEntries = <DavEntry>[];
+      final batches = <(String, List<DavEntry>)>[];
       final List<DavEntry> fresh;
       try {
         fresh = await interruptible(dav.list(state.directory));
-        analysisEntries = await interruptible(
-          scanMediaDirectories(
-            dav,
-            directory,
-            recursive: state.includeSubdirectories,
-            checkCancelled: () {
-              if (cancelled) throw StateError('AI 建议已中断');
-            },
-            onProgress: (path, count) {
-              if (!cancelled) {
-                onActivity?.call(
-                  AgentActivity(
-                    key: 'scan',
-                    kind: AgentActivityKind.scan,
-                    subject: displayDavPath(path),
-                    count: count,
-                  ),
-                );
-              }
-            },
-          ),
-        );
+        for (final scope in directories) {
+          final scanned = await interruptible(
+            scanMediaDirectories(
+              dav,
+              scope,
+              recursive: state.includeSubdirectories,
+              checkCancelled: () {
+                if (cancelled) throw StateError('AI 建议已中断');
+              },
+              onProgress: (path, count) {
+                if (!cancelled) {
+                  onActivity?.call(
+                    AgentActivity(
+                      key: 'scan',
+                      kind: AgentActivityKind.scan,
+                      subject: displayDavPath(path),
+                      count: count,
+                    ),
+                  );
+                }
+              },
+            ),
+          );
+          analysisEntries.addAll(scanned);
+          batches.addAll([
+            for (final batch in RenameAgent.batches(scope, scanned))
+              (scope, batch),
+          ]);
+        }
       } catch (error) {
         if (!cancelled) onActivity?.call(scan.fail(serviceError(error)));
         rethrow;
@@ -375,20 +437,20 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       scan = scan.succeed(count: analysisEntries.length);
       onActivity?.call(scan);
       final plan = <RenameItem>[];
-      final batches = RenameAgent.batches(directory, analysisEntries);
       var accumulatedUsage = const AiUsage();
       var effectiveLayout = folderLayout;
-      for (final (batchIndex, batch) in batches.indexed) {
+      for (final (batchIndex, (scope, batch)) in batches.indexed) {
         if (cancelled) return;
         state = state.copyWith(
           progress: '${batchIndex + 1} / ${batches.length}',
+          analysisDirectory: scope,
         );
         agent = ref.read(renameAgentFactoryProvider)(settings, dav, tmdb);
         final previousUsage = accumulatedUsage;
         var batchUsage = const AiUsage();
         final result = await interruptible(
           agent.propose(
-            directory,
+            scope,
             batch,
             instruction: instruction,
             folderLayout: effectiveLayout,
@@ -433,7 +495,10 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         plan.addAll(result);
       }
       if (effectiveLayout != null) {
-        final placed = applyFolderLayout(plan, directory, effectiveLayout!);
+        var placed = plan;
+        for (final scope in directories) {
+          placed = applyFolderLayout(placed, scope, effectiveLayout!);
+        }
         plan
           ..clear()
           ..addAll(placed);
@@ -509,9 +574,11 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   /// Re-places the current plan with [layout], keeping manual edits.
   void applyLayout(FolderLayout layout) {
     if (state.executing || state.busy || state.directory.isEmpty) return;
-    state = state.copyWith(
-      plan: applyFolderLayout(state.plan, state.directory, layout),
-    );
+    var plan = state.plan;
+    for (final scope in state.organizingDirectories) {
+      plan = applyFolderLayout(plan, scope, layout);
+    }
+    state = state.copyWith(plan: plan);
   }
 
   Future<void> _record(String entry) async {

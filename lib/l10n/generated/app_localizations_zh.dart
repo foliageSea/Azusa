@@ -10,6 +10,36 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get addDirectories => '添加目录';
+
+  @override
+  String removeSelectedDirectory(String name) {
+    return '移除目录：$name';
+  }
+
+  @override
+  String get assistantEmptyTitleMultiple => '要怎么整理这些目录？';
+
+  @override
+  String get assistantPromptOrganizeMultiple => '识别并整理这些目录';
+
+  @override
+  String get selectAllDirectories => '全选目录';
+
+  @override
+  String get clearDirectorySelection => '清空选择';
+
+  @override
+  String selectedDirectoryCount(int count) {
+    return '已选 $count 个目录';
+  }
+
+  @override
+  String organizeSelectedDirectories(int count) {
+    return '整理所选目录（$count）';
+  }
+
+  @override
   String get includeSubdirectories => '包含子目录';
 
   @override

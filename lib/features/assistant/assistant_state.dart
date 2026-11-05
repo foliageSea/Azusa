@@ -197,6 +197,12 @@ class AssistantController extends Notifier<AssistantState> {
     ) {
       if (previous != next) state = AssistantState(layout: state.layout);
     });
+    ref.listen(organizerProvider.select((state) => state.selectedDirectories), (
+      previous,
+      next,
+    ) {
+      if (previous != next) state = AssistantState(layout: state.layout);
+    });
     return const AssistantState();
   }
 
@@ -206,7 +212,8 @@ class AssistantController extends Notifier<AssistantState> {
     final directory = ref.read(organizerProvider).directory;
     if (directory.isEmpty) return null;
     final connection = ref.read(connectionSettingsProvider).asData?.value;
-    return '${connection?.connectionId ?? connection?.webdavUrl}|$directory|${ref.read(organizerProvider).includeSubdirectories}';
+    final organizer = ref.read(organizerProvider);
+    return '${connection?.connectionId ?? connection?.webdavUrl}|${organizer.organizingDirectories.join('|')}|${organizer.includeSubdirectories}';
   }
 
   bool get hasConsent => scope != null && state.consentScope == scope;

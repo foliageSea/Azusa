@@ -10,6 +10,38 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get addDirectories => 'Add folders';
+
+  @override
+  String removeSelectedDirectory(String name) {
+    return 'Remove folder: $name';
+  }
+
+  @override
+  String get assistantEmptyTitleMultiple =>
+      'How should these folders be organized?';
+
+  @override
+  String get assistantPromptOrganizeMultiple =>
+      'Identify and organize these folders';
+
+  @override
+  String get selectAllDirectories => 'Select folders';
+
+  @override
+  String get clearDirectorySelection => 'Clear selection';
+
+  @override
+  String selectedDirectoryCount(int count) {
+    return '$count folders selected';
+  }
+
+  @override
+  String organizeSelectedDirectories(int count) {
+    return 'Organize selected folders ($count)';
+  }
+
+  @override
   String get includeSubdirectories => 'Include subdirectories';
 
   @override

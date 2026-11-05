@@ -20,6 +20,7 @@ import '../settings/settings_tab.dart';
 import 'assistant_state.dart';
 import 'plan_tree.dart';
 import 'plan_tree_view.dart';
+import 'selected_directories.dart';
 
 /// Width at which the plan sits beside the conversation instead of in a sheet.
 const _splitWidth = 960.0;
@@ -139,6 +140,7 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
     final organizer = ref.read(organizerProvider);
     if (text.isEmpty || organizer.busy || organizer.executing) return;
     final connection = ref.read(connectionSettingsProvider).asData?.value;
+    final consentScope = _assistant.scope;
     if (!_assistant.hasConsent) {
       final l = context.l10n;
       if (!await _confirm(
@@ -149,6 +151,7 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
             l.startAnalysis,
           ) ||
           !mounted ||
+          consentScope != _assistant.scope ||
           !identical(
             connection,
             ref.read(connectionSettingsProvider).asData?.value,
@@ -380,21 +383,27 @@ class _Conversation extends ConsumerWidget {
                                     (narrow ? 72 : 120))
                                 .clamp(0, narrow ? 112 : 180),
                       ),
-                      child: FButton(
-                        key: const ValueKey('assistant-directory'),
-                        variant: .outline,
-                        size: .sm,
-                        mainAxisSize: MainAxisSize.min,
-                        builder: responsiveButtonContent,
-                        semanticsLabel: displayDavPath(directory),
-                        prefix: const Icon(FLucideIcons.folderOpen),
-                        onPress: locked ? null : onSelectDirectory,
-                        child: Text(
-                          _directoryName(directory, l.rootDirectory),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
+                      child: organizer.selectedDirectories.isNotEmpty
+                          ? SelectedDirectoriesButton(onAdd: onSelectDirectory)
+                          : FButton(
+                              key: const ValueKey('assistant-directory'),
+                              variant: .outline,
+                              size: .sm,
+                              mainAxisSize: MainAxisSize.min,
+                              builder: responsiveButtonContent,
+                              semanticsLabel: displayDavPath(directory),
+                              prefix: const Icon(FLucideIcons.folderOpen),
+                              onPress: locked ? null : onSelectDirectory,
+                              child: Text(
+                                organizer.selectedDirectories.isEmpty
+                                    ? _directoryName(directory, l.rootDirectory)
+                                    : l.selectedDirectoryCount(
+                                        organizer.selectedDirectories.length,
+                                      ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                     ),
                   ],
                   if (assistant.messages.isNotEmpty) ...[
@@ -432,7 +441,11 @@ class _Conversation extends ConsumerWidget {
                 )
               : assistant.messages.isEmpty
               ? _Welcome(
-                  enabled: !locked && organizer.entries.isNotEmpty,
+                  multiple: organizer.selectedDirectories.length > 1,
+                  enabled:
+                      !locked &&
+                      (organizer.entries.isNotEmpty ||
+                          organizer.selectedDirectories.isNotEmpty),
                   onPrompt: onPrompt,
                 )
               : ListView.builder(
@@ -464,9 +477,56 @@ class _Conversation extends ConsumerWidget {
           if (organizer.analyzing && organizer.progress.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                l.analysisBatchProgress(organizer.progress),
-                style: theme.typography.body.sm,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        FLucideIcons.sparkles,
+                        size: 14,
+                        color: theme.colors.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l.analysisBatchProgress(organizer.progress),
+                          style: theme.typography.body.sm,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (organizer.analysisDirectory.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    FTooltip(
+                      tipBuilder: (_, _) =>
+                          Text(displayDavPath(organizer.analysisDirectory)),
+                      child: Row(
+                        children: [
+                          Icon(
+                            FLucideIcons.folder,
+                            size: 14,
+                            color: theme.colors.mutedForeground,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _directoryName(
+                                organizer.analysisDirectory,
+                                l.rootDirectory,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.typography.body.xs.copyWith(
+                                color: theme.colors.mutedForeground,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           _Composer(
@@ -477,7 +537,8 @@ class _Conversation extends ConsumerWidget {
             analyzing: organizer.analyzing,
             enabled:
                 !locked &&
-                organizer.entries.isNotEmpty &&
+                (organizer.entries.isNotEmpty ||
+                    organizer.selectedDirectories.isNotEmpty) &&
                 (selectedPrompt != null || input.text.trim().isNotEmpty),
             readOnly: locked,
             onSend: onSend,
@@ -489,7 +550,8 @@ class _Conversation extends ConsumerWidget {
           ],
           if (!organizer.analyzing &&
               !organizer.executing &&
-              organizer.entries.isEmpty)
+              organizer.entries.isEmpty &&
+              organizer.selectedDirectories.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
@@ -511,9 +573,14 @@ String _directoryName(String directory, String root) {
 }
 
 class _Welcome extends StatelessWidget {
-  const _Welcome({required this.enabled, required this.onPrompt});
+  const _Welcome({
+    required this.enabled,
+    required this.onPrompt,
+    this.multiple = false,
+  });
 
   final bool enabled;
+  final bool multiple;
   final ValueChanged<String> onPrompt;
 
   @override
@@ -521,7 +588,12 @@ class _Welcome extends StatelessWidget {
     final l = context.l10n;
     final theme = context.theme;
     final prompts = [
-      (FLucideIcons.sparkles, l.assistantPromptOrganize),
+      (
+        FLucideIcons.sparkles,
+        multiple
+            ? l.assistantPromptOrganizeMultiple
+            : l.assistantPromptOrganize,
+      ),
       (FLucideIcons.folderTree, l.assistantPromptFolders),
       (FLucideIcons.tv, l.assistantPromptSeriesOnly),
       (FLucideIcons.film, l.assistantPromptMoviesOnly),
@@ -542,7 +614,9 @@ class _Welcome extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                l.assistantEmptyTitle,
+                multiple
+                    ? l.assistantEmptyTitleMultiple
+                    : l.assistantEmptyTitle,
                 textAlign: TextAlign.center,
                 style: theme.typography.body.lg,
               ),

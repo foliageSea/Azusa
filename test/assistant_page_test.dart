@@ -84,6 +84,15 @@ class _Organizer extends OrganizerController {
   var proposals = 0;
   final instructions = <String>[];
 
+  void showAnalysis(String path) {
+    state = state.copyWith(
+      analyzing: true,
+      busy: true,
+      progress: '1 / 5',
+      analysisDirectory: path,
+    );
+  }
+
   @override
   Future<void> open(String? path) async {
     state = OrganizerState(
@@ -237,6 +246,89 @@ Future<(ProviderContainer, _Organizer)> _pump(
 }
 
 void main() {
+  for (final width in [390.0, 1280.0]) {
+    testWidgets('分析进度在 $width 宽度分开展示批次与长目录名', (tester) async {
+      final (_, organizer) = await _pump(tester, width);
+      final name = 'Azur.Lane.${'1080p.WEB-DL.HEVC.' * 20}';
+      organizer.showAnalysis('/dav/${Uri.encodeComponent(name)}/');
+      await tester.pump();
+      expect(find.text('正在分析第 1 / 5 批'), findsOneWidget);
+      final directory = tester.widget<Text>(find.text(name));
+      expect(directory.maxLines, 1);
+      expect(directory.overflow, TextOverflow.ellipsis);
+      expect(tester.takeException(), isNull);
+    });
+    testWidgets('目录面板在 $width 宽度支持长名称、滚动与添加', (tester) async {
+      final (container, _) = await _pump(tester, width);
+      final controller = container.read(organizerProvider.notifier);
+      final longName = '作品名称.${'Long.Movie.Name.1080p.' * 12}';
+      final longPath = '/dav/${Uri.encodeComponent(longName)}/';
+      controller.selectDirectories([
+        longPath,
+        for (var i = 0; i < 25; i++) '/dav/folder-$i/',
+      ]);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('assistant-directory')));
+      await tester.pumpAndSettle();
+      expect(find.text(longName), findsOneWidget);
+      await tester.tap(find.text(longName));
+      await tester.pumpAndSettle();
+      expect(find.text(Uri.decodeComponent(longPath)), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.drag(
+        find.byKey(const ValueKey('selected-directories-list')),
+        const Offset(0, -2000),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('folder-9'), findsOneWidget);
+      await tester.tap(find.text('添加目录'));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(routerProvider).routeInformationProvider.value.uri.path,
+        '/organize',
+      );
+      expect(
+        container.read(organizerProvider).selectedDirectories,
+        hasLength(26),
+      );
+      expect(tester.takeException(), isNull);
+    });
+    testWidgets('多选目录在 $width 宽度显示路径、移除并返回当前目录', (tester) async {
+      final (container, _) = await _pump(tester, width);
+      final controller = container.read(organizerProvider.notifier);
+      controller.selectDirectories(['/dav/a/', '/dav/b/']);
+      await tester.pumpAndSettle();
+      expect(find.text('已选 2 个目录'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('selected-directories-panel')),
+        findsNothing,
+      );
+      expect(find.text('要怎么整理这些目录？'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('assistant-directory')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('selected-directories-panel')),
+        findsOneWidget,
+      );
+      expect(find.text('a'), findsOneWidget);
+      expect(find.text('b'), findsOneWidget);
+      expect(find.text('/dav/'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('remove-directory-/dav/a/')));
+      await tester.pumpAndSettle();
+      expect(container.read(organizerProvider).selectedDirectories, [
+        '/dav/b/',
+      ]);
+      expect(find.text('已选 1 个目录'), findsWidgets);
+      await tester.tap(find.text('清空选择'));
+      await tester.pumpAndSettle();
+      expect(container.read(organizerProvider).selectedDirectories, isEmpty);
+      expect(
+        find.byKey(const ValueKey('selected-directories-panel')),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized()
         .platformDispatcher
@@ -355,6 +447,10 @@ void main() {
       );
       container.read(routerProvider).go('/organize');
       await tester.pumpAndSettle();
+      if (width < 600) {
+        await tester.tap(find.byKey(const ValueKey('nas-browser-actions')));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.byKey(const ValueKey('empty-directory-cleanup')));
       await tester.pumpAndSettle();
       expect(find.text('发现 2 个空目录'), findsOneWidget);
