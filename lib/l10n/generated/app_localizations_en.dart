@@ -1035,6 +1035,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moveAction => 'Move / Rename';
 
   @override
+  String get moveOnlyAction => 'Move';
+
+  @override
+  String get moveAndRenameAction => 'Move and rename';
+
+  @override
   String get uploadAction => 'Upload file';
 
   @override

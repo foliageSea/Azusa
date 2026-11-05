@@ -108,9 +108,6 @@ String _dateTime(DateTime time) {
   return '${local.year}-${_two(local.month)}-${_two(local.day)} ${_clock(local)}';
 }
 
-String _fileName(String path) =>
-    path.replaceFirst(RegExp(r'/+$'), '').split('/').last;
-
 class _HistoryRow extends StatefulWidget {
   const _HistoryRow({required this.entry});
   final HistoryEntry entry;
@@ -146,13 +143,19 @@ class _HistoryRowState extends State<_HistoryRow> {
               Icon(icon, size: 18, color: theme.colors.mutedForeground),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(switch (entry.action) {
-                  '重命名' => context.l10n.renameAction,
-                  'move' => context.l10n.moveAction,
-                  'upload' => context.l10n.uploadAction,
-                  'delete' => context.l10n.delete,
-                  'mkdir' => context.l10n.createDirectory,
-                  _ => context.l10n.operationRecord,
+                child: Text(switch (entry.pathChange) {
+                  HistoryPathChange.rename => context.l10n.renameAction,
+                  HistoryPathChange.move => context.l10n.moveOnlyAction,
+                  HistoryPathChange.moveAndRename =>
+                    context.l10n.moveAndRenameAction,
+                  null => switch (entry.action) {
+                    '重命名' => context.l10n.renameAction,
+                    'move' => context.l10n.moveAction,
+                    'upload' => context.l10n.uploadAction,
+                    'delete' => context.l10n.delete,
+                    'mkdir' => context.l10n.createDirectory,
+                    _ => context.l10n.operationRecord,
+                  },
                 }, style: theme.typography.body.md),
               ),
               if (entry.completed != null)
@@ -193,9 +196,9 @@ class _HistoryRowState extends State<_HistoryRow> {
           const SizedBox(height: 8),
           if (entry.source != null && !expanded) ...[
             Text(
-              _fileName(entry.source!),
+              entry.sourceSummary!,
               style: entry.target == null ? theme.typography.body.sm : muted,
-              maxLines: expanded ? null : 2,
+              maxLines: entry.directoryChanged ? 3 : 2,
               overflow: expanded ? null : TextOverflow.ellipsis,
             ),
             if (entry.target != null) ...[
@@ -211,9 +214,9 @@ class _HistoryRowState extends State<_HistoryRow> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _fileName(entry.target!),
+                      entry.targetSummary!,
                       style: theme.typography.body.sm,
-                      maxLines: expanded ? null : 2,
+                      maxLines: entry.directoryChanged ? 3 : 2,
                       overflow: expanded ? null : TextOverflow.ellipsis,
                     ),
                   ),

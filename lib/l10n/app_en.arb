@@ -345,6 +345,8 @@
   "@startedAtTime": {"placeholders": {"time": {"type": "String"}}},
   "renameAction": "Rename",
   "moveAction": "Move / Rename",
+  "moveOnlyAction": "Move",
+  "moveAndRenameAction": "Move and rename",
   "uploadAction": "Upload file",
   "createDirectory": "New folder",
   "operationRecord": "Operation record",

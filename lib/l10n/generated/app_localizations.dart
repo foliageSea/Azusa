@@ -2012,6 +2012,18 @@ abstract class AppLocalizations {
   /// **'Move / Rename'**
   String get moveAction;
 
+  /// No description provided for @moveOnlyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get moveOnlyAction;
+
+  /// No description provided for @moveAndRenameAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move and rename'**
+  String get moveAndRenameAction;
+
   /// No description provided for @uploadAction.
   ///
   /// In en, this message translates to:

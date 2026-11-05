@@ -1026,6 +1026,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get moveAction => '移动 / 重命名';
 
   @override
+  String get moveOnlyAction => '移动';
+
+  @override
+  String get moveAndRenameAction => '移动并重命名';
+
+  @override
   String get uploadAction => '上传文件';
 
   @override

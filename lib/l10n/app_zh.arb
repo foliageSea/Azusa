@@ -328,6 +328,8 @@
   "startedAtTime": "开始于 {time}",
   "renameAction": "重命名",
   "moveAction": "移动 / 重命名",
+  "moveOnlyAction": "移动",
+  "moveAndRenameAction": "移动并重命名",
   "uploadAction": "上传文件",
   "createDirectory": "新建文件夹",
   "operationRecord": "操作记录",

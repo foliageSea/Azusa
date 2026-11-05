@@ -1,3 +1,5 @@
+enum HistoryPathChange { rename, move, moveAndRename }
+
 class HistoryEntry {
   const HistoryEntry({
     required this.raw,
@@ -15,6 +17,43 @@ class HistoryEntry {
   final DateTime? time, startedAt;
   final String? source, target;
 
+  static String _normalizedPath(String path) =>
+      path.replaceFirst(RegExp(r'/+$'), '');
+
+  static String _fileName(String path) => _normalizedPath(path).split('/').last;
+
+  static String _directory(String path) {
+    final normalized = _normalizedPath(path);
+    final separator = normalized.lastIndexOf('/');
+    return separator < 0 ? '' : normalized.substring(0, separator);
+  }
+
+  HistoryPathChange? get pathChange {
+    if (source == null || target == null) return null;
+    final moved = _directory(source!) != _directory(target!);
+    final renamed = _fileName(source!) != _fileName(target!);
+    if (moved) {
+      return renamed ? HistoryPathChange.moveAndRename : HistoryPathChange.move;
+    }
+    return renamed ? HistoryPathChange.rename : null;
+  }
+
+  bool get directoryChanged =>
+      pathChange == HistoryPathChange.move ||
+      pathChange == HistoryPathChange.moveAndRename;
+
+  String? get sourceSummary => source == null
+      ? null
+      : directoryChanged
+      ? source
+      : _fileName(source!);
+
+  String? get targetSummary => target == null
+      ? null
+      : directoryChanged
+      ? target
+      : _fileName(target!);
+
   static final _timestamp = RegExp(
     r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?) ',
   );
@@ -31,7 +70,7 @@ class HistoryEntry {
         ? message
         : message.substring(operation.end);
     String? source, target;
-    if (action == '重命名') {
+    if (action == '重命名' || action == 'move') {
       final separator = payload.indexOf(' → ');
       if (separator >= 0) {
         source = payload.substring(0, separator);
@@ -51,13 +90,18 @@ class HistoryEntry {
     );
   }
 
-  String get title => switch (action) {
-    '重命名' => '重命名',
-    'move' => '移动 / 重命名',
-    'upload' => '上传文件',
-    'delete' => '删除',
-    'mkdir' => '新建文件夹',
-    _ => '操作记录',
+  String get title => switch (pathChange) {
+    HistoryPathChange.rename => '重命名',
+    HistoryPathChange.move => '移动',
+    HistoryPathChange.moveAndRename => '移动并重命名',
+    null => switch (action) {
+      '重命名' => '重命名',
+      'move' => '移动 / 重命名',
+      'upload' => '上传文件',
+      'delete' => '删除',
+      'mkdir' => '新建文件夹',
+      _ => '操作记录',
+    },
   };
 
   String get _key => message.replaceFirst(RegExp(r'^(准备|完成)'), '');
