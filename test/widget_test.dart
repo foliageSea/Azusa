@@ -318,11 +318,12 @@ void main() {
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized()
         .platformDispatcher
-        .localesTestValue = const [Locale('zh')];
+        .localesTestValue = const [
+      Locale('zh'),
+    ];
   });
   tearDown(() {
-    TestWidgetsFlutterBinding.ensureInitialized()
-        .platformDispatcher
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher
         .clearLocalesTestValue();
   });
   for (final width in [390.0, 1280.0]) {
@@ -1486,9 +1487,9 @@ void main() {
       await tester.pumpAndSettle();
       container.read(routerProvider).go('/organize');
       await tester.pumpAndSettle();
-      final controller =
-          container.read(organizerProvider.notifier)
-              as EntryInteractionOrganizer;
+      final controller = container.read(
+        organizerProvider.notifier,
+      ) as EntryInteractionOrganizer;
       final input = find.descendant(
         of: find.byKey(const ValueKey('rename-entry-name')),
         matching: find.byType(EditableText),
@@ -1744,10 +1745,9 @@ void main() {
       find.descendant(of: test, matching: find.byType(FCircularProgress)),
       findsNothing,
     );
-    (container.read(connectionSettingsProvider.notifier)
-            as PendingTestConnections)
-        .pending
-        .complete();
+    (container.read(
+      connectionSettingsProvider.notifier,
+    ) as PendingTestConnections).pending.complete();
     await tester.pumpAndSettle();
     expect(tester.widget<LoadingButton>(save).loading, isFalse);
   });
@@ -1844,6 +1844,11 @@ void main() {
       await tester.tap(find.bySemanticsLabel('收藏列表'));
       await tester.pumpAndSettle();
       expect(find.text('收藏列表'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('directory-favorites-panel')),
+        findsOneWidget,
+      );
+      expect(find.byType(FDialog), findsNothing);
       expect(find.bySemanticsLabel('关闭收藏'), findsNothing);
       expect(find.text('收藏当前目录'), findsNothing);
       final label = Uri.decodeComponent(path);
@@ -1857,14 +1862,17 @@ void main() {
       final remove = tester.widget<FButton>(
         find.ancestor(of: removeButton, matching: find.byType(FButton)).first,
       );
-      expect(remove.variant, FButtonVariant.destructive);
+      expect(remove.variant, FButtonVariant.ghost);
       await tester.tap(removeButton);
       await tester.pumpAndSettle();
       expect(await tester.runAsync(() => repository.load(scope)), isEmpty);
-      final barrier = tester.getRect(find.byType(ModalBarrier).last);
-      await tester.tapAt(Offset(barrier.center.dx, barrier.top + 10));
+      await tester.tapAt(const Offset(5, 100));
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('收藏当前目录'), findsOneWidget);
+      if (width < 600) {
+        await tester.tap(find.byKey(const ValueKey('nas-browser-actions')));
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.byKey(const ValueKey('nas-connection-toggle')));
       await tester.pumpAndSettle();
       expect(find.text('连接 NAS'), findsOneWidget);

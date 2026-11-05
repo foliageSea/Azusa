@@ -4,25 +4,84 @@ import 'package:forui/forui.dart';
 
 import '../../../shared/widgets.dart';
 import '../../../shared/localization.dart';
+import '../organizer_state.dart';
 import 'dav_paths.dart';
 import 'directory_favorites.dart';
 
-Future<String?> showDirectoryFavoritesDialog(
-  BuildContext context, {
-  required NasScope scope,
-  required String directory,
-}) => showFDialog<String>(
-  context: context,
-  builder: (context, style, animation) => FDialog(
-    animation: animation,
-    builder: (_, _) => EscapeDismiss(
-      child: _FavoritesDialog(scope: scope, directory: directory),
-    ),
-  ),
-);
+class DirectoryFavoritesButton extends StatelessWidget {
+  const DirectoryFavoritesButton({
+    required this.scope,
+    required this.directory,
+    required this.locked,
+    required this.onOpen,
+    super.key,
+  });
+  final NasScope scope;
+  final String directory;
+  final bool locked;
+  final ValueChanged<String> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget trigger(VoidCallback open) => FTooltip(
+      tipBuilder: (_, _) => Text(context.l10n.favorites),
+      child: FButton.icon(
+        variant: .outline,
+        semanticsLabel: context.l10n.favorites,
+        onPress: locked ? null : open,
+        child: const Icon(FLucideIcons.list),
+      ),
+    );
+    if (MediaQuery.sizeOf(context).width < 600) {
+      return trigger(() async {
+        final path = await showFSheet<String>(
+          context: context,
+          side: .btt,
+          useSafeArea: true,
+          mainAxisMaxRatio: .75,
+          builder: (context) => _FavoritesDialog(
+            scope: scope,
+            directory: directory,
+            onOpen: (path) => Navigator.of(context).pop(path),
+          ),
+        );
+        if (context.mounted && path != null) onOpen(path);
+      });
+    }
+    return FPopover(
+      popoverAnchor: Alignment.bottomLeft,
+      childAnchor: Alignment.topLeft,
+      popoverBuilder: (_, controller) => Container(
+        width: 340,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: context.theme.style.borderRadius.md,
+        ),
+        foregroundDecoration: BoxDecoration(
+          border: Border.all(color: context.theme.colors.border),
+          borderRadius: context.theme.style.borderRadius.md,
+        ),
+        child: _FavoritesDialog(
+          scope: scope,
+          directory: directory,
+          onOpen: (path) async {
+            await controller.hide();
+            if (context.mounted) onOpen(path);
+          },
+        ),
+      ),
+      builder: (_, controller, _) => trigger(controller.toggle),
+    );
+  }
+}
 
 class _FavoritesDialog extends ConsumerStatefulWidget {
-  const _FavoritesDialog({required this.scope, required this.directory});
+  const _FavoritesDialog({
+    required this.scope,
+    required this.directory,
+    required this.onOpen,
+  });
+  final ValueChanged<String> onOpen;
   final NasScope scope;
   final String directory;
 
@@ -55,17 +114,31 @@ class _FavoritesDialogState extends ConsumerState<_FavoritesDialog> {
   Widget build(BuildContext context) {
     final provider = directoryFavoritesProvider(widget.scope);
     final favorites = ref.watch(provider);
+    final organizer = ref.watch(organizerProvider);
+    final locked = saving || organizer.busy || organizer.executing;
     final current = widget.directory.isEmpty
         ? null
         : favoriteDirectory(widget.directory);
-    return Padding(
-      padding: const EdgeInsets.all(24),
+    return Container(
+      key: const ValueKey('directory-favorites-panel'),
+      color: context.theme.colors.background,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * .65,
+      ),
+      padding: const EdgeInsets.all(12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(context.l10n.favorites, style: context.theme.typography.body.lg),
-          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+            child: Text(
+              context.l10n.favorites,
+              style: context.theme.typography.body.sm.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
           if (error != null) ...[Text(error!), const SizedBox(height: 12)],
           Flexible(
             child: favorites.when(
@@ -97,30 +170,77 @@ class _FavoritesDialogState extends ConsumerState<_FavoritesDialog> {
                                 children: [
                                   Expanded(
                                     child: FButton(
-                                      variant: path == current
-                                          ? .secondary
-                                          : .outline,
+                                      variant: .ghost,
+                                      semanticsLabel: displayDavPath(path),
+                                      prefix: Icon(
+                                        FLucideIcons.folder,
+                                        color: path == current
+                                            ? context.theme.colors.primary
+                                            : context
+                                                  .theme
+                                                  .colors
+                                                  .mutedForeground,
+                                      ),
+                                      suffix: path == current
+                                          ? Icon(
+                                              FLucideIcons.check,
+                                              color:
+                                                  context.theme.colors.primary,
+                                              size: 16,
+                                            )
+                                          : null,
                                       builder: (_, _, _, _, _, child) =>
                                           Expanded(child: child!),
-                                      onPress: saving
+                                      onPress: locked
                                           ? null
-                                          : () =>
-                                                Navigator.of(context).pop(path),
-                                      child: Text(
-                                        displayDavPath(path),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                          : () => widget.onOpen(path),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            Uri.decodeComponent(
+                                              path
+                                                      .split('/')
+                                                      .where(
+                                                        (part) =>
+                                                            part.isNotEmpty,
+                                                      )
+                                                      .lastOrNull ??
+                                                  '/',
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            displayDavPath(path),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: context
+                                                .theme
+                                                .typography
+                                                .body
+                                                .xs
+                                                .copyWith(
+                                                  color: context
+                                                      .theme
+                                                      .colors
+                                                      .mutedForeground,
+                                                ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   FButton.icon(
-                                    variant: .destructive,
+                                    variant: .ghost,
                                     size: .sm,
                                     semanticsLabel: context.l10n.removeFavorite(
                                       displayDavPath(path),
                                     ),
-                                    onPress: saving
+                                    onPress: locked
                                         ? null
                                         : () => _remove(path),
                                     child: const Icon(FLucideIcons.x, size: 16),

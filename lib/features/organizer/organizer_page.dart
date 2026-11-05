@@ -115,23 +115,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     if (parent != null) _openDirectory(parent);
   }
 
-  Future<void> _favorites(NasScope scope, String directory) async {
-    final connection = ref.read(connectionSettingsProvider).asData?.value;
-    final path = await showDirectoryFavoritesDialog(
-      context,
-      scope: scope,
-      directory: directory,
-    );
-    if (path != null &&
-        mounted &&
-        identical(
-          connection,
-          ref.read(connectionSettingsProvider).asData?.value,
-        )) {
-      _openDirectory(path);
-    }
-  }
-
   Future<void> _toggleFavorite(
     NasScope scope,
     String directory, {
@@ -461,10 +444,11 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
           active: selected,
         ),
         const SizedBox(width: 8),
-        tool(
-          FLucideIcons.list,
-          context.l10n.favorites,
-          locked ? null : () => _favorites(scope, state.directory),
+        DirectoryFavoritesButton(
+          scope: scope,
+          directory: state.directory,
+          locked: locked,
+          onOpen: _openDirectory,
         ),
       ],
     );
