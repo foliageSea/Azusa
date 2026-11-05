@@ -490,7 +490,7 @@
   "logShareOpened": "已打开日志分享，请在系统分享面板中完成导出。",
   "logExportError": "无法导出日志，请检查可用存储空间后重试。",
   "assistantTab": "整理助手",
-  "filesTab": "文件",
+  "filesTab": "文件管理",
   "assistantInputHint": "输入整理要求",
   "assistantSend": "发送",
   "assistantStop": "停止",

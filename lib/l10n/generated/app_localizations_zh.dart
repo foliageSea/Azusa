@@ -1540,7 +1540,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get assistantTab => '整理助手';
 
   @override
-  String get filesTab => '文件';
+  String get filesTab => '文件管理';
 
   @override
   String get assistantInputHint => '输入整理要求';

@@ -1941,7 +1941,7 @@ void main() {
       expect(find.byIcon(FLucideIcons.ellipsis), findsNWidgets(2));
       final headerTitle = find.descendant(
         of: find.byWidgetPredicate((widget) => widget is FHeader),
-        matching: find.text('文件'),
+        matching: find.text('文件管理'),
       );
       final card = tester.getRect(find.byType(FCard).first);
       expect(find.byKey(const ValueKey('organizer-stepper')), findsNothing);
@@ -1984,7 +1984,7 @@ void main() {
         );
         final menuLabel = find.descendant(
           of: sidebar,
-          matching: find.text('文件'),
+          matching: find.text('文件管理'),
         );
         expect(tester.getSize(sidebar).width, 184);
         expect(
