@@ -502,6 +502,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       child: LayoutBuilder(
         builder: (context, box) {
           final compact = box.maxWidth < _compactPanelWidth;
+          final mobile = isMobileLayout(context);
           const connection = WebDavManager(compact: true);
           final actions = Row(
             mainAxisSize: MainAxisSize.min,
@@ -556,41 +557,91 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const EmptyDirectoryButton(),
-                const SizedBox(width: 8),
+                if (mobile)
+                  FPopoverMenu(
+                    menuAnchor: Alignment.topRight,
+                    childAnchor: Alignment.bottomRight,
+                    menuBuilder: (_, controller, _) => [
+                      FItemGroup(
+                        children: [
+                          FItem(
+                            key: const ValueKey('empty-directory-cleanup'),
+                            prefix: const Icon(FLucideIcons.folderMinus),
+                            title: Text(context.l10n.cleanEmptyDirectories),
+                            onPress: locked
+                                ? null
+                                : () async {
+                                    await controller.hide();
+                                    if (context.mounted) {
+                                      await showEmptyDirectoryDialog(context);
+                                    }
+                                  },
+                          ),
+                          FItem(
+                            key: const ValueKey('nas-connection-toggle'),
+                            prefix: const Icon(FLucideIcons.unplug),
+                            title: Text(context.l10n.disconnect),
+                            onPress: locked
+                                ? null
+                                : () async {
+                                    await controller.hide();
+                                    if (context.mounted) {
+                                      _controller.disconnect();
+                                    }
+                                  },
+                          ),
+                        ],
+                      ),
+                    ],
+                    builder: (_, controller, _) => FButton.icon(
+                      key: const ValueKey('nas-browser-actions'),
+                      variant: .outline,
+                      size: .sm,
+                      semanticsLabel: context.l10n.entryActions(
+                        context.l10n.filesTab,
+                      ),
+                      onPress: locked ? null : controller.toggle,
+                      child: const Icon(FLucideIcons.ellipsis),
+                    ),
+                  )
+                else
+                  const EmptyDirectoryButton(),
               ],
-              if (box.maxWidth < 360 && connected)
-                FTooltip(
-                  tipBuilder: (_, _) => Text(context.l10n.disconnect),
-                  child: FButton.icon(
+              if (!mobile || !connected) ...[
+                if (connected) const SizedBox(width: 8),
+                if (box.maxWidth < 360 && connected)
+                  FTooltip(
+                    tipBuilder: (_, _) => Text(context.l10n.disconnect),
+                    child: FButton.icon(
+                      key: const ValueKey('nas-connection-toggle'),
+                      variant: .outline,
+                      size: .sm,
+                      semanticsLabel: context.l10n.disconnect,
+                      onPress: locked ? null : _controller.disconnect,
+                      child: const Icon(FLucideIcons.unplug),
+                    ),
+                  )
+                else
+                  FButton(
                     key: const ValueKey('nas-connection-toggle'),
-                    variant: .outline,
+                    variant: connected ? .outline : .primary,
                     size: .sm,
-                    semanticsLabel: context.l10n.disconnect,
-                    onPress: locked ? null : _controller.disconnect,
-                    child: const Icon(FLucideIcons.unplug),
+                    mainAxisSize: MainAxisSize.min,
+                    onPress: locked
+                        ? null
+                        : connected
+                        ? _controller.disconnect
+                        : () => _openDirectory(null),
+                    prefix: Icon(
+                      connected ? FLucideIcons.unplug : FLucideIcons.plugZap,
+                    ),
+                    child: Text(
+                      connected
+                          ? context.l10n.disconnect
+                          : context.l10n.connectNas,
+                    ),
                   ),
-                )
-              else
-                FButton(
-                  key: const ValueKey('nas-connection-toggle'),
-                  variant: connected ? .outline : .primary,
-                  size: .sm,
-                  mainAxisSize: MainAxisSize.min,
-                  onPress: locked
-                      ? null
-                      : connected
-                      ? _controller.disconnect
-                      : () => _openDirectory(null),
-                  prefix: Icon(
-                    connected ? FLucideIcons.unplug : FLucideIcons.plugZap,
-                  ),
-                  child: Text(
-                    connected
-                        ? context.l10n.disconnect
-                        : context.l10n.connectNas,
-                  ),
-                ),
+              ],
             ],
           );
           return Column(
@@ -601,7 +652,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 padding: compact
                     ? const EdgeInsets.fromLTRB(16, 10, 16, 8)
                     : const EdgeInsets.fromLTRB(20, 18, 16, 12),
-                child: connected && box.maxWidth < 500
+                child: !mobile && connected && box.maxWidth < 500
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [

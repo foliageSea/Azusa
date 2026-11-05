@@ -7,19 +7,21 @@ import '../../../shared/runtime_localization.dart';
 import '../organizer_state.dart';
 import 'dav_paths.dart';
 
-class EmptyDirectoryButton extends ConsumerWidget {
-  const EmptyDirectoryButton({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(organizerProvider);
-    void open() => showFDialog<void>(
+Future<void> showEmptyDirectoryDialog(BuildContext context) =>
+    showFDialog<void>(
       context: context,
       builder: (context, style, animation) => FDialog(
         animation: animation,
         builder: (context, style) => const _EmptyDirectoryDialog(),
       ),
     );
+
+class EmptyDirectoryButton extends ConsumerWidget {
+  const EmptyDirectoryButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(organizerProvider);
     final locked = state.busy || state.executing || state.directory.isEmpty;
     return FButton(
       key: const ValueKey('empty-directory-cleanup'),
@@ -27,7 +29,7 @@ class EmptyDirectoryButton extends ConsumerWidget {
       size: .sm,
       mainAxisSize: MainAxisSize.min,
       prefix: const Icon(FLucideIcons.folderMinus),
-      onPress: locked ? null : open,
+      onPress: locked ? null : () => showEmptyDirectoryDialog(context),
       child: Text(context.l10n.cleanEmptyDirectories),
     );
   }

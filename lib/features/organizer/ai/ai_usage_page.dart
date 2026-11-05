@@ -53,13 +53,13 @@ class _AiUsagePageState extends ConsumerState<AiUsagePage> {
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
-    return PageContent(
-      children: [
-        ref
-            .watch(aiUsageHistoryProvider)
-            .when(
-              loading: () => const LoadingNotice(),
-              error: (_, _) => Surface(
+    return ref
+        .watch(aiUsageHistoryProvider)
+        .when(
+          loading: () => const PageContent(children: [LoadingNotice()]),
+          error: (_, _) => PageContent(
+            children: [
+              Surface(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -73,182 +73,173 @@ class _AiUsagePageState extends ConsumerState<AiUsagePage> {
                   ],
                 ),
               ),
-              data: (records) {
-                final now = DateTime.now();
-                final models = records.map((r) => r.model).toSet().toList()
-                  ..sort();
-                final model = models.contains(_model) ? _model : null;
-                final filtered = filterUsage(
-                  records,
-                  period: _period,
-                  status: _status,
-                  model: model,
-                  now: now,
-                );
-                final summary = AiUsageSummary(filtered);
-                final history = sortUsage(filtered, query: _query, sort: _sort);
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+            ],
+          ),
+          data: (records) {
+            final now = DateTime.now();
+            final models = records.map((r) => r.model).toSet().toList()..sort();
+            final model = models.contains(_model) ? _model : null;
+            final filtered = filterUsage(
+              records,
+              period: _period,
+              status: _status,
+              model: model,
+              now: now,
+            );
+            final summary = AiUsageSummary(filtered);
+            final history = sortUsage(filtered, query: _query, sort: _sort);
+            return _UsageContent(
+              filters: _UsageFilters(
+                periodLabels: [l.today, l.usageWeek, l.usageMonth, l.all],
+                periods: [
+                  for (final period in UsagePeriod.values)
+                    FButton(
+                      variant: _period == period ? .primary : .outline,
+                      size: isMobileLayout(context) ? .sm : .md,
+                      mainAxisSize: MainAxisSize.min,
+                      onPress: () => _filter(() => _period = period),
+                      child: Text(switch (period) {
+                        UsagePeriod.today => l.today,
+                        UsagePeriod.week => l.usageWeek,
+                        UsagePeriod.month => l.usageMonth,
+                        UsagePeriod.all => l.all,
+                      }),
+                    ),
+                ],
+                model: _Choice<String>(
+                  key: const ValueKey('usage-model-filter'),
+                  expand: true,
+                  value: model ?? '',
+                  values: {
+                    '': '${l.modelName} · ${l.all}',
+                    for (final m in models) m: m,
+                  },
+                  onChange: (value) =>
+                      _filter(() => _model = value.isEmpty ? null : value),
+                ),
+                status: _Choice<UsageStatus>(
+                  key: const ValueKey('usage-status-filter'),
+                  expand: true,
+                  value: _status,
+                  values: {
+                    UsageStatus.all: '${l.usageStatus} · ${l.all}',
+                    UsageStatus.succeeded: l.completed,
+                    UsageStatus.failed: l.failed,
+                  },
+                  onChange: (value) => _filter(() => _status = value),
+                ),
+                onRefresh: () => ref.invalidate(aiUsageHistoryProvider),
+              ),
+              children: [
+                _MetricsGrid(
                   children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        for (final period in UsagePeriod.values)
-                          FButton(
-                            variant: _period == period ? .primary : .outline,
-                            mainAxisSize: MainAxisSize.min,
-                            onPress: () => _filter(() => _period = period),
-                            child: Text(switch (period) {
-                              UsagePeriod.today => l.today,
-                              UsagePeriod.week => l.usageWeek,
-                              UsagePeriod.month => l.usageMonth,
-                              UsagePeriod.all => l.all,
-                            }),
-                          ),
-                        _Choice<String>(
-                          key: const ValueKey('usage-model-filter'),
-                          value: model ?? '',
-                          values: {
-                            '': '${l.modelName} · ${l.all}',
-                            for (final m in models) m: m,
-                          },
-                          onChange: (value) => _filter(
-                            () => _model = value.isEmpty ? null : value,
-                          ),
-                        ),
-                        _Choice<UsageStatus>(
-                          value: _status,
-                          values: {
-                            UsageStatus.all: '${l.usageStatus} · ${l.all}',
-                            UsageStatus.succeeded: l.completed,
-                            UsageStatus.failed: l.failed,
-                          },
-                          onChange: (value) => _filter(() => _status = value),
-                        ),
-                        FButton(
-                          variant: .outline,
-                          mainAxisSize: MainAxisSize.min,
-                          onPress: () => ref.invalidate(aiUsageHistoryProvider),
-                          child: Text(l.usageRefresh),
-                        ),
-                      ],
+                    _Metric(
+                      l.totalEstimatedCost,
+                      _cost(summary),
+                      '${l.usageAverageCost}  ${summary.averageCost == null ? '—' : _money(summary.averageCost!)}',
                     ),
-                    const SizedBox(height: 20),
-                    _MetricsGrid(
-                      children: [
-                        _Metric(
-                          l.totalEstimatedCost,
-                          _cost(summary),
-                          '${l.usageAverageCost}  ${summary.averageCost == null ? '—' : _money(summary.averageCost!)}',
-                        ),
-                        _Metric(
-                          l.analysisCount,
-                          _number(summary.analyses),
-                          '${l.completed} ${_number(summary.succeeded)}  ·  ${l.failed} ${_number(summary.failed)}',
-                        ),
-                        _Metric(
-                          l.modelRequests,
-                          _number(summary.responses),
-                          '${l.usageRequestsPerAnalysis}  ${summary.requestsPerAnalysis?.toStringAsFixed(1) ?? '—'}',
-                        ),
-                        _Metric(
-                          l.totalInputTokens,
-                          _tokens(summary.inputTokens, summary),
-                          '${l.usageCachedTokens}  ${_tokens(summary.cachedTokens, summary)}',
-                        ),
-                        _Metric(
-                          l.totalOutputTokens,
-                          _tokens(summary.outputTokens, summary),
-                          '${l.usageCacheRate}  ${_percent(summary.cacheHitRate)}',
-                        ),
-                        _Metric(
-                          l.usageModelPerformance,
-                          '${summary.tokensPerSecond?.toStringAsFixed(1) ?? '—'} TPS',
-                          '${l.usageAverageRequestTime}  ${_duration(summary.averageRequestTime)}',
-                        ),
-                      ],
+                    _Metric(
+                      l.analysisCount,
+                      _number(summary.analyses),
+                      '${l.completed} ${_number(summary.succeeded)}  ·  ${l.failed} ${_number(summary.failed)}',
                     ),
-                    const SizedBox(height: 24),
-                    _Completeness(summary),
-                    if (filtered.isNotEmpty) ...[
-                      _Trend(
-                        days: usageByDay(filtered, period: _period, now: now),
-                      ),
-                      const SizedBox(height: 20),
-                      _ModelTable(groups: usageByModel(filtered)),
-                      const SizedBox(height: 24),
-                    ],
-                    Text(
-                      l.analysisHistory,
-                      style: context.theme.typography.body.lg,
+                    _Metric(
+                      l.modelRequests,
+                      _number(summary.responses),
+                      '${l.usageRequestsPerAnalysis}  ${summary.requestsPerAnalysis?.toStringAsFixed(1) ?? '—'}',
                     ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: [
-                        SizedBox(
-                          width: isMobileLayout(context)
-                              ? double.infinity
-                              : 320,
-                          child: FTextField(
-                            hint: l.usageDirectorySearch,
-                            control: .managed(
-                              controller: _search,
-                              onChange: (value) =>
-                                  _filter(() => _query = value.text),
-                            ),
-                          ),
-                        ),
-                        _Choice<UsageSort>(
-                          value: _sort,
-                          values: {
-                            UsageSort.newest: l.usageNewest,
-                            UsageSort.cost: l.usageHighestCost,
-                          },
-                          onChange: (value) => _filter(() => _sort = value),
-                        ),
-                      ],
+                    _Metric(
+                      l.totalInputTokens,
+                      _tokens(summary.inputTokens, summary),
+                      '${l.usageCachedTokens}  ${_tokens(summary.cachedTokens, summary)}',
                     ),
-                    const SizedBox(height: 12),
-                    if (history.isEmpty)
-                      EmptyNotice(
-                        records.isEmpty ? l.noAiUsage : l.usageNoMatches,
-                        icon: records.isEmpty
-                            ? FLucideIcons.chartColumn
-                            : FLucideIcons.search,
-                        child: records.isEmpty
-                            ? null
-                            : FButton(
-                                variant: .outline,
-                                mainAxisSize: MainAxisSize.min,
-                                onPress: _clearFilters,
-                                child: Text(l.clearFilters),
-                              ),
-                      )
-                    else ...[
-                      if (!isMobileLayout(context)) _RecordHeader(),
-                      for (final record in history.take(_limit)) ...[
-                        _RecordCard(record, key: ObjectKey(record)),
-                        const SizedBox(height: 8),
-                      ],
-                      if (history.length > _limit)
-                        FButton(
-                          variant: .outline,
-                          onPress: () => setState(() => _limit += 20),
-                          child: Text(
-                            '${l.usageLoadMore} (${math.min(_limit, history.length)} / ${history.length})',
-                          ),
-                        ),
-                    ],
+                    _Metric(
+                      l.totalOutputTokens,
+                      _tokens(summary.outputTokens, summary),
+                      '${l.usageCacheRate}  ${_percent(summary.cacheHitRate)}',
+                    ),
+                    _Metric(
+                      l.usageModelPerformance,
+                      '${summary.tokensPerSecond?.toStringAsFixed(1) ?? '—'} TPS',
+                      '${l.usageAverageRequestTime}  ${_duration(summary.averageRequestTime)}',
+                    ),
                   ],
-                );
-              },
-            ),
-      ],
-    );
+                ),
+                const SizedBox(height: 24),
+                _Completeness(summary),
+                if (filtered.isNotEmpty) ...[
+                  _Trend(
+                    days: usageByDay(filtered, period: _period, now: now),
+                  ),
+                  const SizedBox(height: 20),
+                  _ModelTable(groups: usageByModel(filtered)),
+                  const SizedBox(height: 24),
+                ],
+                Text(
+                  l.analysisHistory,
+                  style: context.theme.typography.body.lg,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    SizedBox(
+                      width: isMobileLayout(context) ? double.infinity : 320,
+                      child: FTextField(
+                        hint: l.usageDirectorySearch,
+                        control: .managed(
+                          controller: _search,
+                          onChange: (value) =>
+                              _filter(() => _query = value.text),
+                        ),
+                      ),
+                    ),
+                    _Choice<UsageSort>(
+                      value: _sort,
+                      values: {
+                        UsageSort.newest: l.usageNewest,
+                        UsageSort.cost: l.usageHighestCost,
+                      },
+                      onChange: (value) => _filter(() => _sort = value),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (history.isEmpty)
+                  EmptyNotice(
+                    records.isEmpty ? l.noAiUsage : l.usageNoMatches,
+                    icon: records.isEmpty
+                        ? FLucideIcons.chartColumn
+                        : FLucideIcons.search,
+                    child: records.isEmpty
+                        ? null
+                        : FButton(
+                            variant: .outline,
+                            mainAxisSize: MainAxisSize.min,
+                            onPress: _clearFilters,
+                            child: Text(l.clearFilters),
+                          ),
+                  )
+                else ...[
+                  if (!isMobileLayout(context)) _RecordHeader(),
+                  for (final record in history.take(_limit)) ...[
+                    _RecordCard(record, key: ObjectKey(record)),
+                    const SizedBox(height: 8),
+                  ],
+                  if (history.length > _limit)
+                    FButton(
+                      variant: .outline,
+                      onPress: () => setState(() => _limit += 20),
+                      child: Text(
+                        '${l.usageLoadMore} (${math.min(_limit, history.length)} / ${history.length})',
+                      ),
+                    ),
+                ],
+              ],
+            );
+          },
+        );
   }
 }
 
@@ -267,20 +258,183 @@ String _cost(AiUsageSummary summary) => summary.analyses == 0
     ? '—'
     : '${summary.pricedAnalyses < summary.analyses ? '≥ ' : ''}${_money(summary.estimatedCost)}';
 
+class _UsageContent extends StatelessWidget {
+  const _UsageContent({required this.filters, required this.children});
+
+  final Widget filters;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final padding = PageContent.paddingOf(context);
+    return ColoredBox(
+      color: context.theme.colors.background,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            key: const ValueKey('usage-fixed-filters'),
+            padding: EdgeInsets.fromLTRB(padding, padding, padding, 8),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: PageContent.maxWidth - padding * 2,
+                ),
+                child: SizedBox(width: double.infinity, child: filters),
+              ),
+            ),
+          ),
+          Expanded(
+            child: PageContent(
+              key: const ValueKey('usage-scroll-content'),
+              topPadding: 12,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: children,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UsageFilters extends StatelessWidget {
+  const _UsageFilters({
+    required this.periodLabels,
+    required this.periods,
+    required this.model,
+    required this.status,
+    required this.onRefresh,
+  });
+
+  final List<String> periodLabels;
+  final List<Widget> periods;
+  final Widget model, status;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    if (!isMobileLayout(context)) {
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          ...periods,
+          model,
+          status,
+          FButton(
+            key: const ValueKey('usage-refresh'),
+            variant: .outline,
+            mainAxisSize: MainAxisSize.min,
+            onPress: onRefresh,
+            child: Text(l.usageRefresh),
+          ),
+        ],
+      );
+    }
+
+    final scaler = MediaQuery.textScalerOf(context);
+    final labelWidth = periodLabels.fold<double>(0, (width, label) {
+      final painter = TextPainter(
+        text: TextSpan(text: label, style: context.theme.typography.body.sm),
+        textDirection: Directionality.of(context),
+        textScaler: scaler,
+      )..layout();
+      final result = math.max(width, painter.width);
+      painter.dispose();
+      return result;
+    });
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stackChoices = constraints.maxWidth < 320 * scaler.scale(14) / 14;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final available = constraints.maxWidth;
+                      final minWidth = labelWidth + 24;
+                      final columns = available >= minWidth * 4 + 24
+                          ? 4
+                          : available >= minWidth * 2 + 8
+                          ? 2
+                          : 1;
+                      final width = (available - 8 * (columns - 1)) / columns;
+                      return Wrap(
+                        key: const ValueKey('usage-periods'),
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final period in periods)
+                            SizedBox(width: width, child: period),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FTooltip(
+                  tipBuilder: (_, _) => Text(l.usageRefresh),
+                  child: FButton.icon(
+                    key: const ValueKey('usage-refresh'),
+                    variant: .outline,
+                    size: .sm,
+                    semanticsLabel: l.usageRefresh,
+                    onPress: onRefresh,
+                    child: const Icon(FLucideIcons.refreshCw),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (stackChoices)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [model, const SizedBox(height: 8), status],
+              )
+            else
+              Row(
+                children: [
+                  Expanded(flex: 3, child: model),
+                  const SizedBox(width: 8),
+                  Expanded(flex: 2, child: status),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _Choice<T> extends StatelessWidget {
   const _Choice({
     required this.value,
     required this.values,
     required this.onChange,
+    this.expand = false,
     super.key,
   });
   final T value;
   final Map<T, String> values;
   final ValueChanged<T> onChange;
+  final bool expand;
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: isMobileLayout(context) ? 160 : 190,
+    width: isMobileLayout(context) ? (expand ? double.infinity : 160) : 190,
     child: FSelect<T>.rich(
       format: (value) => values[value] ?? '',
       control: .lifted(
