@@ -568,6 +568,9 @@ class _TrendState extends State<_Trend> {
   Widget build(BuildContext context) {
     final l = context.l10n;
     final days = widget.days;
+    final dateFormat = DateFormat.yMMMd(
+      Localizations.localeOf(context).toString(),
+    );
     final selected =
         days.where((d) => d.day == _selected).firstOrNull ?? days.last;
     final maxValue = days.fold<double>(
@@ -608,7 +611,7 @@ class _TrendState extends State<_Trend> {
           ),
           const SizedBox(height: 12),
           Text(
-            '${DateFormat.yMMMd().format(selected.day)}  ·  ${detail(selected.summary)}',
+            '${dateFormat.format(selected.day)}  ·  ${detail(selected.summary)}',
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -634,15 +637,13 @@ class _TrendState extends State<_Trend> {
                     return SizedBox(
                       width: width,
                       child: Tooltip(
-                        message:
-                            '${DateFormat.yMMMd().format(day.day)}\n${detail(s)}',
+                        message: '${dateFormat.format(day.day)}\n${detail(s)}',
                         child: GestureDetector(
                           onTap: () => setState(() => _selected = day.day),
                           child: Semantics(
                             button: true,
                             selected: day.day == selected.day,
-                            label:
-                                '${DateFormat.yMMMd().format(day.day)} ${detail(s)}',
+                            label: '${dateFormat.format(day.day)} ${detail(s)}',
                             child: Column(
                               children: [
                                 Expanded(
