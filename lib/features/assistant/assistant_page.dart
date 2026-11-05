@@ -343,7 +343,7 @@ class _Conversation extends ConsumerWidget {
                 textScaler: MediaQuery.textScalerOf(context),
                 maxLines: 1,
               )..layout();
-              final checkboxWidth = labelPainter.width.ceilToDouble() + 40;
+              final checkboxWidth = labelPainter.width.ceilToDouble() + 48;
               labelPainter.dispose();
               return Row(
                 children: [
@@ -357,19 +357,76 @@ class _Conversation extends ConsumerWidget {
                     const SizedBox(width: 12),
                     SizedBox(
                       width: checkboxWidth,
-                      child: FCheckbox(
+                      child: FButton(
                         key: const ValueKey('include-subdirectories'),
-                        value: organizer.includeSubdirectories,
-                        enabled: !locked,
-                        label: Text(
+                        variant: .outline,
+                        size: .sm,
+                        selected: organizer.includeSubdirectories,
+                        semanticsLabel: l.includeSubdirectories,
+                        style: organizer.includeSubdirectories
+                            ? .delta(
+                                decoration: FVariants(
+                                  BoxDecoration(
+                                    color: theme.colors.primary.withValues(
+                                      alpha: .08,
+                                    ),
+                                    borderRadius: theme.style.borderRadius.md,
+                                    border: Border.all(
+                                      color: theme.colors.primary.withValues(
+                                        alpha: .2,
+                                      ),
+                                    ),
+                                  ),
+                                  variants: {
+                                    [.hovered, .pressed]: BoxDecoration(
+                                      color: theme.colors.primary.withValues(
+                                        alpha: .14,
+                                      ),
+                                      borderRadius: theme.style.borderRadius.md,
+                                      border: Border.all(
+                                        color: theme.colors.primary.withValues(
+                                          alpha: .3,
+                                        ),
+                                      ),
+                                    ),
+                                    [.disabled]: BoxDecoration(
+                                      color: theme.colors.muted,
+                                      borderRadius: theme.style.borderRadius.md,
+                                      border: Border.all(
+                                        color: theme.colors.border,
+                                      ),
+                                    ),
+                                  },
+                                ),
+                              )
+                            : const .context(),
+                        prefix: Icon(
+                          FLucideIcons.folderTree,
+                          color: locked
+                              ? theme.colors.mutedForeground
+                              : organizer.includeSubdirectories
+                              ? theme.colors.primary
+                              : theme.colors.mutedForeground,
+                        ),
+                        onPress: locked
+                            ? null
+                            : () => ref
+                                  .read(organizerProvider.notifier)
+                                  .setIncludeSubdirectories(
+                                    !organizer.includeSubdirectories,
+                                  ),
+                        child: Text(
                           l.includeSubdirectories,
-                          style: checkboxStyle,
+                          style: checkboxStyle.copyWith(
+                            color: locked
+                                ? theme.colors.mutedForeground
+                                : organizer.includeSubdirectories
+                                ? theme.colors.primary
+                                : theme.colors.foreground,
+                          ),
                           maxLines: 1,
                           softWrap: false,
                         ),
-                        onChange: ref
-                            .read(organizerProvider.notifier)
-                            .setIncludeSubdirectories,
                       ),
                     ),
                     const SizedBox(width: 12),
