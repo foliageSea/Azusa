@@ -70,17 +70,14 @@ class DirectoryBreadcrumb extends StatelessWidget {
           ),
         if (crumbs.isNotEmpty)
           Expanded(
-            child: FTooltip(
-              tipBuilder: (_, _) => Text(displayDavPath(directory)),
-              child: FBreadcrumbItem(
-                current: true,
-                child: Text(
-                  crumbs.last.$1,
-                  key: currentKey,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                ),
+            child: FBreadcrumbItem(
+              current: true,
+              child: Text(
+                crumbs.last.$1,
+                key: currentKey,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
               ),
             ),
           ),
