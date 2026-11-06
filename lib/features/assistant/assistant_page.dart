@@ -357,57 +357,11 @@ class _Conversation extends ConsumerWidget {
                     const SizedBox(width: 12),
                     SizedBox(
                       width: checkboxWidth,
-                      child: FButton(
+                      child: _DirectoryToggleButton(
                         key: const ValueKey('include-subdirectories'),
-                        variant: .outline,
-                        size: .sm,
+                        label: l.includeSubdirectories,
+                        icon: FLucideIcons.folderTree,
                         selected: organizer.includeSubdirectories,
-                        semanticsLabel: l.includeSubdirectories,
-                        style: organizer.includeSubdirectories
-                            ? .delta(
-                                decoration: FVariants(
-                                  BoxDecoration(
-                                    color: theme.colors.primary.withValues(
-                                      alpha: .08,
-                                    ),
-                                    borderRadius: theme.style.borderRadius.md,
-                                    border: Border.all(
-                                      color: theme.colors.primary.withValues(
-                                        alpha: .2,
-                                      ),
-                                    ),
-                                  ),
-                                  variants: {
-                                    [.hovered, .pressed]: BoxDecoration(
-                                      color: theme.colors.primary.withValues(
-                                        alpha: .14,
-                                      ),
-                                      borderRadius: theme.style.borderRadius.md,
-                                      border: Border.all(
-                                        color: theme.colors.primary.withValues(
-                                          alpha: .3,
-                                        ),
-                                      ),
-                                    ),
-                                    [.disabled]: BoxDecoration(
-                                      color: theme.colors.muted,
-                                      borderRadius: theme.style.borderRadius.md,
-                                      border: Border.all(
-                                        color: theme.colors.border,
-                                      ),
-                                    ),
-                                  },
-                                ),
-                              )
-                            : const .context(),
-                        prefix: Icon(
-                          FLucideIcons.folderTree,
-                          color: locked
-                              ? theme.colors.mutedForeground
-                              : organizer.includeSubdirectories
-                              ? theme.colors.primary
-                              : theme.colors.mutedForeground,
-                        ),
                         onPress: locked
                             ? null
                             : () => ref
@@ -415,18 +369,6 @@ class _Conversation extends ConsumerWidget {
                                   .setIncludeSubdirectories(
                                     !organizer.includeSubdirectories,
                                   ),
-                        child: Text(
-                          l.includeSubdirectories,
-                          style: checkboxStyle.copyWith(
-                            color: locked
-                                ? theme.colors.mutedForeground
-                                : organizer.includeSubdirectories
-                                ? theme.colors.primary
-                                : theme.colors.foreground,
-                          ),
-                          maxLines: 1,
-                          softWrap: false,
-                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1534,6 +1476,82 @@ class _PlanPanel extends ConsumerWidget {
   }
 }
 
+class _DirectoryToggleButton extends StatelessWidget {
+  const _DirectoryToggleButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onPress,
+    super.key,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback? onPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.theme;
+    final disabled = onPress == null;
+    return FButton(
+      variant: .outline,
+      size: .sm,
+      mainAxisSize: MainAxisSize.min,
+      selected: selected,
+      semanticsLabel: label,
+      style: selected
+          ? .delta(
+              decoration: FVariants(
+                BoxDecoration(
+                  color: theme.colors.primary.withValues(alpha: .08),
+                  borderRadius: theme.style.borderRadius.md,
+                  border: Border.all(
+                    color: theme.colors.primary.withValues(alpha: .2),
+                  ),
+                ),
+                variants: {
+                  [.hovered, .pressed]: BoxDecoration(
+                    color: theme.colors.primary.withValues(alpha: .14),
+                    borderRadius: theme.style.borderRadius.md,
+                    border: Border.all(
+                      color: theme.colors.primary.withValues(alpha: .3),
+                    ),
+                  ),
+                  [.disabled]: BoxDecoration(
+                    color: theme.colors.muted,
+                    borderRadius: theme.style.borderRadius.md,
+                    border: Border.all(color: theme.colors.border),
+                  ),
+                },
+              ),
+            )
+          : const .context(),
+      prefix: Icon(
+        icon,
+        color: disabled
+            ? theme.colors.mutedForeground
+            : selected
+            ? theme.colors.primary
+            : theme.colors.mutedForeground,
+      ),
+      onPress: onPress,
+      child: Text(
+        label,
+        style: theme.typography.body.sm.copyWith(
+          color: disabled
+              ? theme.colors.mutedForeground
+              : selected
+              ? theme.colors.primary
+              : theme.colors.foreground,
+        ),
+        maxLines: 1,
+        softWrap: false,
+      ),
+    );
+  }
+}
+
 class _LayoutBar extends StatelessWidget {
   const _LayoutBar({
     required this.layout,
@@ -1555,14 +1573,15 @@ class _LayoutBar extends StatelessWidget {
     Widget option(
       String key,
       String label,
+      IconData icon,
       bool value,
       FolderLayout Function(FolderLayout layout) toggle,
-    ) => FCheckbox(
+    ) => _DirectoryToggleButton(
       key: ValueKey('folder-layout-$key'),
-      label: Text(label),
-      value: value,
-      enabled: !locked,
-      onChange: (_) => onChange(toggle),
+      label: label,
+      icon: icon,
+      selected: value,
+      onPress: locked ? null : () => onChange(toggle),
     );
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -1601,12 +1620,13 @@ class _LayoutBar extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Wrap(
-              spacing: 16,
+              spacing: 8,
               runSpacing: 8,
               children: [
                 option(
                   'movies',
                   l.folderMovies,
+                  FLucideIcons.film,
                   layout.movieFolders,
                   (current) =>
                       current.copyWith(movieFolders: !current.movieFolders),
@@ -1614,6 +1634,7 @@ class _LayoutBar extends StatelessWidget {
                 option(
                   'series',
                   l.folderSeries,
+                  FLucideIcons.tv,
                   layout.seriesFolders,
                   (current) =>
                       current.copyWith(seriesFolders: !current.seriesFolders),
@@ -1621,6 +1642,7 @@ class _LayoutBar extends StatelessWidget {
                 option(
                   'seasons',
                   l.folderSeasons,
+                  FLucideIcons.folderTree,
                   layout.seasonFolders,
                   (current) =>
                       current.copyWith(seasonFolders: !current.seasonFolders),
