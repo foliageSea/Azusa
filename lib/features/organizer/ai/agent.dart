@@ -16,16 +16,43 @@ import '../rename_plan.dart';
 import 'tmdb.dart';
 import '../dav/webdav.dart';
 
-bool subtitleMatchesVideo(String subtitle, String video) {
-  if (!video.contains('.') || !subtitle.contains('.')) return false;
+bool subtitleMatchesVideo(String subtitle, String video) =>
+    _subtitleSuffix(subtitle, video) != null;
+
+final _episodeName = RegExp(
+  r'^(.+?)[ ._-]*s(\d{1,2})e(\d{1,3})(?!\d)(.*)$',
+  caseSensitive: false,
+);
+
+String _normalizedTitle(String title) =>
+    title.toLowerCase().replaceAll(RegExp(r'[ ._-]+'), '');
+
+String? _subtitleSuffix(String subtitle, String video) {
+  if (!video.contains('.') || !subtitle.contains('.')) return null;
   final videoStem = video.substring(0, video.lastIndexOf('.'));
   final subtitleStem = subtitle.substring(0, subtitle.lastIndexOf('.'));
-  if (!subtitleStem.toLowerCase().startsWith(videoStem.toLowerCase())) {
-    return false;
+  bool validSuffix(String suffix) =>
+      suffix.isEmpty || RegExp(r'^\.[\w.-]+$').hasMatch(suffix);
+  if (subtitleStem.toLowerCase().startsWith(videoStem.toLowerCase())) {
+    final suffix = subtitleStem.substring(videoStem.length);
+    if (validSuffix(suffix)) return suffix;
   }
-  final suffix = subtitleStem.substring(videoStem.length);
-  return suffix.isEmpty ||
-      (suffix.startsWith('.') && RegExp(r'^\.[\w.-]+$').hasMatch(suffix));
+  final videoEpisode = _episodeName.firstMatch(videoStem);
+  final subtitleEpisode = _episodeName.firstMatch(subtitleStem);
+  if (videoEpisode == null || subtitleEpisode == null) return null;
+  if (_normalizedTitle(videoEpisode[1]!) !=
+          _normalizedTitle(subtitleEpisode[1]!) ||
+      int.parse(videoEpisode[2]!) != int.parse(subtitleEpisode[2]!) ||
+      int.parse(videoEpisode[3]!) != int.parse(subtitleEpisode[3]!)) {
+    return null;
+  }
+  // A directly appended episode number denotes a multi-episode release.
+  final release = videoEpisode[4]!;
+  if (release.isNotEmpty && !RegExp(r'^[ ._-]').hasMatch(release)) {
+    return null;
+  }
+  final suffix = subtitleEpisode[4]!;
+  return validSuffix(suffix) ? suffix : null;
 }
 
 class RenameAgent {
@@ -144,9 +171,7 @@ class RenameAgent {
 
   String _subtitleName(DavEntry subtitle, DavEntry video, String videoName) {
     final stem = videoName.substring(0, videoName.lastIndexOf('.'));
-    final originalStem = video.name.substring(0, video.name.lastIndexOf('.'));
-    final suffix = subtitle.name.substring(0, subtitle.name.lastIndexOf('.'));
-    final trailing = suffix.substring(originalStem.length);
+    final trailing = _subtitleSuffix(subtitle.name, video.name)!;
     return sanitizeSuggestedFileName(
       '$stem$trailing.${_extension(subtitle.name)}',
       originalName: subtitle.name,

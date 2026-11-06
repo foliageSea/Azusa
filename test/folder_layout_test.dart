@@ -503,7 +503,7 @@ void main() {
                   'folders': {'series_folders': false},
                   'items': [
                     {
-                      'source': '/dav/raw.mkv',
+                      'source': '/dav/Show.S01E01.1080p.mkv',
                       'targetName': 'Show - S01E01.mkv',
                       'media_type': 'tv',
                       'series_id': 1,
@@ -531,7 +531,12 @@ void main() {
                 ],
               },
       );
-    final dav = WebDavClient(_settings);
+    const entries = [
+      DavEntry('/dav/Show.S01E01.1080p.mkv', false),
+      DavEntry('/dav/Show.S01E01.zh.srt', false),
+      DavEntry('/dav/other.srt', false),
+    ];
+    final dav = _FolderDav({for (final entry in entries) entry.path: entry});
     final tmdb = TmdbClient(_settings, client: data);
     final agent = RenameAgent(_settings, dav, tmdb, client: ai);
     addTearDown(() {
@@ -542,11 +547,7 @@ void main() {
     FolderLayout? reported;
     final plan = await agent.propose(
       '/dav/',
-      const [
-        DavEntry('/dav/raw.mkv', false),
-        DavEntry('/dav/raw.zh.srt', false),
-        DavEntry('/dav/other.srt', false),
-      ],
+      entries,
       folderLayout: FolderLayout.full,
       onLayout: (layout) => reported = layout,
     );
@@ -560,8 +561,14 @@ void main() {
     expect(plan[0].mediaYear, 2020);
     expect(plan[0].scope, '/dav/');
     expect(plan[0].targetDirectory, _encoded(['Season 01']));
-    expect(plan[1].source, '/dav/raw.zh.srt');
+    expect(plan[1].source, '/dav/Show.S01E01.zh.srt');
     expect(plan[1].targetName, 'Show - S01E01.zh.srt');
     expect(plan[1].targetDirectory, _encoded(['Season 01']));
+    final result = await RenameExecutor(dav).execute(plan);
+    expect(result.error, isNull);
+    expect(result.completed, hasLength(2));
+    expect(dav.files.containsKey(plan[1].source), isFalse);
+    expect(dav.files.containsKey(plan[1].target), isTrue);
+    expect(dav.files.containsKey('/dav/other.srt'), isTrue);
   });
 }
