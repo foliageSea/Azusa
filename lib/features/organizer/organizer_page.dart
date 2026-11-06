@@ -291,6 +291,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     required NasScope scope,
   }) {
     final padding = PageContent.paddingOf(context);
+    final selectionTextStyle = context.theme.typography.body.sm;
     return DecoratedBox(
       key: const ValueKey('organizer-bottom-actions'),
       decoration: BoxDecoration(
@@ -310,7 +311,33 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
+                      Expanded(
+                        child: state.selectedDirectories.isEmpty
+                            ? const SizedBox.shrink()
+                            : Text(
+                                context.l10n.selectedDirectoryCount(
+                                  state.selectedDirectories.length,
+                                ),
+                                style: selectionTextStyle,
+                              ),
+                      ),
+                      if (state.selectedDirectories.isNotEmpty) ...[
+                        FButton(
+                          variant: .ghost,
+                          size: .sm,
+                          onPress: locked
+                              ? null
+                              : () => _controller.selectDirectories([]),
+                          child: Text(
+                            context.l10n.clearDirectorySelection,
+                            style: selectionTextStyle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       FButton(
                         variant: .ghost,
                         size: .sm,
@@ -327,26 +354,11 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                                           )))
                                     entry.path,
                               ]),
-                        child: Text(context.l10n.selectAllDirectories),
+                        child: Text(
+                          context.l10n.selectAllDirectories,
+                          style: selectionTextStyle,
+                        ),
                       ),
-                      if (state.selectedDirectories.isNotEmpty) ...[
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            context.l10n.selectedDirectoryCount(
-                              state.selectedDirectories.length,
-                            ),
-                          ),
-                        ),
-                        FButton(
-                          variant: .ghost,
-                          size: .sm,
-                          onPress: locked
-                              ? null
-                              : () => _controller.selectDirectories([]),
-                          child: Text(context.l10n.clearDirectorySelection),
-                        ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 4),
