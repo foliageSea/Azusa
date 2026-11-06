@@ -22,6 +22,7 @@ class RenameItem {
     this.seasonNumber,
     this.episodeNumber,
     this.scope,
+    this.destinationScope,
   });
   final String source, targetName, reason;
   final String? fingerprint, etag;
@@ -32,9 +33,11 @@ class RenameItem {
   final String? mediaTitle;
   final int? mediaYear, seasonNumber, episodeNumber;
 
-  /// The analyzed directory. When set, the item may move into new folders
-  /// below it, which are created during execution.
+  /// The analyzed directory.
   final String? scope;
+
+  /// Base for new folders: the analyzed directory or its immediate parent.
+  final String? destinationScope;
 
   Uri? get tmdbUrl => tmdbId != null && tmdbId! > 0 && tmdbMediaType != null
       ? Uri.https('www.themoviedb.org', '/${tmdbMediaType!.name}/$tmdbId')
@@ -47,13 +50,19 @@ class RenameItem {
   RenameItem copyWith({String? targetName, bool? enabled}) =>
       _copy(targetName: targetName, enabled: enabled);
 
-  RenameItem withTargetDirectory(String? directory) =>
-      _copy(targetDirectory: () => directory);
+  RenameItem withTargetDirectory(
+    String? directory, {
+    String? destinationScope,
+  }) => _copy(
+    targetDirectory: () => directory,
+    destinationScope: destinationScope,
+  );
 
   RenameItem _copy({
     String? targetName,
     bool? enabled,
     String? Function()? targetDirectory,
+    String? destinationScope,
   }) => RenameItem(
     source: source,
     targetName: targetName ?? this.targetName,
@@ -71,6 +80,7 @@ class RenameItem {
     seasonNumber: seasonNumber,
     episodeNumber: episodeNumber,
     scope: scope,
+    destinationScope: destinationScope ?? this.destinationScope,
   );
 }
 
@@ -91,12 +101,19 @@ String? validatePlan(List<RenameItem> plan, List<DavEntry> entries) {
     final nameError = fileNameError(item.targetName);
     if (nameError != null) return nameError;
     final directory = item.targetDirectory;
+    final destinationScope = item.destinationScope ?? item.scope;
+    if (item.destinationScope != null &&
+        (item.scope == null ||
+            (item.destinationScope != item.scope &&
+                item.destinationScope != parentDavDirectory(item.scope!)))) {
+      return '目标目录无效';
+    }
     if (directory != null &&
         (!directory.startsWith('/') ||
             !directory.endsWith('/') ||
             !(item.scope == null
                 ? item.parent.startsWith(directory)
-                : directory.startsWith(item.scope!)))) {
+                : directory.startsWith(destinationScope!)))) {
       return '目标目录无效';
     }
     try {
@@ -155,7 +172,7 @@ class RenameExecutor {
     Future<void> Function(String path)? onCreatingDirectory,
     Future<void> Function(String path)? onDirectoryCreated,
   ) async {
-    final scope = item.scope;
+    final scope = item.destinationScope ?? item.scope;
     final directory = item.targetDirectory;
     if (scope == null || directory == null || ready.contains(directory)) {
       return;
@@ -196,6 +213,14 @@ class RenameExecutor {
         plan.where((p) => p.enabled && p.source != p.target),
       );
       if (selected.isEmpty) return const ExecutionResult([], null);
+      try {
+        for (final item in selected) {
+          dav.normalize(item.source);
+          dav.normalize(item.target);
+        }
+      } on FormatException {
+        return const ExecutionResult([], '目标目录无效');
+      }
       final directories = {
         for (final item in selected) item.parent,
         for (final item in selected)

@@ -98,6 +98,24 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @folderLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'New folder location'**
+  String get folderLocation;
+
+  /// No description provided for @folderLocationInside.
+  ///
+  /// In en, this message translates to:
+  /// **'Inside each folder'**
+  String get folderLocationInside;
+
+  /// No description provided for @folderLocationParent.
+  ///
+  /// In en, this message translates to:
+  /// **'Parent folder'**
+  String get folderLocationParent;
+
   /// No description provided for @addDirectories.
   ///
   /// In en, this message translates to:

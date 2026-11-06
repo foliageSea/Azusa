@@ -497,7 +497,12 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       if (effectiveLayout != null) {
         var placed = plan;
         for (final scope in directories) {
-          placed = applyFolderLayout(placed, scope, effectiveLayout!);
+          placed = applyFolderLayout(
+            placed,
+            scope,
+            effectiveLayout!,
+            root: dav.root,
+          );
         }
         plan
           ..clear()
@@ -574,9 +579,11 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   /// Re-places the current plan with [layout], keeping manual edits.
   void applyLayout(FolderLayout layout) {
     if (state.executing || state.busy || state.directory.isEmpty) return;
+    final base = Uri.parse(config.webdavUrl).path;
+    final root = canonicalDavPath(base.endsWith('/') ? base : '$base/');
     var plan = state.plan;
     for (final scope in state.organizingDirectories) {
-      plan = applyFolderLayout(plan, scope, layout);
+      plan = applyFolderLayout(plan, scope, layout, root: root);
     }
     state = state.copyWith(plan: plan);
   }

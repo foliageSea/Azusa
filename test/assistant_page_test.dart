@@ -962,6 +962,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('切换新建目录位置即时更新预览且不再次调用 AI', (tester) async {
+    final (container, organizer) = await _pump(tester, 1280);
+    container.read(assistantProvider.notifier).grantConsent();
+    await container.read(assistantProvider.notifier).send('整理');
+    await tester.pumpAndSettle();
+    final inside = container
+        .read(organizerProvider)
+        .plan
+        .first
+        .targetDirectory!;
+    expect(inside, startsWith(_root));
+    await tester.tap(find.byKey(const ValueKey('folder-layout-parent')));
+    await tester.pumpAndSettle();
+    final moved = container.read(organizerProvider).plan.first;
+    expect(moved.targetDirectory, inside.replaceFirst(_root, '/dav/'));
+    expect(moved.scope, _root);
+    expect(moved.destinationScope, '/dav/');
+    expect(organizer.proposals, 1);
+    expect(
+      find.byKey(ValueKey('plan-folder-${moved.targetDirectory}')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('folder-layout-inside')));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(organizerProvider).plan.first.targetDirectory,
+      inside,
+    );
+    expect(organizer.proposals, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('切换目录结构即时更新方案且不再次调用 AI', (tester) async {
     final (container, organizer) = await _pump(tester, 1280);
     container.read(assistantProvider.notifier).grantConsent();

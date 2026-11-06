@@ -7,6 +7,7 @@ import 'package:azusa/features/organizer/ai/tmdb.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
+import 'package:azusa/features/assistant/plan_tree.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -122,6 +123,74 @@ class _Adapter implements HttpClientAdapter {
 
 void main() {
   group('目录规划', () {
+    test('多个目录分别输出到各自上一级，切换保留手动编辑和勾选', () {
+      const layout = FolderLayout(
+        seriesFolders: true,
+        seasonFolders: true,
+        inParentDirectory: true,
+      );
+      final scopes = ['/dav/groupA/raw/', '/dav/groupB/raw/'];
+      var plan = [
+        for (final scope in scopes)
+          RenameItem(
+            source: '${scope}raw.mkv',
+            targetName: 'edited.mkv',
+            enabled: scope == scopes.first,
+            tmdbMediaType: TmdbMediaType.tv,
+            mediaTitle: 'Show',
+            seasonNumber: 1,
+            scope: scope,
+          ),
+      ];
+      for (final scope in scopes) {
+        plan = applyFolderLayout(plan, scope, layout, root: '/dav/');
+      }
+      expect(plan.map((item) => item.targetDirectory), [
+        '/dav/groupA/Show/Season%2001/',
+        '/dav/groupB/Show/Season%2001/',
+      ]);
+      expect(plannedFolders(plan), [
+        '/dav/groupA/Show/',
+        '/dav/groupA/Show/Season%2001/',
+      ]);
+      final tree = PlanTree.build(scopes.first, plan, []);
+      expect(tree.root.path, '/dav/');
+      expect(tree.newDirectories, plannedFolders(plan).toSet());
+      for (final scope in scopes) {
+        plan = applyFolderLayout(
+          plan,
+          scope,
+          layout.copyWith(inParentDirectory: false),
+          root: '/dav/',
+        );
+      }
+      expect(plan.first.targetDirectory, '${scopes.first}Show/Season%2001/');
+      expect(plan.first.targetName, 'edited.mkv');
+      expect(plan.last.enabled, isFalse);
+    });
+
+    test('上一级模式不越过连接根目录，关闭布局不向上移动', () {
+      final layout = FolderLayout.full.copyWith(inParentDirectory: true);
+      expect(
+        applyFolderLayout(
+          [_movie],
+          '/dav/',
+          layout,
+          root: '/dav/',
+        ).single.targetDirectory,
+        _encoded(['星际穿越 (2014)']),
+      );
+      final flat = applyFolderLayout(
+        [_tv('/dav/sub/a.mkv', 1, 1), _movie],
+        '/dav/',
+        const FolderLayout(inParentDirectory: true),
+        root: '/dav/',
+      );
+      expect(flat.first.targetDirectory, '/dav/');
+      expect(flat.last.targetDirectory, isNull);
+      expect(plannedFolders(flat), isEmpty);
+    });
+
     test('当前目录已是作品目录时复用，不重复嵌套同名文件夹', () {
       final scope = _encoded(['绝命毒师 (2008)']);
       final item = RenameItem(
@@ -229,6 +298,57 @@ void main() {
   });
 
   group('目录执行', () {
+    test('上一级模式逐级建目录并移动，冲突时不覆盖', () async {
+      const scope = '/dav/raw/';
+      const source = '${scope}raw.mkv';
+      const item = RenameItem(
+        source: source,
+        targetName: 'Show.mkv',
+        tmdbMediaType: TmdbMediaType.tv,
+        mediaTitle: 'Show',
+        seasonNumber: 1,
+        scope: scope,
+      );
+      final plan = applyFolderLayout(
+        [item],
+        scope,
+        FolderLayout.full.copyWith(inParentDirectory: true),
+        root: '/dav/',
+      );
+      final dav = _FolderDav({
+        scope: const DavEntry(scope, true),
+        source: const DavEntry(source, false),
+      });
+      addTearDown(dav.close);
+      final result = await RenameExecutor(dav).execute(plan);
+      expect(result.error, isNull);
+      expect(dav.log.take(2), [
+        'mkdir /dav/Show/',
+        'mkdir /dav/Show/Season%2001/',
+      ]);
+      expect(dav.files.containsKey(plan.single.target), isTrue);
+      dav.files[source] = const DavEntry(source, false);
+      final before = dav.log.length;
+      expect((await RenameExecutor(dav).execute(plan)).error, contains('已存在'));
+      expect(dav.log.length, before);
+    });
+
+    test('拒绝超出扫描目录上一级的目标范围及连接根目录', () async {
+      const source = '/dav/raw/a.mkv';
+      const item = RenameItem(
+        source: source,
+        targetName: 'a.mkv',
+        scope: '/dav/raw/',
+        destinationScope: '/',
+        targetDirectory: '/elsewhere/',
+      );
+      expect(validatePlan([item], [const DavEntry(source, false)]), '目标目录无效');
+      final dav = _FolderDav({source: const DavEntry(source, false)});
+      addTearDown(dav.close);
+      expect((await RenameExecutor(dav).execute([item])).error, '目标目录无效');
+      expect(dav.log, isEmpty);
+    });
+
     test('复用当前作品目录时只创建季目录，执行目标与预览一致', () async {
       final scope = _encoded(['绝命毒师 (2008)']);
       final source = '${scope}raw.mkv';

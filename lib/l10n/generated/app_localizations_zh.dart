@@ -10,6 +10,15 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get folderLocation => '新建目录位置';
+
+  @override
+  String get folderLocationInside => '目录内';
+
+  @override
+  String get folderLocationParent => '上一级';
+
+  @override
   String get addDirectories => '添加目录';
 
   @override

@@ -1,4 +1,7 @@
 {
+  "folderLocation": "新建目录位置",
+  "folderLocationInside": "目录内",
+  "folderLocationParent": "上一级",
   "addDirectories": "添加目录",
   "removeSelectedDirectory": "移除目录：{name}",
   "@removeSelectedDirectory": {"placeholders": {"name": {"type": "String"}}},

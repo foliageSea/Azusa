@@ -18,6 +18,14 @@ String canonicalDavPath(String path) {
 
 String displayDavPath(String path) => Uri.decodeComponent(path);
 
+String parentDavDirectory(String directory) {
+  if (directory == '/') return '/';
+  final trimmed = directory.endsWith('/')
+      ? directory.substring(0, directory.length - 1)
+      : directory;
+  return trimmed.substring(0, trimmed.lastIndexOf('/') + 1);
+}
+
 const _fileNameReplacements = {
   '/': '／',
   '\\': '＼',

@@ -10,6 +10,15 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get folderLocation => 'New folder location';
+
+  @override
+  String get folderLocationInside => 'Inside each folder';
+
+  @override
+  String get folderLocationParent => 'Parent folder';
+
+  @override
   String get addDirectories => 'Add folders';
 
   @override

@@ -652,7 +652,9 @@ class RenameAgent {
       }
     }
     return (
-      layout == null ? output : applyFolderLayout(output, directory, layout),
+      layout == null
+          ? output
+          : applyFolderLayout(output, directory, layout, root: dav.root),
       layout,
     );
   }

@@ -1,4 +1,7 @@
 {
+  "folderLocation": "New folder location",
+  "folderLocationInside": "Inside each folder",
+  "folderLocationParent": "Parent folder",
   "addDirectories": "Add folders",
   "removeSelectedDirectory": "Remove folder: {name}",
   "@removeSelectedDirectory": {"placeholders": {"name": {"type": "String"}}},

@@ -7,6 +7,7 @@ class FolderLayout {
     this.movieFolders = false,
     this.seriesFolders = false,
     this.seasonFolders = false,
+    this.inParentDirectory = false,
   });
 
   static const none = FolderLayout();
@@ -17,6 +18,7 @@ class FolderLayout {
   );
 
   final bool movieFolders, seriesFolders, seasonFolders;
+  final bool inParentDirectory;
 
   bool get enabled => movieFolders || seriesFolders || seasonFolders;
 
@@ -24,10 +26,12 @@ class FolderLayout {
     bool? movieFolders,
     bool? seriesFolders,
     bool? seasonFolders,
+    bool? inParentDirectory,
   }) => FolderLayout(
     movieFolders: movieFolders ?? this.movieFolders,
     seriesFolders: seriesFolders ?? this.seriesFolders,
     seasonFolders: seasonFolders ?? this.seasonFolders,
+    inParentDirectory: inParentDirectory ?? this.inParentDirectory,
   );
 
   @override
@@ -35,10 +39,16 @@ class FolderLayout {
       other is FolderLayout &&
       other.movieFolders == movieFolders &&
       other.seriesFolders == seriesFolders &&
-      other.seasonFolders == seasonFolders;
+      other.seasonFolders == seasonFolders &&
+      other.inParentDirectory == inParentDirectory;
 
   @override
-  int get hashCode => Object.hash(movieFolders, seriesFolders, seasonFolders);
+  int get hashCode => Object.hash(
+    movieFolders,
+    seriesFolders,
+    seasonFolders,
+    inParentDirectory,
+  );
 }
 
 String _folderName(String title, int? year) {
@@ -91,25 +101,50 @@ String? plannedDirectory(RenameItem item, String scope, FolderLayout layout) {
 List<RenameItem> applyFolderLayout(
   List<RenameItem> plan,
   String scope,
+  FolderLayout layout, {
+  String root = '/',
+}) {
+  final destinationScope = folderLayoutScope(scope, layout, root: root);
+  return [
+    for (final item in plan)
+      if (item.scope != scope)
+        item
+      else
+        _placeItem(item, scope, destinationScope, layout),
+  ];
+}
+
+RenameItem _placeItem(
+  RenameItem item,
+  String scope,
+  String destinationScope,
   FolderLayout layout,
-) => [
-  for (final item in plan)
-    if (item.scope != scope)
-      item
-    else
-      item.withTargetDirectory(
-        plannedDirectory(item, scope, layout) ??
-            (item.tmdbMediaType == TmdbMediaType.tv && item.parent != scope
-                ? scope
-                : null),
-      ),
-];
+) {
+  final directory = plannedDirectory(item, destinationScope, layout);
+  return item.withTargetDirectory(
+    directory ??
+        (item.tmdbMediaType == TmdbMediaType.tv && item.parent != scope
+            ? scope
+            : null),
+    destinationScope: directory == null ? scope : destinationScope,
+  );
+}
+
+String folderLayoutScope(
+  String scope,
+  FolderLayout layout, {
+  String root = '/',
+}) {
+  if (!layout.inParentDirectory || scope == root) return scope;
+  final parent = parentDavDirectory(scope);
+  return parent.startsWith(root) ? parent : scope;
+}
 
 /// Folders the plan will create, ordered from outermost to innermost.
 List<String> plannedFolders(List<RenameItem> plan) {
   final folders = <String>{};
   for (final item in plan.where((item) => item.enabled)) {
-    final scope = item.scope;
+    final scope = item.destinationScope ?? item.scope;
     final directory = item.targetDirectory;
     if (scope == null || directory == null || directory == scope) continue;
     var path = scope;
