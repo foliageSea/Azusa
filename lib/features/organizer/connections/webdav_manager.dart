@@ -108,6 +108,8 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
     if (!mounted) return;
     await showFDialog<void>(
       context: context,
+      useRootNavigator: true,
+      useSafeArea: true,
       builder: (context, style, animation) => FDialog(
         animation: animation,
         constraints: const BoxConstraints(minWidth: 280, maxWidth: 480),

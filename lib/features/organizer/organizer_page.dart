@@ -151,6 +151,8 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     try {
       final target = await showFDialog<String>(
         context: context,
+        useRootNavigator: true,
+        useSafeArea: true,
         builder: (context, style, animation) =>
             _RenameEntryDialog(entry: entry, animation: animation),
       );
