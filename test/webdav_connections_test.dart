@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:azusa/core/database/app_database.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
+import 'package:azusa/features/organizer/connections/credential_vault.dart';
 import 'package:azusa/features/organizer/connections/webdav_connections.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,7 +14,7 @@ class MemorySecrets extends FlutterSecureStorage {
   final writes = <String>[];
   final deletes = <String>[];
   bool failWrite = false;
-  bool failDelete = false;
+  int? failWriteAt;
   @override
   Future<String?> read({
     required String key,
@@ -38,7 +41,9 @@ class MemorySecrets extends FlutterSecureStorage {
     dynamic webOptions,
   }) async {
     writes.add(key);
-    if (failWrite) throw StateError('secure storage unavailable');
+    if (failWrite || writes.length == failWriteAt) {
+      throw StateError('secure storage unavailable');
+    }
     if (value != null) values[key] = value;
   }
 
@@ -53,9 +58,15 @@ class MemorySecrets extends FlutterSecureStorage {
     dynamic webOptions,
   }) async {
     deletes.add(key);
-    if (failDelete) throw StateError('secure storage unavailable');
     values.remove(key);
   }
+}
+
+Map<String, String> _storedCredentials(MemorySecrets secrets) {
+  final data = jsonDecode(
+    secrets.values[CredentialVault.storageKey]!,
+  ) as Map<String, dynamic>;
+  return Map<String, String>.from(data['values'] as Map);
 }
 
 void main() {
@@ -93,6 +104,20 @@ void main() {
     expect(loaded.map((item) => item.password), ['secret-one', 'secret-two']);
     expect(loaded.last.useProxy, isTrue);
     final db = await database.connection();
+    final firstKey =
+        db.select('SELECT secret_key FROM webdav_connections WHERE id = ?', [
+              first.id,
+            ]).single['secret_key']
+            as String;
+    final secondKey =
+        db.select('SELECT secret_key FROM webdav_connections WHERE id = ?', [
+              second.id,
+            ]).single['secret_key']
+            as String;
+    expect(_storedCredentials(secrets), {
+      firstKey: first.password,
+      secondKey: second.password,
+    });
     expect(
       db.select('SELECT * FROM webdav_connections').first.values,
       isNot(contains('secret-one')),
@@ -105,7 +130,7 @@ void main() {
     await repository.remove(second.id);
     expect(await repository.activeId(), isNull);
     expect((await repository.load()).single.password, first.password);
-    expect(secrets.values.length, 1);
+    expect(_storedCredentials(secrets), {firstKey: first.password});
     await expectLater(repository.select('missing'), throwsStateError);
   });
 
@@ -130,7 +155,12 @@ void main() {
 
   test('数据库提交失败清理新密码且保留旧记录', () async {
     await repository.save(first);
-    (await database.connection()).execute(
+    final db = await database.connection();
+    final previousCredentials = _storedCredentials(secrets);
+    final previousRow = Map<String, Object?>.from(
+      db.select('SELECT * FROM webdav_connections').single,
+    );
+    db.execute(
       "CREATE TRIGGER reject_update BEFORE UPDATE ON webdav_connections BEGIN SELECT RAISE(ABORT, 'failure'); END",
     );
     await expectLater(
@@ -144,22 +174,45 @@ void main() {
       ),
       throwsA(isA<SqliteException>()),
     );
-    expect(secrets.values.length, 1);
+    expect(_storedCredentials(secrets), previousCredentials);
+    expect(db.select('SELECT * FROM webdav_connections').single, previousRow);
     expect((await repository.load()).single.password, first.password);
   });
 
   test('旧密码清理失败不影响已提交的新配置', () async {
-    await repository.save(first);
-    secrets.failDelete = true;
+    await repository.save(first, activate: true);
+    final previousCredentials = _storedCredentials(secrets);
+    final failedWriteAt = secrets.writes.length + 2;
+    secrets.failWriteAt = failedWriteAt;
     await repository.save(
       WebDavConnection(
         id: first.id,
-        name: first.name,
+        name: 'Changed',
         url: first.url,
         password: 'new',
       ),
     );
+    expect(secrets.writes.length, failedWriteAt);
+    final db = await database.connection();
+    final newKey =
+        db.select('SELECT secret_key FROM webdav_connections WHERE id = ?', [
+              first.id,
+            ]).single['secret_key']
+            as String;
+    expect(previousCredentials.containsKey(newKey), isFalse);
+    expect(_storedCredentials(secrets), {
+      ...previousCredentials,
+      newKey: 'new',
+    });
+    expect((await repository.load()).single.name, 'Changed');
     expect((await repository.load()).single.password, 'new');
+    expect(await repository.activeId(), first.id);
+    final restartedSecrets = MemorySecrets()..values.addAll(secrets.values);
+    final reopened = WebDavConnectionsRepository(database, restartedSecrets);
+    final persisted = (await reopened.load()).single;
+    expect(persisted.name, 'Changed');
+    expect(persisted.password, 'new');
+    expect(await reopened.activeId(), first.id);
   });
 
   test('旧配置迁移可重试且删除后不会复活', () async {
