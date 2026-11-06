@@ -96,24 +96,11 @@ class _DirectoryPanel extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l.selectedDirectoryCount(state.selectedDirectories.length),
-                    style: theme.typography.body.md.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                FButton.icon(
-                  variant: .ghost,
-                  size: .sm,
-                  semanticsLabel: l.close,
-                  onPress: onClose,
-                  child: const Icon(FLucideIcons.x),
-                ),
-              ],
+            Text(
+              l.selectedDirectoryCount(state.selectedDirectories.length),
+              style: theme.typography.body.md.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 12),
             Flexible(
@@ -208,15 +195,12 @@ class _DirectoryRowState extends State<_DirectoryRow> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Icon(
-              FLucideIcons.folder,
-              size: 18,
-              color: theme.colors.mutedForeground,
-            ),
+          Icon(
+            FLucideIcons.folder,
+            size: 18,
+            color: theme.colors.mutedForeground,
           ),
           const SizedBox(width: 10),
           Expanded(

@@ -922,7 +922,7 @@ class _ActivityRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox.square(
             dimension: 18,
@@ -964,7 +964,7 @@ class _ActivityRow extends StatelessWidget {
           ),
           if (result.isNotEmpty) ...[
             const SizedBox(width: 12),
-            Flexible(
+            Expanded(
               child: Text(
                 result,
                 maxLines: 2,
