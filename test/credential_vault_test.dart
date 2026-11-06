@@ -8,7 +8,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'webdav_connections_test.dart' show MemorySecrets;
-import 'webdav_switching_test.dart' show MemoryPreferences;
 
 class DeniedSecrets extends MemorySecrets {
   bool denied = true;
@@ -30,119 +29,55 @@ class DeniedSecrets extends MemorySecrets {
   }
 }
 
-class UnverifiedSecrets extends MemorySecrets {
-  @override
-  Future<void> write({
-    required String key,
-    required String? value,
-    dynamic iOptions,
-    dynamic aOptions,
-    dynamic lOptions,
-    dynamic wOptions,
-    dynamic mOptions,
-    dynamic webOptions,
-  }) async {
-    writes.add(key);
-  }
-}
-
 void main() {
-  test('macOS 服务标识和显示名称独立于旧插件默认服务', () {
+  test('macOS 使用单一命名服务和 JSON 条目', () {
     expect(
       CredentialVault.macOsOptions.accountName,
       'com.foliage.azusa.credentials',
     );
     expect(CredentialVault.macOsOptions.label, 'Azusa 凭据');
     expect(CredentialVault.macOsOptions.usesDataProtectionKeychain, isFalse);
-    expect(
-      CredentialVault.legacyMacOsOptions.accountName,
-      'flutter_secure_storage_service',
-    );
-    expect(CredentialVault.legacyMacOsOptions.label, isNull);
+    expect(CredentialVault.storageKey, 'azusa.credentials.v1');
   });
 
-  test('旧默认服务的统一仓库完整迁移到命名服务，不清理无关条目', () async {
-    final legacy = MemorySecrets()
-      ..values.addAll({
-        CredentialVault.storageKey: jsonEncode({
-          'version': 1,
-          'values': {'azusa.aiKey': 'ai', 'dav-reference': 'password'},
-        }),
-        'unrelated': 'keep',
-      });
-    final storage = MemorySecrets();
-    final vault = CredentialVault.forStorage(storage, legacyStorage: legacy);
-    expect(await vault.read('dav-reference'), 'password');
-    expect(await vault.read('azusa.aiKey'), 'ai');
-    expect(legacy.reads, [CredentialVault.storageKey]);
-    expect(legacy.deletes, [CredentialVault.storageKey]);
-    expect(legacy.values, {'unrelated': 'keep'});
-    final restarted = MemorySecrets()..values.addAll(storage.values);
-    final untouched = MemorySecrets();
-    expect(
-      await CredentialVault.forStorage(
-        restarted,
-        legacyStorage: untouched,
-      ).read('azusa.aiKey'),
-      'ai',
-    );
-    expect(untouched.reads, isEmpty);
-  });
-
-  test('旧默认服务的独立凭据迁移到命名服务', () async {
-    final legacy = MemorySecrets()
-      ..values.addAll({'azusa.aiKey': 'ai', 'old-webdav': 'dav'});
-    final storage = MemorySecrets();
-    final vault = CredentialVault.forStorage(storage, legacyStorage: legacy)
-      ..legacyWebDavKeys = () async => ['old-webdav'];
-    expect(await vault.read('old-webdav'), 'dav');
-    expect(await vault.read('azusa.aiKey'), 'ai');
-    expect(storage.values.keys, [CredentialVault.storageKey]);
-    expect(legacy.values, isEmpty);
+  test('首次创建空仓库，不读取或删除旧独立凭据', () async {
+    final oldValues = {
+      'azusa.webdavPassword': 'old-dav',
+      'azusa.aiKey': 'old-ai',
+      'azusa.tmdbToken': 'old-tmdb',
+      'old-webdav-reference': 'old-password',
+    };
+    final storage = MemorySecrets()..values.addAll(oldValues);
+    final vault = CredentialVault.forStorage(storage);
+    expect(await vault.read('azusa.aiKey'), isNull);
+    expect(await vault.read('old-webdav-reference'), isNull);
+    expect(storage.reads, [CredentialVault.storageKey]);
+    expect(storage.writes, [CredentialVault.storageKey]);
     expect(storage.deletes, isEmpty);
-  });
-
-  test('跨服务迁移失败保留旧仓库，目标仓库损坏不回退覆盖', () async {
-    final raw = jsonEncode({
+    expect(jsonDecode(storage.values[CredentialVault.storageKey]!), {
       'version': 1,
-      'values': {'ai': 'original'},
+      'values': <String, String>{},
     });
-    for (final storage in [
-      MemorySecrets()..failWrite = true,
-      UnverifiedSecrets(),
-    ]) {
-      final legacy = MemorySecrets()..values[CredentialVault.storageKey] = raw;
-      await expectLater(
-        CredentialVault.forStorage(storage, legacyStorage: legacy).read('ai'),
-        throwsStateError,
-      );
-      expect(legacy.values[CredentialVault.storageKey], raw);
-      expect(legacy.deletes, isEmpty);
+    for (final entry in oldValues.entries) {
+      expect(storage.values[entry.key], entry.value);
     }
-    final legacy = MemorySecrets()..values[CredentialVault.storageKey] = raw;
-    final invalid = MemorySecrets()
-      ..values[CredentialVault.storageKey] = 'broken';
-    await expectLater(
-      CredentialVault.forStorage(invalid, legacyStorage: legacy).read('ai'),
-      throwsFormatException,
-    );
-    expect(legacy.reads, isEmpty);
-    expect(invalid.writes, isEmpty);
   });
 
-  test('旧条目清理失败不丢数据，后续启动不再次尝试清理', () async {
-    final storage = MemorySecrets()..failDelete = true;
-    storage.values['azusa.aiKey'] = 'original';
-    expect(
-      await CredentialVault.forStorage(storage).read('azusa.aiKey'),
-      'original',
-    );
+  test('重启仅读取当前 JSON 仓库，不写入或清理条目', () async {
+    final storage = MemorySecrets();
+    final vault = CredentialVault.forStorage(storage);
+    await vault.update({
+      'azusa.aiKey': 'ai',
+      'azusa.tmdbToken': 'tmdb',
+      'dav-reference': 'dav',
+    });
     final restarted = MemorySecrets()..values.addAll(storage.values);
-    expect(
-      await CredentialVault.forStorage(restarted).read('azusa.aiKey'),
-      'original',
-    );
+    final reopened = CredentialVault.forStorage(restarted);
+    expect(await reopened.read('azusa.aiKey'), 'ai');
+    expect(await reopened.read('azusa.tmdbToken'), 'tmdb');
+    expect(await reopened.read('dav-reference'), 'dav');
     expect(restarted.reads, [CredentialVault.storageKey]);
+    expect(restarted.writes, isEmpty);
     expect(restarted.deletes, isEmpty);
   });
 
@@ -157,63 +92,6 @@ void main() {
       expect(e.toString(), isNot(contains('private-secret')));
       expect(e.source, isNull);
     }
-  });
-
-  test('v0.0.2 配置与密码完整升级到多连接及统一仓库', () async {
-    final database = AppDatabase(open: () async => sqlite3.openInMemory());
-    addTearDown(database.close);
-    final storage = MemorySecrets()
-      ..values.addAll({
-        'azusa.webdavPassword': 'dav-password',
-        'azusa.aiKey': 'ai-key',
-        'azusa.tmdbToken': 'tmdb-token',
-      });
-    final preferences = MemoryPreferences();
-    preferences.values['azusa.connections.v1'] = jsonEncode({
-      'webdavUrl': 'https://nas.test/dav/',
-      'username': 'user',
-      'model': 'model',
-    });
-    final globals = ConnectionRepository(preferences, storage);
-    final connections = WebDavConnectionsRepository(database, storage);
-    final loaded = await globals.load();
-    await connections.initialize(loaded);
-    expect(loaded.aiKey, 'ai-key');
-    expect(loaded.tmdbToken, 'tmdb-token');
-    expect((await connections.load()).single.password, 'dav-password');
-    expect(await connections.activeId(), 'legacy');
-    expect(storage.values.keys, [CredentialVault.storageKey]);
-    final reads = storage.reads.length;
-    final writes = storage.writes.length;
-    await globals.save(loaded.copyWith(model: 'other'), includeWebdav: false);
-    await connections.initialize(loaded);
-    expect(storage.reads.length, reads);
-    expect(storage.writes.length, writes);
-  });
-
-  test('旧版三个凭据一次迁移，重启仅访问一个系统条目', () async {
-    final storage = MemorySecrets();
-    storage.values.addAll({
-      'azusa.webdavPassword': 'dav',
-      'azusa.aiKey': 'ai',
-      'azusa.tmdbToken': 'tmdb',
-    });
-    final vault = CredentialVault.forStorage(storage);
-    expect(await vault.read('azusa.webdavPassword'), 'dav');
-    expect(await vault.read('azusa.aiKey'), 'ai');
-    expect(await vault.read('azusa.tmdbToken'), 'tmdb');
-    expect(storage.values.keys, [CredentialVault.storageKey]);
-    final before = storage.reads.length;
-    await Future.wait(List.generate(10, (_) => vault.read('azusa.aiKey')));
-    expect(storage.reads.length, before);
-    final restarted = MemorySecrets()..values.addAll(storage.values);
-    expect(
-      await CredentialVault.forStorage(restarted).read('azusa.aiKey'),
-      'ai',
-    );
-    expect(restarted.reads, [CredentialVault.storageKey]);
-    expect(restarted.writes, isEmpty);
-    expect(restarted.deletes, isEmpty);
   });
 
   test('并发读取合并，串行更新不同凭据不会互相覆盖', () async {
@@ -248,24 +126,24 @@ void main() {
     await expectLater(vault.read('ai'), throwsStateError);
     await expectLater(vault.read('dav'), throwsStateError);
     expect(storage.reads.length, 1);
+    expect(storage.writes, isEmpty);
     storage.denied = false;
     vault.retryFailedLoad();
     expect(await vault.read('ai'), isNull);
   });
 
-  test('迁移写入或验证失败不删除任何旧凭据', () async {
-    for (final storage in [
-      MemorySecrets()..failWrite = true,
-      UnverifiedSecrets(),
-    ]) {
-      storage.values['azusa.aiKey'] = 'original';
-      await expectLater(
-        CredentialVault.forStorage(storage).read('azusa.aiKey'),
-        throwsStateError,
-      );
-      expect(storage.values['azusa.aiKey'], 'original');
-      expect(storage.deletes, isEmpty);
-    }
+  test('首次初始化写入失败不自动重试，显式重试后创建空仓库', () async {
+    final storage = MemorySecrets()..failWrite = true;
+    final vault = CredentialVault.forStorage(storage);
+    await expectLater(vault.read('ai'), throwsStateError);
+    await expectLater(vault.read('dav'), throwsStateError);
+    expect(storage.reads, [CredentialVault.storageKey]);
+    expect(storage.writes, [CredentialVault.storageKey]);
+    expect(storage.values, isEmpty);
+    storage.failWrite = false;
+    vault.retryFailedLoad();
+    expect(await vault.read('ai'), isNull);
+    expect(storage.values.keys, [CredentialVault.storageKey]);
   });
 
   test('写入失败保持缓存和已保存值，后续更新可重试', () async {
@@ -286,32 +164,34 @@ void main() {
       '{"version":2,"values":{}}',
       '{"version":1,"values":{"ai":12}}',
     ]) {
-      final storage = MemorySecrets()..values[CredentialVault.storageKey] = raw;
+      final storage = MemorySecrets()
+        ..values[CredentialVault.storageKey] = raw
+        ..values['azusa.aiKey'] = 'old-ai';
       await expectLater(
-        CredentialVault.forStorage(storage).read('ai'),
+        CredentialVault.forStorage(storage).read('azusa.aiKey'),
         throwsFormatException,
       );
+      expect(storage.reads, [CredentialVault.storageKey]);
       expect(storage.writes, isEmpty);
       expect(storage.deletes, isEmpty);
     }
   });
 
-  test('多连接旧条目迁移，列表不读密码且修改名称不写凭据', () async {
+  test('多连接共享 JSON 仓库，列表不读密码且修改名称不写凭据', () async {
     final database = AppDatabase(open: () async => sqlite3.openInMemory());
     addTearDown(database.close);
     final db = await database.connection();
     db.execute(
-      "INSERT INTO webdav_connections VALUES ('one','NAS','https://nas.test/','user',0,'old-one')",
+      "INSERT INTO webdav_connections VALUES ('one','NAS','https://nas.test/','user',0,'one-ref')",
     );
     db.execute(
-      "INSERT INTO webdav_connections VALUES ('two','NAS 2','https://two.test/','user',0,'old-two')",
+      "INSERT INTO webdav_connections VALUES ('two','NAS 2','https://two.test/','user',0,'two-ref')",
     );
     db.execute('UPDATE webdav_state SET migrated = 1');
     final storage = MemorySecrets()
-      ..values.addAll({
-        'old-one': 'one-pass',
-        'old-two': 'two-pass',
-        'azusa.aiKey': 'ai',
+      ..values[CredentialVault.storageKey] = jsonEncode({
+        'version': 1,
+        'values': {'one-ref': 'one-pass', 'two-ref': 'two-pass'},
       });
     final repository = WebDavConnectionsRepository(database, storage);
     await repository.initialize(const ConnectionSettings());
@@ -321,8 +201,7 @@ void main() {
     final one = await repository.withPassword(metadata.first);
     expect(one.password, 'one-pass');
     expect((await repository.withPassword(metadata.last)).password, 'two-pass');
-    expect(storage.values.keys, [CredentialVault.storageKey]);
-    final reads = storage.reads.length;
+    expect(storage.reads, [CredentialVault.storageKey]);
     final writes = storage.writes.length;
     await repository.save(
       WebDavConnection(
@@ -332,7 +211,7 @@ void main() {
         password: one.password,
       ),
     );
-    expect(storage.reads.length, reads);
+    expect(storage.reads, [CredentialVault.storageKey]);
     expect(storage.writes.length, writes);
     expect((await repository.load()).first.name, 'Renamed');
   });

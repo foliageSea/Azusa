@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// One OS credential item; logical keys inside it are never stored in SQLite.
 class CredentialVault {
-  CredentialVault._(this.storage, this.legacyStorage);
+  CredentialVault._(this.storage);
 
   static const storageKey = 'azusa.credentials.v1';
   static const macOsOptions = MacOsOptions(
@@ -12,27 +12,12 @@ class CredentialVault {
     label: 'Azusa 凭据',
     usesDataProtectionKeychain: false,
   );
-  static const legacyMacOsOptions = MacOsOptions(
-    usesDataProtectionKeychain: false,
-  );
-  static const _globalKeys = [
-    'azusa.webdavPassword',
-    'azusa.aiKey',
-    'azusa.tmdbToken',
-  ];
   static final _instances = Expando<CredentialVault>();
 
-  static CredentialVault forStorage(
-    FlutterSecureStorage storage, {
-    FlutterSecureStorage? legacyStorage,
-  }) => _instances[storage] ??= CredentialVault._(
-    storage,
-    legacyStorage ?? storage,
-  );
+  static CredentialVault forStorage(FlutterSecureStorage storage) =>
+      _instances[storage] ??= CredentialVault._(storage);
 
   final FlutterSecureStorage storage;
-  final FlutterSecureStorage legacyStorage;
-  Future<Iterable<String>> Function()? legacyWebDavKeys;
   Future<Map<String, String>>? _loaded;
   Map<String, String>? _values;
   Future<void> _pending = Future.value();
@@ -74,46 +59,9 @@ class CredentialVault {
     final raw = await storage.read(key: storageKey);
     if (raw != null) return _values = _decode(raw);
 
-    // A previous build may already have a consolidated vault in the plugin's
-    // default service. Move it intact before considering individual old keys.
-    if (!identical(storage, legacyStorage)) {
-      final legacy = await legacyStorage.read(key: storageKey);
-      if (legacy != null) {
-        final values = _decode(legacy);
-        await _writeAndVerify(legacy);
-        await _cleanupLegacy(storageKey);
-        return _values = values;
-      }
-    }
-
-    final keys = {..._globalKeys, ...?await legacyWebDavKeys?.call()};
     final values = <String, String>{};
-    for (final key in keys) {
-      final value = await legacyStorage.read(key: key);
-      if (value != null) values[key] = value;
-    }
-    final encoded = _encode(values);
-    await _writeAndVerify(encoded);
-    for (final key in values.keys) {
-      await _cleanupLegacy(key);
-    }
+    await storage.write(key: storageKey, value: _encode(values));
     return _values = values;
-  }
-
-  Future<void> _writeAndVerify(String encoded) async {
-    await storage.write(key: storageKey, value: encoded);
-    // No legacy data is deleted until the entire vault has been verified.
-    final verified = await storage.read(key: storageKey);
-    if (verified != encoded) throw StateError('凭据仓库迁移验证失败');
-    _decode(verified!);
-  }
-
-  Future<void> _cleanupLegacy(String key) async {
-    try {
-      await legacyStorage.delete(key: key);
-    } catch (_) {
-      // Never retry automatically on each launch: cleanup may prompt again.
-    }
   }
 
   Future<String?> read(String key) async {

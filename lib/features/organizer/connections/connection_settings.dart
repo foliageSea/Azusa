@@ -140,14 +140,6 @@ final connectionRepositoryProvider = Provider((ref) {
   final storage = Platform.isMacOS
       ? const FlutterSecureStorage(mOptions: CredentialVault.macOsOptions)
       : const FlutterSecureStorage();
-  if (Platform.isMacOS) {
-    CredentialVault.forStorage(
-      storage,
-      legacyStorage: const FlutterSecureStorage(
-        mOptions: CredentialVault.legacyMacOsOptions,
-      ),
-    );
-  }
   return ConnectionRepository(ref.watch(preferencesProvider), storage);
 });
 final connectionSettingsProvider =

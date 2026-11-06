@@ -35,12 +35,7 @@ class WebDavConnection {
 }
 
 class WebDavConnectionsRepository {
-  WebDavConnectionsRepository(this.database, this.secrets) {
-    credentials.legacyWebDavKeys = () async => (await database.connection())
-        .select('SELECT secret_key FROM webdav_connections')
-        .map((row) => row['secret_key'] as String)
-        .toList();
-  }
+  WebDavConnectionsRepository(this.database, this.secrets);
   final AppDatabase database;
   final FlutterSecureStorage secrets;
   CredentialVault get credentials => CredentialVault.forStorage(secrets);

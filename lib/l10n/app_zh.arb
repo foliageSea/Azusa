@@ -171,7 +171,6 @@
   "usernameHint": "请输入用户名",
   "passwordHint": "请输入密码",
   "invalidCredentialVault": "凭据仓库格式无效",
-  "credentialMigrationVerificationFailed": "凭据仓库迁移验证失败",
   "aiUrlHint": "请输入 AI 服务地址",
   "modelNameHint": "请输入模型名称",
   "apiKeyHint": "请输入 API Key",

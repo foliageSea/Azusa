@@ -1058,12 +1058,6 @@ abstract class AppLocalizations {
   /// **'The credential vault format is invalid'**
   String get invalidCredentialVault;
 
-  /// No description provided for @credentialMigrationVerificationFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Credential vault migration verification failed'**
-  String get credentialMigrationVerificationFailed;
-
   /// No description provided for @aiUrlHint.
   ///
   /// In en, this message translates to:

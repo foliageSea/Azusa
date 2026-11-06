@@ -519,10 +519,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invalidCredentialVault => 'The credential vault format is invalid';
 
   @override
-  String get credentialMigrationVerificationFailed =>
-      'Credential vault migration verification failed';
-
-  @override
   String get aiUrlHint => 'Enter an AI service URL';
 
   @override

@@ -171,7 +171,6 @@
   "usernameHint": "Enter a username",
   "passwordHint": "Enter a password",
   "invalidCredentialVault": "The credential vault format is invalid",
-  "credentialMigrationVerificationFailed": "Credential vault migration verification failed",
   "aiUrlHint": "Enter an AI service URL",
   "modelNameHint": "Enter a model name",
   "apiKeyHint": "Enter an API Key",
