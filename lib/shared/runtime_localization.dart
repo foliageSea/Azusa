@@ -83,6 +83,12 @@ String localizeRuntimeMessage(AppLocalizations l, String message) {
     zh.invalidFileNameControl: l.invalidFileNameControl,
     zh.invalidFileNameEnding: l.invalidFileNameEnding,
     zh.invalidFileNameCharacters: l.invalidFileNameCharacters,
+    zh.scrapeCancelled: l.scrapeCancelled,
+    zh.scrapeOutsideScope: l.scrapeOutsideScope,
+    zh.scrapeCleanupOutsideScope: l.scrapeCleanupOutsideScope,
+    zh.invalidTmdbDetails: l.invalidTmdbDetails,
+    zh.invalidTmdbImage: l.invalidTmdbImage,
+    zh.tmdbImageFailed: l.tmdbImageFailed,
   };
   final exact = messages[message];
   if (exact != null) return exact;
@@ -116,6 +122,22 @@ String localizeRuntimeMessage(AppLocalizations l, String message) {
       template(
         zh.cleanupStopped('{0}', '{1}', '{2}'),
         (a) => l.cleanupStopped(a[0], a[1], nested(a[2])),
+      ) ??
+      template(
+        zh.scrapeCompleted('{0}', '{1}'),
+        (a) => l.scrapeCompleted(a[0], a[1]),
+      ) ??
+      template(
+        zh.scrapeStopped('{0}', '{1}', '{2}'),
+        (a) => l.scrapeStopped(a[0], a[1], nested(a[2])),
+      ) ??
+      template(
+        zh.scrapeCleanupCompleted('{0}', '{1}'),
+        (a) => l.scrapeCleanupCompleted(a[0], a[1]),
+      ) ??
+      template(
+        zh.scrapeCleanupStopped('{0}', '{1}', '{2}'),
+        (a) => l.scrapeCleanupStopped(a[0], a[1], nested(a[2])),
       ) ??
       template(
         zh.directoryReadFailed('{0}'),

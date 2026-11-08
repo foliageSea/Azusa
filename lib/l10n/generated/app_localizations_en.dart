@@ -1830,4 +1830,115 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get executeOrganizeDetail =>
       'New folders will be created and files moved or renamed as planned; original folders remain. Execution stops on failure and never overwrites existing files.';
+
+  @override
+  String get scrapeMenu => 'Scrape';
+
+  @override
+  String get scrapeMetadata => 'Scrape metadata';
+
+  @override
+  String get cleanScrapedFiles => 'Clean scraped files';
+
+  @override
+  String get scrapeScanning => 'Identifying videos and matching TMDB…';
+
+  @override
+  String get scrapeWriting => 'Writing metadata…';
+
+  @override
+  String get scrapeNoVideos => 'No videos to scrape';
+
+  @override
+  String scrapeMatched(int count) {
+    return 'Matched $count videos';
+  }
+
+  @override
+  String scrapeUnmatched(int count) {
+    return '$count videos could not be identified and will be skipped';
+  }
+
+  @override
+  String get scrapeIncludeArtwork =>
+      'Download posters, backdrops and episode stills';
+
+  @override
+  String get scrapeDetail =>
+      'Videos are identified by file and folder names and matched on TMDB; only names are sent to TMDB. NFO files are written next to videos, and series folders that contain a single series also get tvshow.nfo. Existing files are skipped and never overwritten: clean scraped files first to scrape again. Check the matches before writing.';
+
+  @override
+  String scrapeSelected(int count) {
+    return 'Scrape $count selected';
+  }
+
+  @override
+  String get scrapeKindMovie => 'Movie';
+
+  @override
+  String get scrapeKindEpisode => 'Episode';
+
+  @override
+  String scrapeArtifactsFound(int count) {
+    return 'Found $count scraped files';
+  }
+
+  @override
+  String get noScrapeArtifacts => 'No scraped files found';
+
+  @override
+  String get scrapeArtifactNfo => 'NFO';
+
+  @override
+  String get scrapeArtifactImage => 'Image';
+
+  @override
+  String cleanSelectedScrapeFiles(int count) {
+    return 'Delete $count selected files';
+  }
+
+  @override
+  String get confirmDeleteScrapeFiles => 'Confirm deletion';
+
+  @override
+  String get scrapeCleanupWarning =>
+      'Selected files will be deleted permanently. Each file is checked again before deletion; changed or missing files are skipped. Matching is based on naming conventions and may include NFO files that were not created by a scraper, such as release notes. Use \"Clean empty folders\" afterwards to remove folders left empty.';
+
+  @override
+  String get scrapeCancelled => 'Scraping cancelled';
+
+  @override
+  String scrapeCompleted(String written, String skipped) {
+    return 'Scraping complete: wrote $written files, skipped $skipped existing files';
+  }
+
+  @override
+  String scrapeStopped(String written, String skipped, String error) {
+    return 'Scraping stopped: wrote $written files, skipped $skipped existing files; $error';
+  }
+
+  @override
+  String scrapeCleanupCompleted(String deleted, String skipped) {
+    return 'Cleanup complete: deleted $deleted scraped files, skipped $skipped files';
+  }
+
+  @override
+  String scrapeCleanupStopped(String deleted, String skipped, String error) {
+    return 'Cleanup stopped: deleted $deleted scraped files, skipped $skipped files; $error';
+  }
+
+  @override
+  String get scrapeOutsideScope => 'File is outside the scrape scope';
+
+  @override
+  String get scrapeCleanupOutsideScope => 'File is outside the cleanup scope';
+
+  @override
+  String get invalidTmdbDetails => 'Invalid TMDB details';
+
+  @override
+  String get invalidTmdbImage => 'Invalid TMDB image path';
+
+  @override
+  String get tmdbImageFailed => 'TMDB image download failed';
 }

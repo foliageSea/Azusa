@@ -18,6 +18,8 @@ import 'connections/http_clients.dart';
 import 'rename_plan.dart';
 import 'ai/tmdb.dart';
 import 'dav/webdav.dart';
+import 'scrape/scrape_cleaner.dart';
+import 'scrape/scraper.dart';
 
 class OrganizerState {
   const OrganizerState({
@@ -124,6 +126,13 @@ final renameAgentFactoryProvider =
             namingFormat: ref.read(settingsProvider).namingFormat,
           ),
     );
+final tmdbFactoryProvider = Provider<TmdbClient Function(ConnectionSettings)>(
+  (ref) =>
+      (settings) => TmdbClient(
+        settings,
+        namingLanguage: ref.read(settingsProvider).namingLanguage,
+      ),
+);
 final executionHistoryProvider = FutureProvider<List<String>>(
   (ref) => ref.watch(executionHistoryRepositoryProvider).load(),
 );
@@ -208,6 +217,198 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     } finally {
       _emptyCandidates = {};
       _emptyScope = null;
+      try {
+        if (dav != null) {
+          state = state.copyWith(entries: await dav.list(state.directory));
+        }
+      } catch (e) {
+        state = state.copyWith(
+          message: '${state.message}；刷新目录失败：${serviceError(e)}',
+        );
+      }
+      dav?.close();
+      state = state.copyWith(busy: false, progress: '');
+    }
+  }
+
+  ScrapeScan? _scrapeScan;
+  String? _scrapeScope;
+  Map<String, ScrapeArtifact> _scrapeArtifacts = {};
+  String? _artifactScope;
+
+  void _checkScrape() {
+    if (_maintenanceCancelled) throw StateError('搜刮已中止');
+  }
+
+  /// Identifies videos below the current directory and matches them on TMDB.
+  Future<ScrapeScan?> scanScrapeTargets() async {
+    if (state.busy || state.executing || state.directory.isEmpty) return null;
+    _scrapeScan = null;
+    _scrapeScope = null;
+    _maintenanceCancelled = false;
+    state = state.copyWith(busy: true, message: '', progress: '');
+    WebDavClient? dav;
+    TmdbClient? tmdb;
+    try {
+      final settings = config;
+      if (settings.tmdbToken.isEmpty) throw StateError('请配置 TMDB Token');
+      dav = client();
+      tmdb = ref.read(tmdbFactoryProvider)(settings);
+      final result = await MetadataScraper(dav, tmdb).scan(
+        state.directory,
+        checkCancelled: _checkScrape,
+        onProgress: (path, _) =>
+            state = state.copyWith(progress: displayDavPath(path)),
+      );
+      _scrapeScan = result;
+      _scrapeScope = _cleanupScope;
+      return result;
+    } catch (e) {
+      state = state.copyWith(message: '扫描已停止：${serviceError(e)}');
+      return null;
+    } finally {
+      tmdb?.close();
+      dav?.close();
+      state = state.copyWith(busy: false, progress: '');
+    }
+  }
+
+  /// Writes NFO files (and artwork when [artwork] is set) for the selected
+  /// videos of the last scrape scan. Existing files are skipped.
+  Future<void> executeScrape(
+    Iterable<String> videos, {
+    bool artwork = true,
+  }) async {
+    final scan = _scrapeScan;
+    if (state.busy ||
+        state.executing ||
+        scan == null ||
+        _scrapeScope != _cleanupScope) {
+      return;
+    }
+    final paths = videos.toSet();
+    final selected = scan.targets
+        .where((target) => paths.contains(target.video))
+        .toList();
+    if (selected.isEmpty || selected.length != paths.length) return;
+    _maintenanceCancelled = false;
+    state = state.copyWith(busy: true, message: '', progress: '');
+    WebDavClient? dav;
+    TmdbClient? tmdb;
+    var written = 0;
+    var skipped = 0;
+    try {
+      dav = client();
+      tmdb = ref.read(tmdbFactoryProvider)(config);
+      await MetadataScraper(dav, tmdb).write(
+        state.directory,
+        selected,
+        scan.targets,
+        artwork: artwork,
+        checkCancelled: _checkScrape,
+        onWriting: (path) => _record('准备 upload ${displayDavPath(path)} '),
+        onWritten: (path) => _record('完成 upload ${displayDavPath(path)} '),
+        onProgress: (done, ignored, total) {
+          written = done;
+          skipped = ignored;
+          state = state.copyWith(progress: '${done + ignored} / $total');
+        },
+      );
+      state = state.copyWith(
+        message: '搜刮完成：已写入 $written 个文件，跳过 $skipped 个已存在文件',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        message: '搜刮已停止：已写入 $written 个文件，跳过 $skipped 个已存在文件；${serviceError(e)}',
+      );
+    } finally {
+      _scrapeScan = null;
+      _scrapeScope = null;
+      try {
+        if (dav != null) {
+          state = state.copyWith(entries: await dav.list(state.directory));
+        }
+      } catch (e) {
+        state = state.copyWith(
+          message: '${state.message}；刷新目录失败：${serviceError(e)}',
+        );
+      }
+      tmdb?.close();
+      dav?.close();
+      state = state.copyWith(busy: false, progress: '');
+    }
+  }
+
+  /// Finds NFO files and artwork below the current directory.
+  Future<List<ScrapeArtifact>> scanScrapeArtifacts() async {
+    if (state.busy || state.executing || state.directory.isEmpty) return [];
+    _scrapeArtifacts = {};
+    _artifactScope = null;
+    _maintenanceCancelled = false;
+    state = state.copyWith(busy: true, message: '', progress: '');
+    WebDavClient? dav;
+    try {
+      dav = client();
+      final result = await ScrapeCleaner(dav).scan(
+        state.directory,
+        checkCancelled: _checkMaintenance,
+        onProgress: (path) =>
+            state = state.copyWith(progress: displayDavPath(path)),
+      );
+      _scrapeArtifacts = {for (final item in result) item.path: item};
+      _artifactScope = _cleanupScope;
+      return result;
+    } catch (e) {
+      state = state.copyWith(message: '扫描已停止：${serviceError(e)}');
+      return [];
+    } finally {
+      dav?.close();
+      state = state.copyWith(busy: false, progress: '');
+    }
+  }
+
+  Future<void> cleanScrapeArtifacts(Iterable<String> selected) async {
+    if (state.busy || state.executing || _artifactScope != _cleanupScope) {
+      return;
+    }
+    final paths = selected.toSet();
+    if (paths.isEmpty || !paths.every(_scrapeArtifacts.containsKey)) return;
+    final artifacts = [for (final path in paths) _scrapeArtifacts[path]!];
+    _maintenanceCancelled = false;
+    state = state.copyWith(
+      busy: true,
+      message: '',
+      progress: '0 / ${paths.length}',
+    );
+    WebDavClient? dav;
+    var deleted = 0;
+    var skipped = 0;
+    try {
+      dav = client();
+      await ScrapeCleaner(dav).clean(
+        state.directory,
+        artifacts,
+        checkCancelled: _checkMaintenance,
+        onDeleting: (path) => _record('准备 delete ${displayDavPath(path)} '),
+        onDeleted: (path) => _record('完成 delete ${displayDavPath(path)} '),
+        onProgress: (done, ignored) {
+          deleted = done;
+          skipped = ignored;
+          state = state.copyWith(
+            progress: '${done + ignored} / ${paths.length}',
+          );
+        },
+      );
+      state = state.copyWith(
+        message: '清理完成：已删除 $deleted 个搜刮文件，跳过 $skipped 个文件',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        message: '清理已停止：已删除 $deleted 个搜刮文件，跳过 $skipped 个文件；${serviceError(e)}',
+      );
+    } finally {
+      _scrapeArtifacts = {};
+      _artifactScope = null;
       try {
         if (dav != null) {
           state = state.copyWith(entries: await dav.list(state.directory));

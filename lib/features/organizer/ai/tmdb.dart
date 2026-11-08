@@ -141,5 +141,76 @@ class TmdbClient {
         .toList();
   }
 
+  Future<Map<String, dynamic>> _details(
+    String path,
+    int id, {
+    String? append,
+  }) async {
+    if (token.isEmpty) throw StateError('请配置 TMDB Token');
+    final response = await dio.get<Map<String, dynamic>>(
+      'https://api.themoviedb.org/3/$path',
+      queryParameters: parameters({
+        'language': namingLanguage.code,
+        'append_to_response': ?append,
+      }),
+      options: options,
+    );
+    final data = response.data;
+    if (data == null || data['id'] != id) {
+      throw const FormatException('TMDB 详情无效');
+    }
+    return data;
+  }
+
+  /// Full movie details with credits, used to write metadata files.
+  Future<Map<String, dynamic>> movieMetadata(int id) {
+    if (id < 1) throw const FormatException('电影编号无效');
+    return _details('movie/$id', id, append: 'credits');
+  }
+
+  /// Full series details with credits and external ids.
+  Future<Map<String, dynamic>> tvMetadata(int id) {
+    if (id < 1) throw const FormatException('剧集或季编号无效');
+    return _details('tv/$id', id, append: 'credits,external_ids');
+  }
+
+  /// Full season details, including episode overviews and stills.
+  Future<Map<String, dynamic>> seasonMetadata(int id, int number) async {
+    if (token.isEmpty) throw StateError('请配置 TMDB Token');
+    if (id < 1 || number < 0 || number > 1000) {
+      throw const FormatException('剧集或季编号无效');
+    }
+    final response = await dio.get<Map<String, dynamic>>(
+      'https://api.themoviedb.org/3/tv/$id/season/$number',
+      queryParameters: parameters({'language': namingLanguage.code}),
+      options: options,
+    );
+    final data = response.data;
+    if (data == null) throw const FormatException('TMDB 详情无效');
+    return data;
+  }
+
+  static final _imagePath = RegExp(r'^/[A-Za-z0-9_-]+\.(?:jpe?g|png|webp)$');
+
+  static bool validImagePath(Object? path) =>
+      path is String && _imagePath.hasMatch(path);
+
+  /// Downloads a TMDB image. Only TMDB-issued relative paths are accepted.
+  Future<List<int>> image(String path, {String size = 'original'}) async {
+    if (!validImagePath(path) ||
+        !RegExp(r'^(?:original|w\d{2,4})$').hasMatch(size)) {
+      throw const FormatException('TMDB 图片地址无效');
+    }
+    final response = await dio.get<List<int>>(
+      'https://image.tmdb.org/t/p/$size$path',
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final data = response.data;
+    if (data == null || data.isEmpty) {
+      throw const FormatException('TMDB 图片下载失败');
+    }
+    return data;
+  }
+
   void close() => dio.close(force: true);
 }

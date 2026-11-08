@@ -1780,4 +1780,114 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get executeOrganizeDetail =>
       '将按方案新建文件夹并逐项移动、重命名文件；原文件夹保留。遇到失败立即停止，不覆盖已有文件。';
+
+  @override
+  String get scrapeMenu => '搜刮';
+
+  @override
+  String get scrapeMetadata => '搜刮元数据';
+
+  @override
+  String get cleanScrapedFiles => '清理搜刮文件';
+
+  @override
+  String get scrapeScanning => '正在识别视频并匹配 TMDB…';
+
+  @override
+  String get scrapeWriting => '正在写入元数据…';
+
+  @override
+  String get scrapeNoVideos => '未找到可搜刮的视频文件';
+
+  @override
+  String scrapeMatched(int count) {
+    return '已匹配 $count 个视频';
+  }
+
+  @override
+  String scrapeUnmatched(int count) {
+    return '$count 个视频未能识别，将跳过';
+  }
+
+  @override
+  String get scrapeIncludeArtwork => '下载海报、背景图与单集剧照';
+
+  @override
+  String get scrapeDetail =>
+      '按文件名和所在文件夹名识别视频并匹配 TMDB，仅向 TMDB 发送名称。NFO 写在视频旁，只包含一部剧集的剧集文件夹还会写入 tvshow.nfo。已存在的文件会跳过，不会覆盖；如需重新搜刮，请先清理搜刮文件。写入前请核对匹配结果。';
+
+  @override
+  String scrapeSelected(int count) {
+    return '搜刮所选 $count 项';
+  }
+
+  @override
+  String get scrapeKindMovie => '电影';
+
+  @override
+  String get scrapeKindEpisode => '剧集';
+
+  @override
+  String scrapeArtifactsFound(int count) {
+    return '发现 $count 个搜刮文件';
+  }
+
+  @override
+  String get noScrapeArtifacts => '未发现搜刮文件';
+
+  @override
+  String get scrapeArtifactNfo => 'NFO';
+
+  @override
+  String get scrapeArtifactImage => '图片';
+
+  @override
+  String cleanSelectedScrapeFiles(int count) {
+    return '删除所选 $count 个文件';
+  }
+
+  @override
+  String get confirmDeleteScrapeFiles => '确认删除';
+
+  @override
+  String get scrapeCleanupWarning =>
+      '选中文件将被永久删除。删除前会逐个重新检查，已变化或不存在的文件会跳过。识别基于命名规则，可能包含发布组说明等非搜刮生成的 NFO，请核对后再删除。清理后遗留的空文件夹可使用「清理空目录」删除。';
+
+  @override
+  String get scrapeCancelled => '搜刮已中止';
+
+  @override
+  String scrapeCompleted(String written, String skipped) {
+    return '搜刮完成：已写入 $written 个文件，跳过 $skipped 个已存在文件';
+  }
+
+  @override
+  String scrapeStopped(String written, String skipped, String error) {
+    return '搜刮已停止：已写入 $written 个文件，跳过 $skipped 个已存在文件；$error';
+  }
+
+  @override
+  String scrapeCleanupCompleted(String deleted, String skipped) {
+    return '清理完成：已删除 $deleted 个搜刮文件，跳过 $skipped 个文件';
+  }
+
+  @override
+  String scrapeCleanupStopped(String deleted, String skipped, String error) {
+    return '清理已停止：已删除 $deleted 个搜刮文件，跳过 $skipped 个文件；$error';
+  }
+
+  @override
+  String get scrapeOutsideScope => '文件超出搜刮范围';
+
+  @override
+  String get scrapeCleanupOutsideScope => '文件超出清理范围';
+
+  @override
+  String get invalidTmdbDetails => 'TMDB 详情无效';
+
+  @override
+  String get invalidTmdbImage => 'TMDB 图片地址无效';
+
+  @override
+  String get tmdbImageFailed => 'TMDB 图片下载失败';
 }

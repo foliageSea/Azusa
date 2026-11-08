@@ -24,6 +24,7 @@ import 'organizer_state.dart';
 import 'dav/empty_directory_dialog.dart';
 import 'dav/webdav.dart';
 import 'connections/webdav_manager.dart';
+import 'scrape/scrape_dialog.dart';
 import '../settings/settings_tab.dart';
 
 /// Panel width below which toolbars collapse to icon buttons.
@@ -612,6 +613,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                     menuBuilder: (_, controller, _) => [
                       FItemGroup(
                         children: [
+                          ...scrapeMenuItems(context, controller, locked),
                           FItem(
                             key: const ValueKey('empty-directory-cleanup'),
                             prefix: const Icon(FLucideIcons.folderMinus),
@@ -652,8 +654,11 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                       child: const Icon(FLucideIcons.ellipsis),
                     ),
                   )
-                else
+                else ...[
+                  const ScrapeButton(),
+                  const SizedBox(width: 8),
                   const EmptyDirectoryButton(),
+                ],
               ],
               if (!mobile || !connected) ...[
                 if (connected) const SizedBox(width: 8),

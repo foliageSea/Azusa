@@ -3343,6 +3343,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New folders will be created and files moved or renamed as planned; original folders remain. Execution stops on failure and never overwrites existing files.'**
   String get executeOrganizeDetail;
+
+  /// No description provided for @scrapeMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrape'**
+  String get scrapeMenu;
+
+  /// No description provided for @scrapeMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrape metadata'**
+  String get scrapeMetadata;
+
+  /// No description provided for @cleanScrapedFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean scraped files'**
+  String get cleanScrapedFiles;
+
+  /// No description provided for @scrapeScanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Identifying videos and matching TMDB…'**
+  String get scrapeScanning;
+
+  /// No description provided for @scrapeWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing metadata…'**
+  String get scrapeWriting;
+
+  /// No description provided for @scrapeNoVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'No videos to scrape'**
+  String get scrapeNoVideos;
+
+  /// No description provided for @scrapeMatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Matched {count} videos'**
+  String scrapeMatched(int count);
+
+  /// No description provided for @scrapeUnmatched.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} videos could not be identified and will be skipped'**
+  String scrapeUnmatched(int count);
+
+  /// No description provided for @scrapeIncludeArtwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Download posters, backdrops and episode stills'**
+  String get scrapeIncludeArtwork;
+
+  /// No description provided for @scrapeDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos are identified by file and folder names and matched on TMDB; only names are sent to TMDB. NFO files are written next to videos, and series folders that contain a single series also get tvshow.nfo. Existing files are skipped and never overwritten: clean scraped files first to scrape again. Check the matches before writing.'**
+  String get scrapeDetail;
+
+  /// No description provided for @scrapeSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrape {count} selected'**
+  String scrapeSelected(int count);
+
+  /// No description provided for @scrapeKindMovie.
+  ///
+  /// In en, this message translates to:
+  /// **'Movie'**
+  String get scrapeKindMovie;
+
+  /// No description provided for @scrapeKindEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Episode'**
+  String get scrapeKindEpisode;
+
+  /// No description provided for @scrapeArtifactsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Found {count} scraped files'**
+  String scrapeArtifactsFound(int count);
+
+  /// No description provided for @noScrapeArtifacts.
+  ///
+  /// In en, this message translates to:
+  /// **'No scraped files found'**
+  String get noScrapeArtifacts;
+
+  /// No description provided for @scrapeArtifactNfo.
+  ///
+  /// In en, this message translates to:
+  /// **'NFO'**
+  String get scrapeArtifactNfo;
+
+  /// No description provided for @scrapeArtifactImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get scrapeArtifactImage;
+
+  /// No description provided for @cleanSelectedScrapeFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {count} selected files'**
+  String cleanSelectedScrapeFiles(int count);
+
+  /// No description provided for @confirmDeleteScrapeFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm deletion'**
+  String get confirmDeleteScrapeFiles;
+
+  /// No description provided for @scrapeCleanupWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected files will be deleted permanently. Each file is checked again before deletion; changed or missing files are skipped. Matching is based on naming conventions and may include NFO files that were not created by a scraper, such as release notes. Use \"Clean empty folders\" afterwards to remove folders left empty.'**
+  String get scrapeCleanupWarning;
+
+  /// No description provided for @scrapeCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Scraping cancelled'**
+  String get scrapeCancelled;
+
+  /// No description provided for @scrapeCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Scraping complete: wrote {written} files, skipped {skipped} existing files'**
+  String scrapeCompleted(String written, String skipped);
+
+  /// No description provided for @scrapeStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Scraping stopped: wrote {written} files, skipped {skipped} existing files; {error}'**
+  String scrapeStopped(String written, String skipped, String error);
+
+  /// No description provided for @scrapeCleanupCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleanup complete: deleted {deleted} scraped files, skipped {skipped} files'**
+  String scrapeCleanupCompleted(String deleted, String skipped);
+
+  /// No description provided for @scrapeCleanupStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleanup stopped: deleted {deleted} scraped files, skipped {skipped} files; {error}'**
+  String scrapeCleanupStopped(String deleted, String skipped, String error);
+
+  /// No description provided for @scrapeOutsideScope.
+  ///
+  /// In en, this message translates to:
+  /// **'File is outside the scrape scope'**
+  String get scrapeOutsideScope;
+
+  /// No description provided for @scrapeCleanupOutsideScope.
+  ///
+  /// In en, this message translates to:
+  /// **'File is outside the cleanup scope'**
+  String get scrapeCleanupOutsideScope;
+
+  /// No description provided for @invalidTmdbDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid TMDB details'**
+  String get invalidTmdbDetails;
+
+  /// No description provided for @invalidTmdbImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid TMDB image path'**
+  String get invalidTmdbImage;
+
+  /// No description provided for @tmdbImageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB image download failed'**
+  String get tmdbImageFailed;
 }
 
 class _AppLocalizationsDelegate
