@@ -213,6 +213,7 @@ class MetadataScraper {
   }
 
   Future<List<_ScrapeFile>> _files(
+    String scope,
     List<ScrapeTarget> selected,
     List<ScrapeTarget> all, {
     required bool artwork,
@@ -221,6 +222,8 @@ class MetadataScraper {
     List<int> utf8Text(String text) => utf8.encode(text);
     final roots = showRoots(all);
     for (final MapEntry(key: root, value: id) in roots.entries) {
+      // Selecting a season must not write show files in its parent folder.
+      if (!root.startsWith(scope)) continue;
       final episodes = selected.where(
         (t) => t.kind == ScrapeMediaKind.episode && t.showRoot == root,
       );
@@ -321,7 +324,16 @@ class MetadataScraper {
         throw StateError('文件超出搜刮范围');
       }
     }
-    final files = await _files(selected, all, artwork: artwork);
+    if (!root.endsWith('/') || dav.normalize(root) != root) {
+      throw StateError('文件超出搜刮范围');
+    }
+    final files = await _files(root, selected, all, artwork: artwork);
+    if (files.any(
+      (file) =>
+          !file.path.startsWith(root) || dav.normalize(file.path) != file.path,
+    )) {
+      throw StateError('文件超出搜刮范围');
+    }
     final listings = <String, Set<String>>{};
     var written = 0;
     var skipped = 0;

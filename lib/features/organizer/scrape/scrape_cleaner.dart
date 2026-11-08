@@ -83,7 +83,10 @@ class ScrapeCleaner {
   }) async {
     final result = <ScrapeArtifact>[];
     final visited = <String>{};
-    final pending = <(String, bool)>[(root, false)];
+    final rootName = decodedSegments(root).lastOrNull?.toLowerCase();
+    final pending = <(String, bool)>[
+      (root, scrapeArtworkFolders.contains(rootName)),
+    ];
     while (pending.isNotEmpty) {
       checkCancelled?.call();
       final (path, artworkFolder) = pending.removeLast();

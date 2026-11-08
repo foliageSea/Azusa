@@ -1,4 +1,6 @@
 {
+  "scrapeStartScan": "Start scan",
+  "scrapeScanScope": "Scan scope",
   "folderLocation": "New folder location",
   "folderLocationInside": "Inside each folder",
   "folderLocationParent": "Parent folder",

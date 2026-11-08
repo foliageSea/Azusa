@@ -10,6 +10,12 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get scrapeStartScan => '开始扫描';
+
+  @override
+  String get scrapeScanScope => '扫描范围';
+
+  @override
   String get folderLocation => '新建目录位置';
 
   @override

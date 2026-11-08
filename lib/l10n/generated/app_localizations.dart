@@ -98,6 +98,18 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @scrapeStartScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Start scan'**
+  String get scrapeStartScan;
+
+  /// No description provided for @scrapeScanScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan scope'**
+  String get scrapeScanScope;
+
   /// No description provided for @folderLocation.
   ///
   /// In en, this message translates to:

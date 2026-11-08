@@ -33,6 +33,7 @@ class _Dav extends WebDavClient {
   final files = <String, DavEntry>{};
   final uploads = <String, List<int>>{};
   final deleted = <String>[];
+  final listed = <String>[];
 
   void add(String raw, {String? etag}) {
     final path = _p(raw);
@@ -48,16 +49,19 @@ class _Dav extends WebDavClient {
   }
 
   @override
-  Future<List<DavEntry>> listAll(String path) async => [
-    for (final e in files.values)
-      if (e.path != path &&
-          e.path.startsWith(path) &&
-          !e.path
-              .substring(path.length)
-              .replaceFirst(RegExp(r'/$'), '')
-              .contains('/'))
-        e,
-  ];
+  Future<List<DavEntry>> listAll(String path) async {
+    listed.add(path);
+    return [
+      for (final e in files.values)
+        if (e.path != path &&
+            e.path.startsWith(path) &&
+            !e.path
+                .substring(path.length)
+                .replaceFirst(RegExp(r'/$'), '')
+                .contains('/'))
+          e,
+    ];
+  }
 
   @override
   Future<List<DavEntry>> list(String path) async => [
@@ -387,6 +391,134 @@ void main() {
       container.read(organizerProvider).message,
       '清理完成：已删除 1 个搜刮文件，跳过 0 个文件',
     );
+  });
+
+  test('selected folders across levels are scanned once and executed outside the browser folder', () async {
+    final db = AppDatabase(open: () async => sqlite3.openInMemory());
+    addTearDown(db.close);
+    final dav = _Dav([
+      '/dav/a/Interstellar (2014).mkv',
+      '/dav/a/nested/Interstellar (2014).mkv',
+      '/dav/b/Interstellar (2014).mkv',
+      '/dav/unselected/Interstellar (2014).mkv',
+      '/dav/unselected/keep.nfo',
+    ]);
+    final container = ProviderContainer(
+      overrides: [
+        connectionSettingsProvider.overrideWith(_Connections.new),
+        webDavFactoryProvider.overrideWithValue((_) => dav),
+        tmdbFactoryProvider.overrideWithValue((_) => _Tmdb()),
+        executionHistoryRepositoryProvider.overrideWithValue(
+          ExecutionHistoryRepository(db),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(connectionSettingsProvider.future);
+    final controller = container.read(organizerProvider.notifier);
+    await controller.open('/dav/unselected/');
+    controller.selectDirectories(['/dav/a/', '/dav/a/nested/', '/dav/b/']);
+    controller.setIncludeSubdirectories(false);
+    dav.listed.clear();
+    final scan = (await controller.scanScrapeTargets())!;
+    expect(scan.targets.length, 3);
+    expect(dav.listed, ['/dav/a/', '/dav/a/nested/', '/dav/b/']);
+    await controller.executeScrape(
+      scan.targets.map((t) => t.video),
+      artwork: false,
+    );
+    expect(dav.uploads.length, 3);
+    expect(
+      dav.uploads.keys.every((p) => !p.startsWith('/dav/unselected/')),
+      isTrue,
+    );
+    expect(
+      container.read(organizerProvider).message,
+      '搜刮完成：已写入 3 个文件，跳过 0 个已存在文件',
+    );
+
+    dav.listed.clear();
+    final artifacts = await controller.scanScrapeArtifacts();
+    expect(artifacts.length, 3);
+    expect(dav.listed, ['/dav/a/', '/dav/a/nested/', '/dav/b/']);
+    await controller.cleanScrapeArtifacts(artifacts.map((a) => a.path));
+    expect(dav.deleted.length, 3);
+    expect(dav.files.containsKey('/dav/unselected/keep.nfo'), isTrue);
+    expect(
+      container.read(organizerProvider).message,
+      '清理完成：已删除 3 个搜刮文件，跳过 0 个文件',
+    );
+  });
+
+  test('explicit scopes override browser selection and empty scopes do not fall back', () async {
+    final db = AppDatabase(open: () async => sqlite3.openInMemory());
+    addTearDown(db.close);
+    final dav = _Dav([
+      '/dav/a/Interstellar (2014).mkv',
+      '/dav/b/Interstellar (2014).mkv',
+      '/dav/a/old.nfo',
+      '/dav/b/old.nfo',
+    ]);
+    final container = ProviderContainer(
+      overrides: [
+        connectionSettingsProvider.overrideWith(_Connections.new),
+        webDavFactoryProvider.overrideWithValue((_) => dav),
+        tmdbFactoryProvider.overrideWithValue((_) => _Tmdb()),
+        executionHistoryRepositoryProvider.overrideWithValue(
+          ExecutionHistoryRepository(db),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(connectionSettingsProvider.future);
+    final controller = container.read(organizerProvider.notifier);
+    await controller.open('/dav/');
+    controller.selectDirectories(['/dav/a/']);
+    final scan = (await controller.scanScrapeTargets(
+      directories: ['/dav/b', '/dav/b/'],
+    ))!;
+    expect(scan.targets.single.video, _p('/dav/b/Interstellar (2014).mkv'));
+    await controller.executeScrape(
+      scan.targets.map((t) => t.video),
+      artwork: false,
+    );
+    expect(dav.uploads.keys.single, _p('/dav/b/Interstellar (2014).nfo'));
+    final artifacts = await controller.scanScrapeArtifacts(
+      directories: ['/dav/b/'],
+    );
+    expect(artifacts.every((a) => a.path.startsWith('/dav/b/')), isTrue);
+    // Changing browser scope invalidates a previous scan.
+    await controller.open('/dav/a/');
+    await controller.cleanScrapeArtifacts(artifacts.map((a) => a.path));
+    expect(dav.deleted, isEmpty);
+    dav.listed.clear();
+    expect(await controller.scanScrapeTargets(directories: []), isNull);
+    expect(await controller.scanScrapeArtifacts(directories: []), isEmpty);
+    expect(dav.listed, isEmpty);
+    expect(
+      await controller.scanScrapeTargets(directories: ['/outside/']),
+      isNull,
+    );
+    expect(dav.listed, isEmpty);
+  });
+
+  test('selecting a season writes only within that season', () async {
+    final dav = _Dav(['/dav/绝命毒师/Season 1/绝命毒师 - S01E01.mkv']);
+    addTearDown(dav.close);
+    final scraper = MetadataScraper(dav, _Tmdb());
+    final root = _p('/dav/绝命毒师/Season 1/');
+    final scan = await scraper.scan(root);
+    final result = await scraper.write(root, scan.targets, scan.targets);
+    expect(result.written, 2);
+    expect(dav.uploads.keys.every((p) => p.startsWith(root)), isTrue);
+    expect(dav.uploads.keys.any((p) => p.endsWith('tvshow.nfo')), isFalse);
+  });
+
+  test('artwork folder can be selected directly for cleanup', () async {
+    final dav = _Dav(['/dav/show/.actors/Actor.jpg']);
+    addTearDown(dav.close);
+    final artifacts = await ScrapeCleaner(dav).scan('/dav/show/.actors/');
+    expect(artifacts.single.path, '/dav/show/.actors/Actor.jpg');
   });
 
   test('scrape messages are localized', () {

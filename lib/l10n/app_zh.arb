@@ -1,4 +1,6 @@
 {
+  "scrapeStartScan": "开始扫描",
+  "scrapeScanScope": "扫描范围",
   "folderLocation": "新建目录位置",
   "folderLocationInside": "目录内",
   "folderLocationParent": "上一级",

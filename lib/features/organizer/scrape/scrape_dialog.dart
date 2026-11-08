@@ -8,23 +8,33 @@ import '../dav/dav_paths.dart';
 import '../organizer_state.dart';
 import 'media_identity.dart';
 import 'scrape_cleaner.dart';
+import 'scrape_directory_picker.dart';
 import 'scraper.dart';
 
-Future<void> showScrapeDialog(BuildContext context) => showFDialog<void>(
-  context: context,
-  builder: (context, style, animation) => FDialog(
-    animation: animation,
-    builder: (context, style) => const _ScrapeDialog(),
-  ),
-);
+Future<void> showScrapeDialog(BuildContext context) async {
+  final directories = await showScrapeDirectoryPicker(context);
+  if (!context.mounted || directories == null || directories.isEmpty) return;
+  await showFDialog<void>(
+    context: context,
+    builder: (context, style, animation) => FDialog(
+      animation: animation,
+      builder: (context, style) => _ScrapeDialog(directories: directories),
+    ),
+  );
+}
 
-Future<void> showScrapeCleanupDialog(BuildContext context) => showFDialog<void>(
-  context: context,
-  builder: (context, style, animation) => FDialog(
-    animation: animation,
-    builder: (context, style) => const _ScrapeCleanupDialog(),
-  ),
-);
+Future<void> showScrapeCleanupDialog(BuildContext context) async {
+  final directories = await showScrapeDirectoryPicker(context, cleanup: true);
+  if (!context.mounted || directories == null || directories.isEmpty) return;
+  await showFDialog<void>(
+    context: context,
+    builder: (context, style, animation) => FDialog(
+      animation: animation,
+      builder: (context, style) =>
+          _ScrapeCleanupDialog(directories: directories),
+    ),
+  );
+}
 
 /// Toolbar menu offering metadata scraping and scraped-file cleanup.
 class ScrapeButton extends ConsumerWidget {
@@ -112,7 +122,15 @@ class _DialogFrame extends StatelessWidget {
           children: [
             Text(title, style: context.theme.typography.body.lg),
             const SizedBox(height: 16),
-            ...body,
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: body,
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
             Wrap(
               alignment: WrapAlignment.end,
@@ -128,7 +146,9 @@ class _DialogFrame extends StatelessWidget {
 }
 
 class _ScrapeDialog extends ConsumerStatefulWidget {
-  const _ScrapeDialog();
+  const _ScrapeDialog({required this.directories});
+
+  final List<String> directories;
 
   @override
   ConsumerState<_ScrapeDialog> createState() => _ScrapeDialogState();
@@ -158,7 +178,9 @@ class _ScrapeDialogState extends ConsumerState<_ScrapeDialog> {
 
   Future<void> _start() async {
     if (!mounted) return;
-    final scan = await _controller.scanScrapeTargets();
+    final scan = await _controller.scanScrapeTargets(
+      directories: widget.directories,
+    );
     if (!mounted) return;
     setState(() {
       _scan = scan;
@@ -204,6 +226,10 @@ class _ScrapeDialogState extends ConsumerState<_ScrapeDialog> {
       title: l.scrapeMetadata,
       busy: _loading,
       body: [
+        Text(l.scrapeScanScope, style: context.theme.typography.body.sm),
+        for (final path in widget.directories)
+          Text(displayDavPath(path), style: context.theme.typography.body.sm),
+        const SizedBox(height: 12),
         if (_loading) ...[
           Text(_writing ? l.scrapeWriting : l.scrapeScanning),
           const SizedBox(height: 8),
@@ -213,7 +239,7 @@ class _ScrapeDialogState extends ConsumerState<_ScrapeDialog> {
             overflow: TextOverflow.ellipsis,
           ),
         ] else if (_finished || organizer.message.isNotEmpty || scan == null)
-          Flexible(
+          SizedBox(
             child: SingleChildScrollView(
               child: Text(localizeRuntimeMessage(l, organizer.message)),
             ),
@@ -221,8 +247,6 @@ class _ScrapeDialogState extends ConsumerState<_ScrapeDialog> {
         else if (targets.isEmpty && scan.unmatched.isEmpty)
           Text(l.scrapeNoVideos)
         else ...[
-          Text(l.scrapeDetail, style: muted),
-          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(child: Text(l.scrapeMatched(targets.length))),
@@ -245,9 +269,10 @@ class _ScrapeDialogState extends ConsumerState<_ScrapeDialog> {
             ],
           ),
           const SizedBox(height: 8),
-          Flexible(
+          SizedBox(
             child: ListView(
               shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               children: [
                 for (final target in targets)
                   Padding(
@@ -310,7 +335,9 @@ class _ScrapeDialogState extends ConsumerState<_ScrapeDialog> {
 }
 
 class _ScrapeCleanupDialog extends ConsumerStatefulWidget {
-  const _ScrapeCleanupDialog();
+  const _ScrapeCleanupDialog({required this.directories});
+
+  final List<String> directories;
 
   @override
   ConsumerState<_ScrapeCleanupDialog> createState() =>
@@ -340,7 +367,9 @@ class _ScrapeCleanupDialogState extends ConsumerState<_ScrapeCleanupDialog> {
 
   Future<void> _scan() async {
     if (!mounted) return;
-    final artifacts = await _controller.scanScrapeArtifacts();
+    final artifacts = await _controller.scanScrapeArtifacts(
+      directories: widget.directories,
+    );
     if (!mounted) return;
     setState(() {
       _artifacts = artifacts;
@@ -367,6 +396,10 @@ class _ScrapeCleanupDialogState extends ConsumerState<_ScrapeCleanupDialog> {
       title: l.cleanScrapedFiles,
       busy: _loading,
       body: [
+        Text(l.scrapeScanScope, style: context.theme.typography.body.sm),
+        for (final path in widget.directories)
+          Text(displayDavPath(path), style: context.theme.typography.body.sm),
+        const SizedBox(height: 12),
         if (_loading) ...[
           Text(l.scanningOrCleaning),
           const SizedBox(height: 8),
@@ -376,7 +409,7 @@ class _ScrapeCleanupDialogState extends ConsumerState<_ScrapeCleanupDialog> {
             overflow: TextOverflow.ellipsis,
           ),
         ] else if (_finished || organizer.message.isNotEmpty)
-          Flexible(
+          SizedBox(
             child: SingleChildScrollView(
               child: Text(localizeRuntimeMessage(l, organizer.message)),
             ),
@@ -407,9 +440,10 @@ class _ScrapeCleanupDialogState extends ConsumerState<_ScrapeCleanupDialog> {
             ],
           ),
           const SizedBox(height: 8),
-          Flexible(
+          SizedBox(
             child: ListView.builder(
               shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: _artifacts.length,
               itemBuilder: (context, index) {
                 final artifact = _artifacts[index];

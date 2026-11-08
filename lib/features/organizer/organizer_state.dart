@@ -235,16 +235,37 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   String? _scrapeScope;
   Map<String, ScrapeArtifact> _scrapeArtifacts = {};
   String? _artifactScope;
+  List<String> _scrapeDirectories = const [];
+  List<String> _artifactDirectories = const [];
+
+  /// Recursive scopes are normalized and parent selections cover descendants.
+  List<String> _scrapeRoots(WebDavClient dav, Iterable<String>? directories) {
+    final paths =
+        (directories ??
+                (state.selectedDirectories.isEmpty
+                    ? [state.directory]
+                    : state.selectedDirectories))
+            .map((path) => dav.normalize(path.endsWith('/') ? path : '$path/'))
+            .toSet()
+            .toList()
+          ..sort();
+    return List.unmodifiable([
+      for (final path in paths)
+        if (!paths.any((other) => other != path && path.startsWith(other)))
+          path,
+    ]);
+  }
 
   void _checkScrape() {
     if (_maintenanceCancelled) throw StateError('搜刮已中止');
   }
 
-  /// Identifies videos below the current directory and matches them on TMDB.
-  Future<ScrapeScan?> scanScrapeTargets() async {
+  /// Matches videos in the selected directories, or the current folder.
+  Future<ScrapeScan?> scanScrapeTargets({Iterable<String>? directories}) async {
     if (state.busy || state.executing || state.directory.isEmpty) return null;
     _scrapeScan = null;
     _scrapeScope = null;
+    _scrapeDirectories = const [];
     _maintenanceCancelled = false;
     state = state.copyWith(busy: true, message: '', progress: '');
     WebDavClient? dav;
@@ -254,12 +275,23 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       if (settings.tmdbToken.isEmpty) throw StateError('请配置 TMDB Token');
       dav = client();
       tmdb = ref.read(tmdbFactoryProvider)(settings);
-      final result = await MetadataScraper(dav, tmdb).scan(
-        state.directory,
-        checkCancelled: _checkScrape,
-        onProgress: (path, _) =>
-            state = state.copyWith(progress: displayDavPath(path)),
-      );
+      final roots = _scrapeRoots(dav, directories);
+      if (roots.isEmpty) return null;
+      final scraper = MetadataScraper(dav, tmdb);
+      final targets = <ScrapeTarget>[];
+      final unmatched = <String>[];
+      for (final root in roots) {
+        final scan = await scraper.scan(
+          root,
+          checkCancelled: _checkScrape,
+          onProgress: (path, _) =>
+              state = state.copyWith(progress: displayDavPath(path)),
+        );
+        targets.addAll(scan.targets);
+        unmatched.addAll(scan.unmatched);
+      }
+      final result = ScrapeScan(targets, unmatched);
+      _scrapeDirectories = roots;
       _scrapeScan = result;
       _scrapeScope = _cleanupScope;
       return result;
@@ -300,20 +332,30 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     try {
       dav = client();
       tmdb = ref.read(tmdbFactoryProvider)(config);
-      await MetadataScraper(dav, tmdb).write(
-        state.directory,
-        selected,
-        scan.targets,
-        artwork: artwork,
-        checkCancelled: _checkScrape,
-        onWriting: (path) => _record('准备 upload ${displayDavPath(path)} '),
-        onWritten: (path) => _record('完成 upload ${displayDavPath(path)} '),
-        onProgress: (done, ignored, total) {
-          written = done;
-          skipped = ignored;
-          state = state.copyWith(progress: '${done + ignored} / $total');
-        },
-      );
+      final scraper = MetadataScraper(dav, tmdb);
+      for (final root in _scrapeDirectories) {
+        final batch = selected.where((t) => t.video.startsWith(root)).toList();
+        if (batch.isEmpty) continue;
+        final previousWritten = written;
+        final previousSkipped = skipped;
+        await scraper.write(
+          root,
+          batch,
+          scan.targets.where((t) => t.video.startsWith(root)).toList(),
+          artwork: artwork,
+          checkCancelled: _checkScrape,
+          onWriting: (path) => _record('准备 upload ${displayDavPath(path)} '),
+          onWritten: (path) => _record('完成 upload ${displayDavPath(path)} '),
+          onProgress: (done, ignored, total) {
+            written = previousWritten + done;
+            skipped = previousSkipped + ignored;
+            state = state.copyWith(
+              progress:
+                  '${written + skipped} / ${previousWritten + previousSkipped + total}',
+            );
+          },
+        );
+      }
       state = state.copyWith(
         message: '搜刮完成：已写入 $written 个文件，跳过 $skipped 个已存在文件',
       );
@@ -324,6 +366,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     } finally {
       _scrapeScan = null;
       _scrapeScope = null;
+      _scrapeDirectories = const [];
       try {
         if (dav != null) {
           state = state.copyWith(entries: await dav.list(state.directory));
@@ -339,22 +382,34 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     }
   }
 
-  /// Finds NFO files and artwork below the current directory.
-  Future<List<ScrapeArtifact>> scanScrapeArtifacts() async {
+  /// Finds NFO files and artwork in the selected directories.
+  Future<List<ScrapeArtifact>> scanScrapeArtifacts({
+    Iterable<String>? directories,
+  }) async {
     if (state.busy || state.executing || state.directory.isEmpty) return [];
     _scrapeArtifacts = {};
     _artifactScope = null;
+    _artifactDirectories = const [];
     _maintenanceCancelled = false;
     state = state.copyWith(busy: true, message: '', progress: '');
     WebDavClient? dav;
     try {
       dav = client();
-      final result = await ScrapeCleaner(dav).scan(
-        state.directory,
-        checkCancelled: _checkMaintenance,
-        onProgress: (path) =>
-            state = state.copyWith(progress: displayDavPath(path)),
-      );
+      final roots = _scrapeRoots(dav, directories);
+      if (roots.isEmpty) return [];
+      final result = <ScrapeArtifact>[];
+      final cleaner = ScrapeCleaner(dav);
+      for (final root in roots) {
+        result.addAll(
+          await cleaner.scan(
+            root,
+            checkCancelled: _checkMaintenance,
+            onProgress: (path) =>
+                state = state.copyWith(progress: displayDavPath(path)),
+          ),
+        );
+      }
+      _artifactDirectories = roots;
       _scrapeArtifacts = {for (final item in result) item.path: item};
       _artifactScope = _cleanupScope;
       return result;
@@ -385,20 +440,27 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     var skipped = 0;
     try {
       dav = client();
-      await ScrapeCleaner(dav).clean(
-        state.directory,
-        artifacts,
-        checkCancelled: _checkMaintenance,
-        onDeleting: (path) => _record('准备 delete ${displayDavPath(path)} '),
-        onDeleted: (path) => _record('完成 delete ${displayDavPath(path)} '),
-        onProgress: (done, ignored) {
-          deleted = done;
-          skipped = ignored;
-          state = state.copyWith(
-            progress: '${done + ignored} / ${paths.length}',
-          );
-        },
-      );
+      final cleaner = ScrapeCleaner(dav);
+      for (final root in _artifactDirectories) {
+        final batch = artifacts.where((item) => item.path.startsWith(root));
+        if (batch.isEmpty) continue;
+        final previousDeleted = deleted;
+        final previousSkipped = skipped;
+        await cleaner.clean(
+          root,
+          batch,
+          checkCancelled: _checkMaintenance,
+          onDeleting: (path) => _record('准备 delete ${displayDavPath(path)} '),
+          onDeleted: (path) => _record('完成 delete ${displayDavPath(path)} '),
+          onProgress: (done, ignored) {
+            deleted = previousDeleted + done;
+            skipped = previousSkipped + ignored;
+            state = state.copyWith(
+              progress: '${deleted + skipped} / ${paths.length}',
+            );
+          },
+        );
+      }
       state = state.copyWith(
         message: '清理完成：已删除 $deleted 个搜刮文件，跳过 $skipped 个文件',
       );
@@ -409,6 +471,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     } finally {
       _scrapeArtifacts = {};
       _artifactScope = null;
+      _artifactDirectories = const [];
       try {
         if (dav != null) {
           state = state.copyWith(entries: await dav.list(state.directory));

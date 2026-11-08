@@ -10,6 +10,12 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get scrapeStartScan => 'Start scan';
+
+  @override
+  String get scrapeScanScope => 'Scan scope';
+
+  @override
   String get folderLocation => 'New folder location';
 
   @override
