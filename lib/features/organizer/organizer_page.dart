@@ -294,7 +294,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     required NasScope scope,
   }) {
     final padding = PageContent.paddingOf(context);
-    final selectionTextStyle = context.theme.typography.body.sm;
     return DecoratedBox(
       key: const ValueKey('organizer-bottom-actions'),
       decoration: BoxDecoration(
@@ -313,58 +312,6 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Expanded(
-                        child: state.selectedDirectories.isEmpty
-                            ? const SizedBox.shrink()
-                            : Text(
-                                context.l10n.selectedDirectoryCount(
-                                  state.selectedDirectories.length,
-                                ),
-                                style: selectionTextStyle,
-                              ),
-                      ),
-                      if (state.selectedDirectories.isNotEmpty) ...[
-                        FButton(
-                          variant: .ghost,
-                          size: .sm,
-                          onPress: locked
-                              ? null
-                              : () => _controller.selectDirectories([]),
-                          child: Text(
-                            context.l10n.clearDirectorySelection,
-                            style: selectionTextStyle,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                      FButton(
-                        variant: .ghost,
-                        size: .sm,
-                        onPress:
-                            locked || !state.entries.any((e) => e.directory)
-                            ? null
-                            : () => _controller.selectDirectories([
-                                ...state.selectedDirectories,
-                                for (final entry in state.entries)
-                                  if (entry.directory &&
-                                      (filter.text.isEmpty ||
-                                          entry.name.toLowerCase().contains(
-                                            filter.text.toLowerCase(),
-                                          )))
-                                    entry.path,
-                              ]),
-                        child: Text(
-                          context.l10n.selectAllDirectories,
-                          style: selectionTextStyle,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
                   Row(
                     children: [
                       if (state.directory.isNotEmpty) ...[
@@ -537,6 +484,13 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     final visible = query.isEmpty
         ? sorted
         : sorted.where((e) => e.name.toLowerCase().contains(query)).toList();
+    final visibleDirectories = [
+      for (final entry in visible)
+        if (entry.directory) entry.path,
+    ];
+    final allVisibleSelected =
+        visibleDirectories.isNotEmpty &&
+        visibleDirectories.every(state.selectedDirectories.contains);
     if (!visible.any((entry) => entry.path == _selectedEntryPath)) {
       _selectedEntryPath = null;
     }
@@ -744,6 +698,44 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                   ),
                 ),
                 const SizedBox(height: 6),
+                if (visibleDirectories.isNotEmpty ||
+                    state.selectedDirectories.isNotEmpty)
+                  Padding(
+                    key: const ValueKey('directory-selection-bar'),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+                    child: Row(
+                      children: [
+                        FCheckbox(
+                          key: const ValueKey('select-all-directories'),
+                          value: allVisibleSelected,
+                          enabled: !locked && visibleDirectories.isNotEmpty,
+                          semanticsLabel: context.l10n.selectAllDirectories,
+                          onChange: (_) => _controller.selectDirectories(
+                            allVisibleSelected
+                                ? [
+                                    for (final path
+                                        in state.selectedDirectories)
+                                      if (!visibleDirectories.contains(path))
+                                        path,
+                                  ]
+                                : [
+                                    ...state.selectedDirectories,
+                                    ...visibleDirectories,
+                                  ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          state.selectedDirectories.isEmpty
+                              ? context.l10n.selectAll
+                              : context.l10n.selectedDirectoryCount(
+                                  state.selectedDirectories.length,
+                                ),
+                          style: context.theme.typography.body.sm,
+                        ),
+                      ],
+                    ),
+                  ),
                 if (state.entries.length > _filterThreshold)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
