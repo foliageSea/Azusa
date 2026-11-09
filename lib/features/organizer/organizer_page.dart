@@ -702,7 +702,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                     state.selectedDirectories.isNotEmpty)
                   Padding(
                     key: const ValueKey('directory-selection-bar'),
-                    padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
                     child: Row(
                       children: [
                         FCheckbox(
@@ -724,7 +724,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                                   ],
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Text(
                           state.selectedDirectories.isEmpty
                               ? context.l10n.selectAll
@@ -738,7 +738,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                   ),
                 if (state.entries.length > _filterThreshold)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                     child: FTextField(
                       control: .managed(
                         controller: filter,
