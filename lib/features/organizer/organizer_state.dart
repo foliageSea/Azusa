@@ -492,11 +492,16 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     if (state.busy || state.executing) return;
     final dav = client();
     try {
+      final available = {
+        for (final entry in state.entries)
+          if (entry.directory) entry.path,
+      };
       final selected =
           paths
               .map(
                 (path) => dav.normalize(path.endsWith('/') ? path : '$path/'),
               )
+              .where(available.contains)
               .toSet()
               .toList()
             ..sort();
@@ -580,8 +585,20 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
             : '$path/',
       );
       final entries = await dav.list(directory);
+      final available = {
+        for (final entry in entries)
+          if (entry.directory) entry.path,
+      };
+      final retainedSelection = directory == state.directory
+          ? state.selectedDirectories.where(available.contains).toList()
+          : <String>[];
       state = state.copyWith(
         directory: directory,
+        selectedDirectories:
+            directory == state.directory &&
+                retainedSelection.length == state.selectedDirectories.length
+            ? state.selectedDirectories
+            : List.unmodifiable(retainedSelection),
         clearAnalysis: true,
         entries: entries,
         plan: [],

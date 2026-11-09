@@ -393,7 +393,7 @@ void main() {
     );
   });
 
-  test('selected folders across levels are scanned once and executed outside the browser folder', () async {
+  test('selected sibling folders are scanned recursively without unselected folders', () async {
     final db = AppDatabase(open: () async => sqlite3.openInMemory());
     addTearDown(db.close);
     final dav = _Dav([
@@ -416,8 +416,8 @@ void main() {
     addTearDown(container.dispose);
     await container.read(connectionSettingsProvider.future);
     final controller = container.read(organizerProvider.notifier);
-    await controller.open('/dav/unselected/');
-    controller.selectDirectories(['/dav/a/', '/dav/a/nested/', '/dav/b/']);
+    await controller.open('/dav/');
+    controller.selectDirectories(['/dav/a/', '/dav/b/']);
     controller.setIncludeSubdirectories(false);
     dav.listed.clear();
     final scan = (await controller.scanScrapeTargets())!;
