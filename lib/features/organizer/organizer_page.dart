@@ -702,7 +702,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                     state.selectedDirectories.isNotEmpty)
                   Padding(
                     key: const ValueKey('directory-selection-bar'),
-                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
+                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 4),
                     child: Row(
                       children: [
                         FCheckbox(
