@@ -30,9 +30,6 @@ import '../settings/settings_tab.dart';
 /// Panel width below which toolbars collapse to icon buttons.
 const _compactPanelWidth = 520.0;
 
-/// Directories with more entries than this get a name filter.
-const _filterThreshold = 8;
-
 class OrganizerPage extends ConsumerStatefulWidget {
   const OrganizerPage({super.key});
   @override
@@ -736,18 +733,18 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                       ],
                     ),
                   ),
-                if (state.entries.length > _filterThreshold)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                    child: FTextField(
-                      control: .managed(
-                        controller: filter,
-                        onChange: (_) => setState(() {}),
-                      ),
-                      hint: context.l10n.filterByName,
-                    ),
-                  ),
               ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                child: FTextField(
+                  enabled: connected,
+                  control: .managed(
+                    controller: filter,
+                    onChange: (_) => setState(() {}),
+                  ),
+                  hint: context.l10n.filterByName,
+                ),
+              ),
               SizedBox(
                 height: 2,
                 child: state.busy
