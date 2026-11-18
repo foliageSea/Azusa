@@ -4,6 +4,11 @@
 
 # Azusa
 
+[![最新发布版本](https://img.shields.io/github/v/release/foliageSea/Azusa?label=release&color=orange)](https://github.com/foliageSea/Azusa/releases/latest)
+[![发布构建状态](https://img.shields.io/github/actions/workflow/status/foliageSea/Azusa/release.yml?label=build&logo=github)](https://github.com/foliageSea/Azusa/actions/workflows/release.yml)
+[![发布平台：Android、macOS、Windows、Linux](https://img.shields.io/badge/platform-Android%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/foliageSea/Azusa/releases/latest)
+[![许可证：MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Azusa 是一个使用 Flutter 构建的 WebDAV 影视整理工具。连接 NAS 或其他 WebDAV 服务后，可浏览远程文件，通过对话式整理助手借助兼容 OpenAI 的 AI 服务与 TMDB 数据识别电影和剧集，生成包含目录结构、移动和重命名的整理方案，经人工预览、编辑和确认后再执行。
 
 > AI 只生成建议，不直接修改文件。确认执行整理后，应用会按方案新建目录、移动和重命名远程文件；空目录清理会删除确认的空目录。请先在测试目录验证并备份重要数据。
