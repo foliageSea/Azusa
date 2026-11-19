@@ -1427,7 +1427,7 @@ abstract class AppLocalizations {
   /// No description provided for @testWebdav.
   ///
   /// In en, this message translates to:
-  /// **'Test WebDAV'**
+  /// **'Test'**
   String get testWebdav;
 
   /// No description provided for @testAi.

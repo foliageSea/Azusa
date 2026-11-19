@@ -207,13 +207,13 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
                 ),
               ),
             ),
-            FButton(
+            FButton.icon(
               key: const ValueKey('add-webdav-connection'),
+              variant: .ghost,
               size: .sm,
-              mainAxisSize: MainAxisSize.min,
-              prefix: const Icon(FLucideIcons.plus),
+              semanticsLabel: l.addWebdavConnection,
               onPress: locked ? null : () => edit(),
-              child: Text(l.addWebdavConnection),
+              child: const Icon(FLucideIcons.plus),
             ),
           ],
         ),
@@ -493,50 +493,34 @@ class _ConnectionEditorState extends ConsumerState<_ConnectionEditor> {
                 onChange: (v) => setState(() => proxy = v),
               ),
               const SizedBox(height: 24),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final test = IntrinsicWidth(
+              Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  IntrinsicWidth(
                     child: LoadingButton(
                       label: l.testWebdav,
                       loading: busy && testing,
                       variant: .outline,
                       onPress: locked ? null : () => submit(test: true),
                     ),
-                  );
-                  final save = IntrinsicWidth(
+                  ),
+                  FButton(
+                    mainAxisSize: MainAxisSize.min,
+                    variant: .outline,
+                    onPress: busy ? null : () => Navigator.of(context).pop(),
+                    child: Text(l.cancel),
+                  ),
+                  IntrinsicWidth(
                     child: LoadingButton(
                       label: l.save,
                       loading: busy && !testing,
                       onPress: locked ? null : submit,
                     ),
-                  );
-                  final cancel = FButton(
-                    mainAxisSize: MainAxisSize.min,
-                    variant: .ghost,
-                    onPress: busy ? null : () => Navigator.of(context).pop(),
-                    child: Text(l.cancel),
-                  );
-                  final primaryActions = Wrap(
-                    alignment: WrapAlignment.end,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [cancel, save],
-                  );
-                  if (constraints.maxWidth < 400) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Align(alignment: Alignment.centerLeft, child: test),
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: primaryActions,
-                        ),
-                      ],
-                    );
-                  }
-                  return Row(children: [test, const Spacer(), primaryActions]);
-                },
+                  ),
+                ],
               ),
             ],
           ),

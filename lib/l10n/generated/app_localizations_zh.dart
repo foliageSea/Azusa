@@ -703,7 +703,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hidePassword => '隐藏密码';
 
   @override
-  String get testWebdav => '测试 WebDAV';
+  String get testWebdav => '测试';
 
   @override
   String get testAi => '测试 AI';

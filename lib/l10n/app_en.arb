@@ -234,7 +234,7 @@
   "hideApiKey": "Hide API key",
   "showPassword": "Show password",
   "hidePassword": "Hide password",
-  "testWebdav": "Test WebDAV",
+  "testWebdav": "Test",
   "testAi": "Test AI",
   "testTmdb": "Test TMDB",
   "saveConfiguration": "Save configuration",

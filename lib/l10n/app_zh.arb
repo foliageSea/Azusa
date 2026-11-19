@@ -234,7 +234,7 @@
   "hideApiKey": "隐藏 API Key",
   "showPassword": "显示密码",
   "hidePassword": "隐藏密码",
-  "testWebdav": "测试 WebDAV",
+  "testWebdav": "测试",
   "testAi": "测试 AI",
   "testTmdb": "测试 TMDB",
   "saveConfiguration": "保存配置",

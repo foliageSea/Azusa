@@ -717,7 +717,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hidePassword => 'Hide password';
 
   @override
-  String get testWebdav => 'Test WebDAV';
+  String get testWebdav => 'Test';
 
   @override
   String get testAi => 'Test AI';
