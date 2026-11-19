@@ -20,11 +20,14 @@ class SelectedDirectoriesButton extends StatelessWidget {
         onPress: () => showFSheet<void>(
           context: context,
           side: .btt,
-          builder: (context) => SafeArea(
-            top: false,
-            child: _DirectoryPanel(
-              onClose: () => Navigator.of(context).pop(),
-              onAdd: onAdd,
+          builder: (context) => ColoredBox(
+            color: context.theme.colors.background,
+            child: SafeArea(
+              top: false,
+              child: _DirectoryPanel(
+                onClose: () => Navigator.of(context).pop(),
+                onAdd: onAdd,
+              ),
             ),
           ),
         ),
