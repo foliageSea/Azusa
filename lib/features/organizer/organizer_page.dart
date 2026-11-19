@@ -695,54 +695,80 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                if (visibleDirectories.isNotEmpty ||
-                    state.selectedDirectories.isNotEmpty)
-                  Padding(
-                    key: const ValueKey('directory-selection-bar'),
-                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 4),
-                    child: Row(
-                      children: [
-                        FCheckbox(
-                          key: const ValueKey('select-all-directories'),
-                          value: allVisibleSelected,
-                          enabled: !locked && visibleDirectories.isNotEmpty,
-                          semanticsLabel: context.l10n.selectAllDirectories,
-                          onChange: (_) => _controller.selectDirectories(
-                            allVisibleSelected
-                                ? [
-                                    for (final path
-                                        in state.selectedDirectories)
-                                      if (!visibleDirectories.contains(path))
-                                        path,
-                                  ]
-                                : [
-                                    ...state.selectedDirectories,
-                                    ...visibleDirectories,
-                                  ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          state.selectedDirectories.isEmpty
-                              ? context.l10n.selectAll
-                              : context.l10n.selectedDirectoryCount(
-                                  state.selectedDirectories.length,
-                                ),
-                          style: context.theme.typography.body.sm,
-                        ),
-                      ],
-                    ),
-                  ),
               ],
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-                child: FTextField(
-                  enabled: connected,
-                  control: .managed(
-                    controller: filter,
-                    onChange: (_) => setState(() {}),
-                  ),
-                  hint: context.l10n.filterByName,
+                child: Row(
+                  children: [
+                    if (connected &&
+                        (visibleDirectories.isNotEmpty ||
+                            state.selectedDirectories.isNotEmpty)) ...[
+                      ConstrainedBox(
+                        key: const ValueKey('directory-selection-bar'),
+                        constraints: BoxConstraints(
+                          maxWidth:
+                              (box.maxWidth - 40).clamp(0.0, double.infinity) *
+                              0.45,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FCheckbox(
+                              key: const ValueKey('select-all-directories'),
+                              value: allVisibleSelected,
+                              enabled: !locked && visibleDirectories.isNotEmpty,
+                              semanticsLabel: context.l10n.selectAllDirectories,
+                              onChange: (_) => _controller.selectDirectories(
+                                allVisibleSelected
+                                    ? [
+                                        for (final path
+                                            in state.selectedDirectories)
+                                          if (!visibleDirectories.contains(
+                                            path,
+                                          ))
+                                            path,
+                                      ]
+                                    : [
+                                        ...state.selectedDirectories,
+                                        ...visibleDirectories,
+                                      ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                state.selectedDirectories.isEmpty
+                                    ? context.l10n.selectAll
+                                    : context.l10n.selectedDirectoryCount(
+                                        state.selectedDirectories.length,
+                                      ),
+                                style: context.theme.typography.body.sm,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: SizedBox(
+                          width: 240,
+                          child: FTextField(
+                            enabled: connected,
+                            control: .managed(
+                              controller: filter,
+                              onChange: (_) => setState(() {}),
+                            ),
+                            hint: context.l10n.filterByName,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               SizedBox(
@@ -953,12 +979,10 @@ class _RenameEntryDialogState extends State<_RenameEntryDialog> {
 class _Divider extends StatelessWidget {
   const _Divider();
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.zero,
-    child: SizedBox(
-      height: 1,
-      child: ColoredBox(color: context.theme.colors.border),
-    ),
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    height: 1,
+    child: ColoredBox(color: context.theme.colors.border),
   );
 }
 
