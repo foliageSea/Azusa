@@ -3,13 +3,46 @@ import FlutterMacOS
 import CFNetwork
 
 class MainFlutterWindow: NSWindow {
+  private let backdrop = NSVisualEffectView(frame: .zero)
+  private var windowEffectsChannel: FlutterMethodChannel?
+
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
+    flutterViewController.backgroundColor = .clear
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
 
+    // Insert the effect beneath Flutter's rendering view without replacing its controller.
+    let flutterContainer = flutterViewController.view
+    backdrop.frame = flutterContainer.bounds
+    backdrop.autoresizingMask = [.width, .height]
+    backdrop.material = .sidebar
+    backdrop.blendingMode = .behindWindow
+    backdrop.state = .followsWindowActiveState
+    flutterContainer.addSubview(backdrop, positioned: .below, relativeTo: nil)
+    configureTransparentWindow()
+
     RegisterGeneratedPlugins(registry: flutterViewController)
+    let effects = FlutterMethodChannel(
+      name: "azusa/window_effects", binaryMessenger: flutterViewController.engine.binaryMessenger)
+    windowEffectsChannel = effects
+    effects.setMethodCallHandler { [weak self] call, result in
+      guard call.method == "setBrightness" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      guard let dark = call.arguments as? Bool else {
+        result(FlutterError(
+          code: "invalid_arguments", message: "setBrightness requires a boolean.", details: nil))
+        return
+      }
+      // Reapply the configuration after window_manager has initialized the window.
+      self?.configureTransparentWindow()
+      self?.backdrop.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+      result(nil)
+    }
+
     let channel = FlutterMethodChannel(
       name: "azusa/system_proxy", binaryMessenger: flutterViewController.engine.binaryMessenger)
     channel.setMethodCallHandler { call, result in
@@ -49,5 +82,12 @@ class MainFlutterWindow: NSWindow {
     }
 
     super.awakeFromNib()
+  }
+
+  private func configureTransparentWindow() {
+    isOpaque = false
+    backgroundColor = .clear
+    hasShadow = true
+    (contentViewController as? FlutterViewController)?.backgroundColor = .clear
   }
 }

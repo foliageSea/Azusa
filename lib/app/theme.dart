@@ -2,10 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
+import 'package:material_ui/material_ui.dart' show ThemeMode;
 
 import '../core/settings/settings.dart';
 
 const azusaPrimaryColor = Color(0xFFD63B40);
+
+Brightness resolveBrightness(ThemeMode mode, Brightness platform) =>
+    switch (mode) {
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.light => Brightness.light,
+      ThemeMode.system => platform,
+    };
 
 extension AppThemePalette on AppThemeColor {
   Color primary(Brightness brightness) {

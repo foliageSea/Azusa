@@ -11,6 +11,7 @@ import '../features/organizer/organizer_state.dart';
 import '../shared/azusa_logo.dart';
 import '../shared/widgets.dart';
 import '../shared/localization.dart';
+import 'theme.dart';
 
 class _MacWindowControls extends StatefulWidget {
   const _MacWindowControls({required this.window});
@@ -162,6 +163,13 @@ class AppShell extends ConsumerWidget {
   const AppShell({required this.shell, super.key});
   final StatefulNavigationShell shell;
 
+  Color _chromeColor(BuildContext context, DesktopWindowController window) {
+    final muted = context.theme.colors.muted;
+    return window.nativeGlass && !window.fullScreen
+        ? muted.withValues(alpha: 0.12)
+        : muted;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(organizerProvider, (previous, next) {
@@ -178,12 +186,12 @@ class AppShell extends ConsumerWidget {
     });
     final window = ref.watch(desktopWindowProvider);
     final settings = ref.watch(settingsProvider);
-    final dark = switch (settings.themeMode) {
-      ThemeMode.dark => true,
-      ThemeMode.light => false,
-      ThemeMode.system =>
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark,
-    };
+    final dark =
+        resolveBrightness(
+          settings.themeMode,
+          MediaQuery.platformBrightnessOf(context),
+        ) ==
+        Brightness.dark;
     final l = context.l10n;
     final themeAction = dark ? l.switchLight : l.switchDark;
     final themeToggle = FTooltip(
@@ -233,7 +241,7 @@ class AppShell extends ConsumerWidget {
             children: [
               if (window.available && !window.fullScreen)
                 ColoredBox(
-                  color: context.theme.colors.muted,
+                  color: _chromeColor(context, window),
                   child: SizedBox(
                     key: const ValueKey('window-title-bar'),
                     height: 48,
@@ -291,7 +299,7 @@ class AppShell extends ConsumerWidget {
                 ),
               Expanded(
                 child: ColoredBox(
-                  color: context.theme.colors.muted,
+                  color: _chromeColor(context, window),
                   child: Row(
                     children: [
                       if (!mobile)
@@ -299,11 +307,7 @@ class AppShell extends ConsumerWidget {
                           width: constraints.maxWidth < 1024 ? 76 : 184,
                           child: FSidebar(
                             style: .delta(
-                              decoration: .value(
-                                BoxDecoration(
-                                  color: context.theme.colors.muted,
-                                ),
-                              ),
+                              decoration: .value(const BoxDecoration()),
                               headerPadding: .value(EdgeInsets.zero),
                               contentPadding: .value(EdgeInsets.zero),
                             ),

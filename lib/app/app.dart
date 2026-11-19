@@ -3,11 +3,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:forui/forui.dart';
 
 import '../core/settings/settings.dart';
+import '../core/window/desktop_window.dart';
 import '../features/organizer/startup_connection.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'router.dart';
 import 'text_scaler.dart';
 import 'theme.dart';
+import 'window_appearance.dart';
 
 class StarterApp extends ConsumerWidget {
   const StarterApp({super.key});
@@ -15,6 +17,7 @@ class StarterApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(startupConnectionProvider);
     final settings = ref.watch(settingsProvider);
+    final window = ref.watch(desktopWindowProvider);
     final (:light, :dark) = ref.watch(appThemesProvider);
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -41,7 +44,14 @@ class StarterApp extends ConsumerWidget {
         ),
         child: FTheme(
           data: Theme.brightnessOf(context) == Brightness.dark ? dark : light,
-          child: FToaster(child: FTooltipGroup(child: child!)),
+          child: WindowAppearance(
+            controller: window,
+            brightness: resolveBrightness(
+              settings.themeMode,
+              MediaQuery.platformBrightnessOf(context),
+            ),
+            child: FToaster(child: FTooltipGroup(child: child!)),
+          ),
         ),
       ),
     );

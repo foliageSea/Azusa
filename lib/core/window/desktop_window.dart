@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -14,6 +15,8 @@ abstract class DesktopWindowController extends ChangeNotifier {
   bool get maximized;
   bool get fullScreen;
   bool get focused;
+  bool get nativeGlass => false;
+  Future<void> updateAppearance(Brightness brightness) async {}
   Future<void> initialize();
   Future<void> drag();
   Future<void> minimize();
@@ -23,6 +26,8 @@ abstract class DesktopWindowController extends ChangeNotifier {
 
 class NativeDesktopWindowController extends DesktopWindowController
     with WindowListener {
+  static const _effects = MethodChannel('azusa/window_effects');
+
   @override
   bool get available => isDesktop;
   @override
@@ -34,7 +39,30 @@ class NativeDesktopWindowController extends DesktopWindowController
   bool get fullScreen => _fullScreen;
   @override
   bool get focused => _focused;
+  bool _nativeGlass = false;
+  @override
+  bool get nativeGlass => _nativeGlass;
   bool _disposed = false;
+
+  @override
+  Future<void> updateAppearance(Brightness brightness) async {
+    if (!available || !macOS || _disposed) return;
+    try {
+      await _effects.invokeMethod<void>(
+        'setBrightness',
+        brightness == Brightness.dark,
+      );
+      if (!_disposed && !_nativeGlass) {
+        _nativeGlass = true;
+        notifyListeners();
+      }
+    } on MissingPluginException {
+      // Hosts without the native effect keep the opaque fallback.
+    } on PlatformException catch (error) {
+      debugPrint('Window appearance update failed: $error');
+    }
+  }
+
   @override
   Future<void> initialize() async {
     if (!available) return;
