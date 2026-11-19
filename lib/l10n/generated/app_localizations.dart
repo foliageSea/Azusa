@@ -98,6 +98,174 @@ abstract class AppLocalizations {
     Locale('zh'),
   ];
 
+  /// No description provided for @configurationBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration backup'**
+  String get configurationBackup;
+
+  /// No description provided for @backupExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export configuration'**
+  String get backupExport;
+
+  /// No description provided for @backupImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import configuration'**
+  String get backupImport;
+
+  /// No description provided for @backupPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Import preview'**
+  String get backupPreview;
+
+  /// No description provided for @backupUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock backup'**
+  String get backupUnlock;
+
+  /// No description provided for @backupPassphrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup passphrase'**
+  String get backupPassphrase;
+
+  /// No description provided for @backupNewPassphrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup passphrase (at least 12 characters)'**
+  String get backupNewPassphrase;
+
+  /// No description provided for @backupConfirmPassphrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm passphrase'**
+  String get backupConfirmPassphrase;
+
+  /// No description provided for @backupPassphraseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter backup passphrase'**
+  String get backupPassphraseHint;
+
+  /// No description provided for @backupConfirmPassphraseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the same passphrase'**
+  String get backupConfirmPassphraseHint;
+
+  /// No description provided for @backupReplacementAiKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter API key for the new AI address'**
+  String get backupReplacementAiKeyHint;
+
+  /// No description provided for @backupPassphraseMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrases do not match.'**
+  String get backupPassphraseMismatch;
+
+  /// No description provided for @backupWithCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes credentials'**
+  String get backupWithCredentials;
+
+  /// No description provided for @backupIncludeCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Include credentials'**
+  String get backupIncludeCredentials;
+
+  /// No description provided for @backupWithoutCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'No credentials'**
+  String get backupWithoutCredentials;
+
+  /// No description provided for @backupDavSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Add: {added}; skip duplicates: {skipped}'**
+  String backupDavSummary(int added, int skipped);
+
+  /// No description provided for @backupOverwrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace local settings'**
+  String get backupOverwrite;
+
+  /// No description provided for @backupReplacementAiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'API key for the new AI address'**
+  String get backupReplacementAiKey;
+
+  /// No description provided for @backupImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration imported.'**
+  String get backupImported;
+
+  /// No description provided for @backupExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration exported.'**
+  String get backupExported;
+
+  /// No description provided for @backupInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid configuration backup.'**
+  String get backupInvalid;
+
+  /// No description provided for @backupUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported configuration backup version or encryption.'**
+  String get backupUnsupported;
+
+  /// No description provided for @backupTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration backup exceeds 2 MB.'**
+  String get backupTooLarge;
+
+  /// No description provided for @backupUnlockFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not unlock backup. Check the passphrase and file.'**
+  String get backupUnlockFailed;
+
+  /// No description provided for @backupImportChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Local settings changed. Reopen the import preview and try again.'**
+  String get backupImportChanged;
+
+  /// No description provided for @backupRollbackFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Import failed and some changes could not be restored. Check your settings.'**
+  String get backupRollbackFailed;
+
+  /// No description provided for @backupImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not import configuration.'**
+  String get backupImportFailed;
+
+  /// No description provided for @backupExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not export configuration.'**
+  String get backupExportFailed;
+
   /// No description provided for @scrapeStartScan.
   ///
   /// In en, this message translates to:

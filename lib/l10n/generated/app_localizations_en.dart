@@ -10,6 +10,98 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get configurationBackup => 'Configuration backup';
+
+  @override
+  String get backupExport => 'Export configuration';
+
+  @override
+  String get backupImport => 'Import configuration';
+
+  @override
+  String get backupPreview => 'Import preview';
+
+  @override
+  String get backupUnlock => 'Unlock backup';
+
+  @override
+  String get backupPassphrase => 'Backup passphrase';
+
+  @override
+  String get backupNewPassphrase =>
+      'Backup passphrase (at least 12 characters)';
+
+  @override
+  String get backupConfirmPassphrase => 'Confirm passphrase';
+
+  @override
+  String get backupPassphraseHint => 'Enter backup passphrase';
+
+  @override
+  String get backupConfirmPassphraseHint => 'Enter the same passphrase';
+
+  @override
+  String get backupReplacementAiKeyHint =>
+      'Enter API key for the new AI address';
+
+  @override
+  String get backupPassphraseMismatch => 'Passphrases do not match.';
+
+  @override
+  String get backupWithCredentials => 'Includes credentials';
+
+  @override
+  String get backupIncludeCredentials => 'Include credentials';
+
+  @override
+  String get backupWithoutCredentials => 'No credentials';
+
+  @override
+  String backupDavSummary(int added, int skipped) {
+    return 'Add: $added; skip duplicates: $skipped';
+  }
+
+  @override
+  String get backupOverwrite => 'Replace local settings';
+
+  @override
+  String get backupReplacementAiKey => 'API key for the new AI address';
+
+  @override
+  String get backupImported => 'Configuration imported.';
+
+  @override
+  String get backupExported => 'Configuration exported.';
+
+  @override
+  String get backupInvalid => 'Invalid configuration backup.';
+
+  @override
+  String get backupUnsupported =>
+      'Unsupported configuration backup version or encryption.';
+
+  @override
+  String get backupTooLarge => 'Configuration backup exceeds 2 MB.';
+
+  @override
+  String get backupUnlockFailed =>
+      'Could not unlock backup. Check the passphrase and file.';
+
+  @override
+  String get backupImportChanged =>
+      'Local settings changed. Reopen the import preview and try again.';
+
+  @override
+  String get backupRollbackFailed =>
+      'Import failed and some changes could not be restored. Check your settings.';
+
+  @override
+  String get backupImportFailed => 'Could not import configuration.';
+
+  @override
+  String get backupExportFailed => 'Could not export configuration.';
+
+  @override
   String get scrapeStartScan => 'Start scan';
 
   @override

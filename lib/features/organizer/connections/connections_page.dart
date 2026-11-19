@@ -17,6 +17,8 @@ import '../../../core/settings/naming_language.dart';
 import '../../../core/settings/naming_format.dart';
 import '../../settings/settings_page.dart';
 import '../../settings/settings_tab.dart';
+import '../../settings/configuration_backup_section.dart';
+import 'configuration_backup.dart';
 import 'connection_settings.dart';
 import 'webdav_manager.dart';
 import 'ai_models.dart';
@@ -42,6 +44,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
   _ConnectionAction? activeAction;
   bool get busy => activeAction != null;
   bool savingNamingSettings = false;
+  bool transferringConfiguration = false;
   final visibleSecrets = <int>{};
   GoRouter? router;
   bool proxyAi = true, proxyTmdb = true, proxyWebdav = false;
@@ -87,6 +90,25 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
     proxyTmdb: proxyTmdb,
     proxyWebdav: proxyWebdav,
   );
+
+  void _refreshImportedFields(Set<BackupSection> selected) {
+    if (!mounted) return;
+    final value = ref.read(connectionSettingsProvider).requireValue;
+    setState(() {
+      if (selected.contains(BackupSection.ai)) {
+        fields[3].text = value.aiUrl;
+        fields[4].text = value.model;
+        fields[5].text = value.aiKey;
+        proxyAi = value.proxyAi;
+        visibleSecrets.remove(5);
+      }
+      if (selected.contains(BackupSection.tmdb)) {
+        fields[6].text = value.tmdbToken;
+        proxyTmdb = value.proxyTmdb;
+        visibleSecrets.remove(6);
+      }
+    });
+  }
 
   Future<void> save() async {
     if (busy) return;
@@ -223,7 +245,11 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
     final settings = ref.watch(connectionSettingsProvider);
     final organizer = ref.watch(organizerProvider);
     final locked =
-        busy || savingNamingSettings || organizer.busy || organizer.executing;
+        busy ||
+        transferringConfiguration ||
+        savingNamingSettings ||
+        organizer.busy ||
+        organizer.executing;
     final hints = [
       l.webdavUrlHint,
       l.usernameHint,
@@ -355,6 +381,13 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
           loaded = true;
         }
         return SettingsPage(
+          configurationBackup: (saving) => ConfigurationBackupSection(
+            locked: locked || saving,
+            onWorking: (working) {
+              if (mounted) setState(() => transferringConfiguration = working);
+            },
+            onImported: _refreshImportedFields,
+          ),
           selectedTab: widget.tab.index,
           onTabChanged: (index) {
             if (index >= SettingsTab.values.length) return;

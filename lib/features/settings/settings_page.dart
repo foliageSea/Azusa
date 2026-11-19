@@ -28,12 +28,14 @@ final packageInfoProvider = FutureProvider((ref) => PackageInfo.fromPlatform());
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({
     this.connectionTabs = const [],
+    this.configurationBackup,
     this.selectedTab,
     this.onTabChanged,
     super.key,
   });
 
   final List<FTabEntry> connectionTabs;
+  final Widget Function(bool saving)? configurationBackup;
   final int? selectedTab;
   final ValueChanged<int>? onTabChanged;
   @override
@@ -195,11 +197,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               FTabEntry(
                 label: Text(l.general),
                 child: tab(
-                  Surface(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Align(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Surface(
+                        child: Align(
                           alignment: AlignmentDirectional.centerStart,
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 240),
@@ -226,8 +228,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             ),
                           ),
                         ),
+                      ),
+                      if (widget.configurationBackup case final backup?) ...[
+                        const SizedBox(height: 16),
+                        backup(_saving),
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ),

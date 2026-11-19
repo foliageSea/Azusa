@@ -203,6 +203,55 @@ class WebDavConnectionsRepository {
     }
   }
 
+  /// Append a validated import as one SQLite transaction, without changing the
+  /// active connection. Stage all new credentials before creating references.
+  Future<void> insertImported(List<WebDavConnection> connections) async {
+    if (connections.isEmpty) return;
+    final db = await database.connection();
+    final entries = [
+      for (final connection in connections)
+        (connection, 'azusa.webdav.${connection.id}.${newConnectionId()}'),
+    ];
+    final staged = {
+      for (final (value, key) in entries)
+        if (value.password.isNotEmpty) key: value.password,
+    };
+    if (staged.isNotEmpty) await credentials.update(staged);
+    try {
+      db.execute('BEGIN IMMEDIATE');
+      try {
+        for (final (value, key) in entries) {
+          db.execute(
+            '''
+            INSERT INTO webdav_connections
+              (id, name, url, username, proxy_enabled, secret_key)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''',
+            [
+              value.id,
+              value.name,
+              value.url,
+              value.username,
+              value.useProxy ? 1 : 0,
+              key,
+            ],
+          );
+        }
+        db.execute('COMMIT');
+      } catch (_) {
+        db.execute('ROLLBACK');
+        rethrow;
+      }
+    } catch (_) {
+      try {
+        await credentials.update({for (final key in staged.keys) key: null});
+      } catch (_) {
+        // Unreferenced keys do not expose or alter existing connections.
+      }
+      rethrow;
+    }
+  }
+
   Future<void> remove(String id) async {
     final db = await database.connection();
     final rows = db.select(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,6 +10,8 @@ import '../../../core/settings/settings.dart';
 import '../organizer_state.dart';
 import 'webdav_connections.dart';
 import 'credential_vault.dart';
+import 'configuration_backup.dart';
+import 'configuration_transfer.dart';
 
 enum ProxyMode {
   direct('直连'),
@@ -241,5 +244,149 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
           .save(value, includeWebdav: false),
       globals: value,
     );
+  }
+
+  Future<ConfigurationBackup> exportConfiguration(
+    Set<BackupSection> selected, {
+    required bool includeCredentials,
+  }) async {
+    final globals = state.requireValue;
+    final settings = ref.read(settingsProvider);
+    final webdav = selected.contains(BackupSection.webdav)
+        ? await ref
+              .read(webDavConnectionsRepositoryProvider)
+              .load(includePasswords: includeCredentials)
+        : null;
+    String? credential(String value) =>
+        includeCredentials && value.isNotEmpty ? value : null;
+    return ConfigurationBackup(
+      webdav: webdav
+          ?.map(
+            (dav) => (
+              name: dav.name,
+              url: dav.url,
+              username: dav.username,
+              proxy: dav.useProxy,
+              password: credential(dav.password),
+            ),
+          )
+          .toList(),
+      ai: selected.contains(BackupSection.ai)
+          ? (
+              url: globals.aiUrl,
+              model: globals.model,
+              proxy: globals.proxyAi,
+              key: credential(globals.aiKey),
+            )
+          : null,
+      tmdb: selected.contains(BackupSection.tmdb)
+          ? (
+              language: settings.namingLanguage,
+              format: settings.namingFormat,
+              proxy: globals.proxyTmdb,
+              token: credential(globals.tmdbToken),
+            )
+          : null,
+    );
+  }
+
+  Future<ConfigurationImportPreview> previewConfiguration(
+    ConfigurationBackup backup,
+  ) async => ConfigurationImportPreview(
+    backup: backup,
+    existing: backup.webdav == null
+        ? const []
+        : await ref
+              .read(webDavConnectionsRepositoryProvider)
+              .load(includePasswords: false),
+    globals: state.requireValue,
+  );
+
+  Future<void> importConfiguration(
+    ConfigurationImportPreview preview,
+    Set<BackupSection> selected, {
+    String? replacementAiKey,
+  }) async {
+    if (selected.isEmpty || !preview.backup.sections.containsAll(selected)) {
+      throw const ConfigurationImportChanged();
+    }
+    final previous = state.requireValue;
+    final importsAi = selected.contains(BackupSection.ai);
+    final importsTmdb = selected.contains(BackupSection.tmdb);
+    final importsDav = selected.contains(BackupSection.webdav);
+    if (importsAi && previous.aiUrl != preview.previousAiUrl) {
+      throw const ConfigurationImportChanged();
+    }
+    final globals = preview.mergeGlobals(
+      previous,
+      selected,
+      replacementAiKey: replacementAiKey,
+    );
+    final connectionRepository = ref.read(connectionRepositoryProvider);
+    final davRepository = ref.read(webDavConnectionsRepositoryProvider);
+    final settings = ref.read(settingsProvider.notifier);
+    await _change(() async {
+      if (importsDav) {
+        final fresh = await previewConfiguration(preview.backup);
+        if (fresh.skipped != preview.skipped ||
+            !listEquals(fresh.additions, preview.additions)) {
+          throw const ConfigurationImportChanged();
+        }
+      }
+      final previousNaming = ref.read(settingsProvider);
+      var attemptedGlobals = false;
+      var attemptedNaming = false;
+      try {
+        if (importsAi || importsTmdb) {
+          attemptedGlobals = true;
+          await connectionRepository.save(globals, includeWebdav: false);
+        }
+        if (importsTmdb) {
+          attemptedNaming = true;
+          await settings.update(preview.mergeNaming);
+        }
+        if (importsDav) {
+          await davRepository.insertImported([
+            for (final dav in preview.additions)
+              WebDavConnection(
+                id: newConnectionId(),
+                name: dav.name,
+                url: dav.url,
+                username: dav.username,
+                password: dav.password ?? '',
+                useProxy: dav.proxy,
+              ),
+          ]);
+        }
+      } catch (_) {
+        // The vault, preferences and SQLite cannot share one transaction.
+        // Restore both previously attempted preference writes independently.
+        var rollbackFailed = false;
+        if (attemptedNaming) {
+          try {
+            await settings.update(
+              (s) => s.copyWith(
+                namingLanguage: previousNaming.namingLanguage,
+                namingFormat: previousNaming.namingFormat,
+              ),
+            );
+          } catch (_) {
+            rollbackFailed = true;
+          }
+        }
+        if (attemptedGlobals) {
+          try {
+            await connectionRepository.save(previous, includeWebdav: false);
+          } catch (_) {
+            rollbackFailed = true;
+          }
+        }
+        if (rollbackFailed) {
+          ref.invalidateSelf();
+          throw const ConfigurationImportRollbackFailed();
+        }
+        rethrow;
+      }
+    }, globals: globals);
   }
 }

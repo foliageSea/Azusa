@@ -10,6 +10,92 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get configurationBackup => '配置备份';
+
+  @override
+  String get backupExport => '导出配置';
+
+  @override
+  String get backupImport => '导入配置';
+
+  @override
+  String get backupPreview => '导入预览';
+
+  @override
+  String get backupUnlock => '解锁备份';
+
+  @override
+  String get backupPassphrase => '备份口令';
+
+  @override
+  String get backupNewPassphrase => '备份口令（至少 12 个字符）';
+
+  @override
+  String get backupConfirmPassphrase => '确认口令';
+
+  @override
+  String get backupPassphraseHint => '请输入备份口令';
+
+  @override
+  String get backupConfirmPassphraseHint => '请输入相同的备份口令';
+
+  @override
+  String get backupReplacementAiKeyHint => '请输入新 AI 地址的 API Key';
+
+  @override
+  String get backupPassphraseMismatch => '两次输入的口令不一致。';
+
+  @override
+  String get backupWithCredentials => '包含凭据';
+
+  @override
+  String get backupIncludeCredentials => '包含凭据';
+
+  @override
+  String get backupWithoutCredentials => '不含凭据';
+
+  @override
+  String backupDavSummary(int added, int skipped) {
+    return '新增 $added 个，跳过 $skipped 个重复连接';
+  }
+
+  @override
+  String get backupOverwrite => '覆盖本地设置';
+
+  @override
+  String get backupReplacementAiKey => '新 AI 地址的 API Key';
+
+  @override
+  String get backupImported => '配置已导入。';
+
+  @override
+  String get backupExported => '配置已导出。';
+
+  @override
+  String get backupInvalid => '配置备份文件无效。';
+
+  @override
+  String get backupUnsupported => '不支持此配置备份的版本或加密方式。';
+
+  @override
+  String get backupTooLarge => '配置备份超过 2 MB。';
+
+  @override
+  String get backupUnlockFailed => '无法解锁备份，请检查口令和文件。';
+
+  @override
+  String get backupImportChanged => '本地设置已变化，请重新预览后再导入。';
+
+  @override
+  String get backupRollbackFailed => '导入失败，且部分变更无法恢复，请检查设置。';
+
+  @override
+  String get backupImportFailed => '无法导入配置。';
+
+  @override
+  String get backupExportFailed => '无法导出配置。';
+
+  @override
   String get scrapeStartScan => '开始扫描';
 
   @override
