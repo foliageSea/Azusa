@@ -1,0 +1,15 @@
+Corresponding source for the dynamically loaded libsmb2-r13 binaries
+
+Release and original license files:
+https://github.com/ales-drnz/dart_smb2/releases/tag/libsmb2-r13
+
+Build scripts and patches (the exact revision identified by manifest.json):
+https://github.com/ales-drnz/libsmb2-scripts/tree/7cd91b7342bc6a1c446b2263c8f045f9c6fcfcca
+
+Sources used by that revision:
+https://github.com/sahlberg/libsmb2/tree/a52c1571a1ff223bde5bb3df9fec7af5ce3855d4
+https://github.com/openssl/openssl/tree/openssl-3.5.9
+
+The native library can be replaced at build time with another compatible
+build by setting hooks.user_defines.dart_smb2.libsmb2 in pubspec.yaml.
+See https://pub.dev/packages/dart_smb2/versions/0.4.1 for the Dart bindings.

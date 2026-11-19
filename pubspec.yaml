@@ -17,6 +17,7 @@ dependencies:
   flutter_riverpod: 3.4.3
   go_router: ^18.0.2
   dio: ^5.11.1
+  dart_smb2: 0.4.1
   xml: ^6.6.1
   flutter_secure_storage: ^10.0.0
   shared_preferences: ^2.5.6
@@ -49,6 +50,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/ui/icon_rounded.png
+    - assets/licenses/smb/
   fonts:
     - family: MiSans
       fonts:

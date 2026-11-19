@@ -8,7 +8,9 @@ import 'package:azusa/core/settings/settings.dart';
 import 'package:azusa/features/organizer/connections/configuration_backup.dart';
 import 'package:azusa/features/organizer/connections/configuration_transfer.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
+import 'package:azusa/features/organizer/connections/file_server_connections.dart';
 import 'package:azusa/features/organizer/connections/webdav_connections.dart';
+import 'package:azusa/features/organizer/smb/smb_connection.dart';
 import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -104,7 +106,7 @@ void main() {
       }),
     );
     await expectLater(
-      codec.decode(file({}, version: 2)),
+      codec.decode(file({}, version: 3)),
       _problem(BackupProblem.unsupported),
     );
     await expectLater(
@@ -262,6 +264,52 @@ void main() {
       expect(prefs.values.values.join(), isNot(contains(_tmdb.token)));
       expect((await controller.previewConfiguration(backup)).skipped, 3);
     });
+
+    test(
+      'SMB and WebDAV import together and keep the active connection',
+      () async {
+        const smb = (
+          name: 'Media',
+          host: 'nas.local',
+          share: 'Movies',
+          domain: 'WORKGROUP',
+          username: 'media',
+          password: 'smb-password',
+        );
+        final backup = ConfigurationBackup(
+          smb: [smb],
+          webdav: [
+            (
+              name: 'Second DAV',
+              url: 'https://nas.test/second/',
+              username: 'other',
+              proxy: false,
+              password: null,
+            ),
+          ],
+        );
+        final preview = await controller.previewConfiguration(backup);
+        expect(preview.smbAdditions, [smb]);
+        await controller.importConfiguration(preview, backup.sections);
+        expect((await dav.load()).length, 2);
+        expect(await dav.activeId(), 'current');
+        final repository = container.read(
+          fileServerConnectionsRepositoryProvider,
+        );
+        final stored = (await repository.load())
+            .whereType<SmbConnection>()
+            .single;
+        expect(stored.password, smb.password);
+        expect((await repository.active())?.id, 'current');
+        expect((await controller.previewConfiguration(backup)).smbSkipped, 1);
+        final exported = await controller.exportConfiguration({
+          BackupSection.smb,
+        }, includeCredentials: false);
+        expect(exported.webdav, isNull);
+        expect(exported.smb!.single.password, isNull);
+        expect(exported.smb!.single.domain, smb.domain);
+      },
+    );
 
     test('AI address changes require an explicit new key; busy state blocks import', () async {
       final backup = ConfigurationBackup(

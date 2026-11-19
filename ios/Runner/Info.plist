@@ -27,7 +27,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>连接局域网 NAS 的 WebDAV 服务。</string>
+	<string>连接局域网 NAS 的 WebDAV 或 SMB 服务。</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

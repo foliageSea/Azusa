@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/localization.dart';
 import '../../../shared/responsive_button.dart';
-import '../organizer_state.dart';
 import '../../settings/settings_tab.dart';
+import '../file_server/file_server_connection.dart';
+import '../organizer_state.dart';
+import '../smb/smb_connection.dart';
 import 'connection_settings.dart';
 import 'webdav_connections.dart';
 
@@ -19,7 +21,7 @@ class WebDavSwitcher extends ConsumerWidget {
     super.key,
   });
 
-  final List<WebDavConnection> items;
+  final List<FileServerConnection> items;
   final String? activeId;
   final bool locked;
   final Future<void> Function(String) onSelect;
@@ -64,6 +66,7 @@ class WebDavSwitcher extends ConsumerWidget {
           builder: (context) => _ConnectionPanel(
             items: items,
             activeId: activeId,
+            locked: locked,
             onSelected: (id) => Navigator.of(context).pop(_Selection(id)),
             onManage: () => Navigator.of(context).pop(const _Selection(null)),
           ),
@@ -94,6 +97,7 @@ class WebDavSwitcher extends ConsumerWidget {
         child: _ConnectionPanel(
           items: items,
           activeId: activeId,
+          locked: locked,
           onSelected: (id) async {
             await controller.hide();
             if (!context.mounted || _locked(ref)) return;
@@ -122,17 +126,37 @@ class _Selection {
   final String? id;
 }
 
-String _host(String url) => Uri.tryParse(url)?.authority ?? url;
+String fileServerProtocolLabel(FileServerConnection connection) =>
+    switch (connection.protocol) {
+      WebDavConnection.protocolId => 'WebDAV',
+      SmbConnection.protocolId => 'SMB',
+      final protocol => protocol,
+    };
+
+String fileServerDisplayAddress(FileServerConnection connection) =>
+    switch (connection) {
+      WebDavConnection(:final url) => url,
+      SmbConnection(:final displayAddress) => displayAddress,
+      _ => '',
+    };
+
+String _switcherAddress(FileServerConnection connection) =>
+    switch (connection) {
+      WebDavConnection(:final url) => Uri.tryParse(url)?.authority ?? url,
+      _ => fileServerDisplayAddress(connection),
+    };
 
 class _ConnectionPanel extends ConsumerStatefulWidget {
   const _ConnectionPanel({
     required this.items,
     required this.activeId,
+    required this.locked,
     required this.onSelected,
     required this.onManage,
   });
-  final List<WebDavConnection> items;
+  final List<FileServerConnection> items;
   final String? activeId;
+  final bool locked;
   final ValueChanged<String> onSelected;
   final VoidCallback onManage;
 
@@ -148,17 +172,20 @@ class _ConnectionPanelState extends ConsumerState<_ConnectionPanel> {
     final l = context.l10n;
     final theme = context.theme;
     final state = ref.watch(organizerProvider);
-    final locked = state.busy || state.executing;
+    final locked = widget.locked || state.busy || state.executing;
     final activeId =
         ref.watch(connectionSettingsProvider).asData?.value.connectionId ??
         widget.activeId;
-    final items = widget.items
-        .where(
-          (item) => 'WebDAV ${item.name} ${_host(item.url)}'
-              .toLowerCase()
-              .contains(query.trim().toLowerCase()),
-        )
-        .toList();
+    final search = query.trim().toLowerCase();
+    final items = widget.items.where((item) {
+      final searchable = [
+        fileServerProtocolLabel(item),
+        item.name,
+        fileServerDisplayAddress(item),
+        if (item is SmbConnection) item.share,
+      ].join(' ');
+      return searchable.toLowerCase().contains(search);
+    }).toList();
     return Container(
       key: const ValueKey('webdav-switcher-panel'),
       color: theme.colors.background,
@@ -204,7 +231,7 @@ class _ConnectionPanelState extends ConsumerState<_ConnectionPanel> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         subtitle: Text(
-                          'WebDAV · ${_host(item.url)}',
+                          '${fileServerProtocolLabel(item)} · ${_switcherAddress(item)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

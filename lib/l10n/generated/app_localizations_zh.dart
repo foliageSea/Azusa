@@ -60,6 +60,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String backupSmbSummary(int added, int skipped) {
+    return '新增 $added 个，跳过 $skipped 个重复连接';
+  }
+
+  @override
   String get backupOverwrite => '覆盖本地设置';
 
   @override
@@ -619,6 +624,93 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get webdavUrlHint => '请输入 WebDAV 地址';
+
+  @override
+  String get smbHost => 'SMB 主机';
+
+  @override
+  String get smbHostHint => '例如 nas.local 或 192.168.1.10';
+
+  @override
+  String get smbShare => '共享名称';
+
+  @override
+  String get smbShareHint => '例如 Media（不含路径）';
+
+  @override
+  String get smbDomain => '域或工作组（可选）';
+
+  @override
+  String get smbDomainHint => '例如 WORKGROUP';
+
+  @override
+  String get smbHostInvalid => 'SMB 主机必须为 DNS 名称或 IPv4 地址';
+
+  @override
+  String get smbShareInvalid => 'SMB 共享名称无效';
+
+  @override
+  String get smbUsernameInvalid => '请输入有效的 SMB 用户名，域请单独填写';
+
+  @override
+  String get smbErrorUnsafePath => 'SMB 路径无效或不安全';
+
+  @override
+  String get smbErrorRootMutation => '不能修改 SMB 共享根目录';
+
+  @override
+  String get smbErrorReparsePoint => '不支持访问 SMB 符号链接或重解析点';
+
+  @override
+  String get smbErrorIncompleteListing => '无法确认 SMB 目录列表完整';
+
+  @override
+  String get smbErrorNotFound => 'SMB 文件、目录或共享不存在';
+
+  @override
+  String get smbErrorAlreadyExists => 'SMB 目标已存在';
+
+  @override
+  String get smbErrorAccessDenied => '没有 SMB 访问权限';
+
+  @override
+  String get smbErrorAuthentication => 'SMB 身份验证失败';
+
+  @override
+  String get smbErrorTimeout => 'SMB 请求超时';
+
+  @override
+  String get smbErrorConnection => '无法连接到 SMB 共享';
+
+  @override
+  String get smbErrorNotDirectory => 'SMB 路径不是目录';
+
+  @override
+  String get smbErrorIsDirectory => 'SMB 路径是目录';
+
+  @override
+  String get smbErrorNotEmpty => 'SMB 目录非空';
+
+  @override
+  String get smbErrorBusy => 'SMB 文件或服务器正忙';
+
+  @override
+  String get smbErrorDiskFull => 'SMB 共享空间不足';
+
+  @override
+  String get smbErrorUnsupported => 'SMB 不支持此操作';
+
+  @override
+  String get smbErrorClosed => 'SMB 连接已关闭';
+
+  @override
+  String get smbErrorInvalidLength => 'SMB 上传长度无效';
+
+  @override
+  String get smbErrorTransferLength => 'SMB 上传长度与实际数据不符';
+
+  @override
+  String get smbErrorFailed => 'SMB 操作失败';
 
   @override
   String get usernameHint => '请输入用户名';

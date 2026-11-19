@@ -1,5 +1,3 @@
-import 'package:dio/dio.dart';
-
 import 'file_server/file_server.dart';
 import 'file_server/file_server_paths.dart';
 import 'connections/http_clients.dart';
@@ -160,8 +158,10 @@ class RenameExecutor {
   Future<List<FileServerEntry>> _listIfPresent(String directory) async {
     try {
       return await dav.list(directory);
-    } on DioException catch (error) {
-      if (error.response?.statusCode == 404) return const [];
+    } catch (_) {
+      // Treat a failed listing as empty only after confirming absence.
+      // Do not mask permission, network, or incomplete-listing errors.
+      if (await dav.stat(directory) == null) return const [];
       rethrow;
     }
   }

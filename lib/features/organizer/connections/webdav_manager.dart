@@ -8,10 +8,13 @@ import '../../../shared/loading_button.dart';
 import '../../../shared/runtime_localization.dart';
 import '../../../shared/secret_text_field.dart';
 import '../../../shared/widgets.dart';
-import '../organizer_state.dart';
 import '../file_server/file_server.dart';
+import '../file_server/file_server_connection.dart';
 import '../file_server/file_server_factory.dart';
+import '../organizer_state.dart';
+import '../smb/smb_connection.dart';
 import 'connection_settings.dart';
+import 'file_server_connections.dart';
 import 'http_clients.dart';
 import 'webdav_connections.dart';
 import 'webdav_switcher.dart';
@@ -51,7 +54,8 @@ Future<bool> confirmConnectionChange(
     false;
 
 enum _FileServerType {
-  webdav('WebDAV');
+  webdav('WebDAV'),
+  smb('SMB');
 
   const _FileServerType(this.label);
   final String label;
@@ -68,8 +72,13 @@ class WebDavManager extends ConsumerStatefulWidget {
 class _WebDavManagerState extends ConsumerState<WebDavManager> {
   bool working = false;
 
+  bool get organizerLocked {
+    final organizer = ref.read(organizerProvider);
+    return organizer.busy || organizer.executing;
+  }
+
   Future<void> run(Future<void> Function() action) async {
-    if (working) return;
+    if (working || organizerLocked) return;
     setState(() => working = true);
     try {
       await action();
@@ -94,10 +103,11 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
         )) {
       return;
     }
+    if (!mounted || organizerLocked) return;
     await ref.read(connectionSettingsProvider.notifier).selectConnection(id);
   });
 
-  Future<void> edit([WebDavConnection? original]) => run(() async {
+  Future<void> edit([FileServerConnection? original]) => run(() async {
     if (original != null &&
         original.id ==
             ref.read(connectionSettingsProvider).requireValue.connectionId &&
@@ -108,15 +118,13 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
         )) {
       return;
     }
-    if (!mounted) return;
-    final organizer = ref.read(organizerProvider);
-    if (organizer.busy || organizer.executing) return;
+    if (!mounted || organizerLocked) return;
     final editable = original == null
         ? null
         : await ref
-              .read(webDavConnectionsRepositoryProvider)
+              .read(fileServerConnectionsRepositoryProvider)
               .withPassword(original);
-    if (!mounted) return;
+    if (!mounted || organizerLocked) return;
     await showFDialog<void>(
       context: context,
       useRootNavigator: true,
@@ -129,7 +137,7 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
     );
   });
 
-  Future<void> remove(WebDavConnection item) => run(() async {
+  Future<void> remove(FileServerConnection item) => run(() async {
     if (!await confirmConnectionChange(
       context,
       context.l10n.deleteConnectionConfirmation(item.name),
@@ -137,20 +145,23 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
     )) {
       return;
     }
+    if (!mounted || organizerLocked) return;
     await ref
         .read(connectionSettingsProvider.notifier)
         .deleteConnection(item.id);
   });
 
-  Future<void> testConnection(WebDavConnection item) => run(() async {
+  Future<void> testConnection(FileServerConnection item) => run(() async {
     FileServerClient? server;
     try {
       final connection = await ref
-          .read(webDavConnectionsRepositoryProvider)
+          .read(fileServerConnectionsRepositoryProvider)
           .withPassword(item);
-      if (!mounted) return;
+      if (!mounted || organizerLocked) return;
       final globals = ref.read(connectionSettingsProvider).requireValue;
-      server = ref.read(fileServerClientProvider)(connection.apply(globals));
+      server = ref.read(fileServerClientProvider)(
+        globals.copyWith(fileServerConnection: connection),
+      );
       await server.list(server.root);
       if (mounted) {
         notifyUser(
@@ -174,9 +185,9 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
         .asData
         ?.value
         .connectionId;
-    final connections = ref.watch(webDavConnectionsProvider);
+    final connections = ref.watch(fileServerConnectionsProvider);
     if (widget.compact) {
-      final items = connections.asData?.value ?? const <WebDavConnection>[];
+      final items = connections.asData?.value ?? const <FileServerConnection>[];
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,7 +268,7 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
   }
 
   Widget _connectionRow(
-    WebDavConnection item, {
+    FileServerConnection item, {
     required String? active,
     required bool locked,
   }) {
@@ -340,7 +351,7 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
                             ),
                             FBadge(
                               variant: .secondary,
-                              child: const Text('WebDAV'),
+                              child: Text(fileServerProtocolLabel(item)),
                             ),
                             if (current)
                               FBadge(
@@ -351,7 +362,7 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          item.url,
+                          fileServerDisplayAddress(item),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: context.theme.typography.body.sm.copyWith(
@@ -381,55 +392,86 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
 
 class _FileServerEditor extends ConsumerStatefulWidget {
   const _FileServerEditor({this.value});
-  final WebDavConnection? value;
+  final FileServerConnection? value;
   @override
   ConsumerState<_FileServerEditor> createState() => _FileServerEditorState();
 }
 
 class _FileServerEditorState extends ConsumerState<_FileServerEditor> {
-  late final fields = [
-    widget.value?.name ?? '',
-    widget.value?.url ?? '',
-    widget.value?.username ?? '',
-    widget.value?.password ?? '',
-  ].map((text) => TextEditingController(text: text)).toList();
-  var type = _FileServerType.webdav;
-  late bool proxy = widget.value?.useProxy ?? false;
+  WebDavConnection? get _webdav => switch (widget.value) {
+    final WebDavConnection value => value,
+    _ => null,
+  };
+  SmbConnection? get _smb => switch (widget.value) {
+    final SmbConnection value => value,
+    _ => null,
+  };
+
+  late final name = TextEditingController(text: widget.value?.name);
+  late final url = TextEditingController(text: _webdav?.url);
+  late final host = TextEditingController(text: _smb?.host);
+  late final share = TextEditingController(text: _smb?.share);
+  late final domain = TextEditingController(text: _smb?.domain);
+  late final username = TextEditingController(
+    text: _smb?.username ?? _webdav?.username,
+  );
+  late final password = TextEditingController(
+    text: _smb?.password ?? _webdav?.password,
+  );
+  late var type = _smb == null ? _FileServerType.webdav : _FileServerType.smb;
+  late bool proxy = _webdav?.useProxy ?? false;
   bool visible = false, busy = false, testing = false;
+
   @override
   void dispose() {
-    for (final field in fields) {
+    for (final field in [name, url, host, share, domain, username, password]) {
       field.dispose();
     }
     super.dispose();
   }
 
   Future<void> submit({bool test = false}) async {
-    if (busy) return;
+    final organizer = ref.read(organizerProvider);
+    if (busy || organizer.busy || organizer.executing) return;
     setState(() {
       busy = true;
       testing = test;
     });
     FileServerClient? server;
     try {
+      final id = widget.value?.id ?? newConnectionId();
+      final connectionName = name.text.trim();
+      if (connectionName.isEmpty) throw const FormatException('请输入连接名称');
       final value = switch (type) {
         _FileServerType.webdav => WebDavConnection(
-          id: widget.value?.id ?? newConnectionId(),
-          name: fields[0].text.trim(),
-          url: fields[1].text.trim(),
-          username: fields[2].text.trim(),
-          password: fields[3].text,
+          id: id,
+          name: connectionName,
+          url: url.text.trim(),
+          username: username.text.trim(),
+          password: password.text,
           useProxy: proxy,
         ),
+        _FileServerType.smb => SmbConnection(
+          id: id,
+          name: connectionName,
+          host: host.text.trim(),
+          share: share.text.trim(),
+          domain: domain.text.trim(),
+          username: username.text.trim(),
+          password: password.text,
+        ),
       };
+      ref.read(fileServerFactoryProvider).validate(value);
       if (test) {
         final globals = ref.read(connectionSettingsProvider).requireValue;
-        server = ref.read(fileServerClientProvider)(value.apply(globals));
+        server = ref.read(fileServerClientProvider)(
+          globals.copyWith(fileServerConnection: value),
+        );
         await server.list(server.root);
         if (mounted) {
           notifyUser(
             context,
-            context.l10n.connectionSucceeded(context.l10n.webdavConnection),
+            context.l10n.connectionSucceeded(value.name),
             type: NoticeType.success,
           );
         }
@@ -468,8 +510,24 @@ class _FileServerEditorState extends ConsumerState<_FileServerEditor> {
     final l = context.l10n;
     final organizer = ref.watch(organizerProvider);
     final locked = busy || organizer.busy || organizer.executing;
-    final labels = [l.connectionName, l.webdavUrl, l.username];
-    final hints = [l.connectionNameHint, l.webdavUrlHint, l.usernameHint];
+    final smb = type == _FileServerType.smb;
+    Widget field(
+      String key,
+      TextEditingController controller,
+      String label,
+      String hint,
+    ) => Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: FTextField(
+        key: ValueKey(key),
+        label: Text(label),
+        hint: hint,
+        enabled: !locked,
+        control: .managed(controller: controller),
+        autocorrect: false,
+        enableSuggestions: false,
+      ),
+    );
     return PopScope(
       canPop: !busy,
       child: Padding(
@@ -491,12 +549,17 @@ class _FileServerEditorState extends ConsumerState<_FileServerEditor> {
                 key: const ValueKey('file-server-type'),
                 autoHide: true,
                 label: Text(l.fileServerType),
-                enabled: !locked,
+                enabled: !locked && widget.value == null,
                 format: (type) => type.label,
                 control: .lifted(
                   value: type,
                   onChange: (value) {
-                    if (value != null) setState(() => type = value);
+                    if (value != null && !locked && widget.value == null) {
+                      setState(() {
+                        type = value;
+                        visible = false;
+                      });
+                    }
                   },
                 ),
                 children: [
@@ -510,24 +573,39 @@ class _FileServerEditorState extends ConsumerState<_FileServerEditor> {
                     ),
                 ],
               ),
-              for (var i = 0; i < 3; i++)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: FTextField(
-                    key: ValueKey('webdav-editor-field-$i'),
-                    label: Text(labels[i]),
-                    hint: hints[i],
-                    enabled: !locked,
-                    control: .managed(controller: fields[i]),
-                    autocorrect: false,
-                    enableSuggestions: false,
-                  ),
+              field(
+                'webdav-editor-field-0',
+                name,
+                l.connectionName,
+                l.connectionNameHint,
+              ),
+              if (smb) ...[
+                field('smb-editor-host', host, l.smbHost, l.smbHostHint),
+                field('smb-editor-share', share, l.smbShare, l.smbShareHint),
+                field(
+                  'smb-editor-domain',
+                  domain,
+                  l.smbDomain,
+                  l.smbDomainHint,
                 ),
+              ] else
+                field(
+                  'webdav-editor-field-1',
+                  url,
+                  l.webdavUrl,
+                  l.webdavUrlHint,
+                ),
+              field(
+                'webdav-editor-field-2',
+                username,
+                l.username,
+                l.usernameHint,
+              ),
               const SizedBox(height: 16),
               SecretTextField(
                 fieldKey: const ValueKey('webdav-editor-password'),
                 toggleKey: const ValueKey('webdav-editor-toggle-password'),
-                controller: fields[3],
+                controller: password,
                 label: l.password,
                 hint: l.passwordHint,
                 enabled: !locked,
@@ -536,13 +614,15 @@ class _FileServerEditorState extends ConsumerState<_FileServerEditor> {
                 hideLabel: l.hidePassword,
                 onVisibilityChange: (v) => setState(() => visible = v),
               ),
-              const SizedBox(height: 16),
-              FCheckbox(
-                label: Text(l.proxyWebdav),
-                value: proxy,
-                enabled: !locked,
-                onChange: (v) => setState(() => proxy = v),
-              ),
+              if (!smb) ...[
+                const SizedBox(height: 16),
+                FCheckbox(
+                  label: Text(l.proxyWebdav),
+                  value: proxy,
+                  enabled: !locked,
+                  onChange: (v) => setState(() => proxy = v),
+                ),
+              ],
               const SizedBox(height: 24),
               Wrap(
                 alignment: WrapAlignment.end,

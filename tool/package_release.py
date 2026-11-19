@@ -34,6 +34,8 @@ def linux(version: str, dist: Path) -> None:
     bundle = ROOT / "build/linux/x64/release/bundle"
     if not (bundle / "azusa").is_file():
         raise ValueError("Linux release bundle is missing.")
+    if not (bundle / "lib/libdart_smb2.so").is_file():
+        raise ValueError("SMB native library is missing from the Linux bundle.")
     with tempfile.TemporaryDirectory(prefix="azusa-deb-") as temp:
         work = Path(temp)
         stage = work / "package"
@@ -48,7 +50,7 @@ def linux(version: str, dist: Path) -> None:
         desktop_dir.mkdir(parents=True)
         (desktop_dir / "com.foliage.azusa.desktop").write_text(
             "[Desktop Entry]\nType=Application\nName=Azusa\n"
-            "Comment=WebDAV media organizer\nExec=/opt/azusa/azusa\n"
+            "Comment=SMB and WebDAV media organizer\nExec=/opt/azusa/azusa\n"
             "Icon=com.foliage.azusa\nTerminal=false\nCategories=Utility;Network;\n",
             encoding="utf-8",
         )
@@ -92,8 +94,8 @@ def linux(version: str, dist: Path) -> None:
             "Maintainer: foliageSea <noreply@github.com>\nSection: utils\nPriority: optional\n"
             f"Installed-Size: {size}\nDepends: {dependencies}\n"
             "Recommends: gnome-keyring\nHomepage: https://github.com/foliageSea/Azusa\n"
-            "Description: WebDAV media organizer\n"
-            " Organize and rename WebDAV media with AI-assisted suggestions.\n",
+            "Description: SMB and WebDAV media organizer\n"
+            " Organize and rename SMB and WebDAV media with AI-assisted suggestions.\n",
             encoding="utf-8",
         )
         for directory in stage.rglob("*"):
@@ -110,6 +112,8 @@ def macos(version: str, build: int, dist: Path) -> None:
         info = plistlib.load(file)
     if info["CFBundleShortVersionString"] != version or str(info["CFBundleVersion"]) != str(build):
         raise ValueError("macOS application version does not match release metadata.")
+    if not (source / "Contents/Frameworks/libdart_smb2.framework/libdart_smb2").is_file():
+        raise ValueError("SMB native framework is missing from the macOS bundle.")
     # Check every Mach-O payload, not only the launcher.
     for file in source.rglob("*"):
         if file.is_file() and not file.is_symlink() and "Mach-O" in run("file", "-b", str(file)):

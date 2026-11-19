@@ -261,6 +261,7 @@ class _BackupDialogState extends State<_BackupDialog> {
         : l.backupImport;
     String label(BackupSection section) => switch (section) {
       BackupSection.webdav => 'WebDAV',
+      BackupSection.smb => 'SMB',
       BackupSection.tmdb => 'TMDB',
       BackupSection.ai => 'AI Agent',
     };
@@ -268,6 +269,10 @@ class _BackupDialogState extends State<_BackupDialog> {
       BackupSection.webdav => l.backupDavSummary(
         preview!.additions.length,
         preview.skipped,
+      ),
+      BackupSection.smb => l.backupSmbSummary(
+        preview!.smbAdditions.length,
+        preview.smbSkipped,
       ),
       BackupSection.tmdb || BackupSection.ai => l.backupOverwrite,
     };
@@ -313,6 +318,24 @@ class _BackupDialogState extends State<_BackupDialog> {
                         final dav = preview.additions[index];
                         return Text(
                           '${dav.name} · ${dav.url}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
+                    ),
+                  ),
+                if (section == BackupSection.smb &&
+                    preview.smbAdditions.isNotEmpty)
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 124),
+                    child: ListView.builder(
+                      primary: false,
+                      shrinkWrap: true,
+                      itemCount: preview.smbAdditions.length,
+                      itemBuilder: (context, index) {
+                        final smb = preview.smbAdditions[index];
+                        return Text(
+                          '${smb.name} · ${smb.host}/${smb.share}',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         );

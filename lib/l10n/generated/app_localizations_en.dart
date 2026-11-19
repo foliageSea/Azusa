@@ -62,6 +62,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String backupSmbSummary(int added, int skipped) {
+    return 'Add: $added; skip duplicates: $skipped';
+  }
+
+  @override
   String get backupOverwrite => 'Replace local settings';
 
   @override
@@ -630,6 +635,101 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webdavUrlHint => 'Enter a WebDAV URL';
+
+  @override
+  String get smbHost => 'SMB host';
+
+  @override
+  String get smbHostHint => 'For example, nas.local or 192.168.1.10';
+
+  @override
+  String get smbShare => 'Share name';
+
+  @override
+  String get smbShareHint => 'For example, Media (not a path)';
+
+  @override
+  String get smbDomain => 'Domain or workgroup (optional)';
+
+  @override
+  String get smbDomainHint => 'For example, WORKGROUP';
+
+  @override
+  String get smbHostInvalid =>
+      'Enter a DNS name or IPv4 address without a scheme, path, or port.';
+
+  @override
+  String get smbShareInvalid => 'Enter a valid share name, not a path.';
+
+  @override
+  String get smbUsernameInvalid =>
+      'Enter a valid SMB username and specify the domain separately.';
+
+  @override
+  String get smbErrorUnsafePath => 'The SMB path is invalid or unsafe.';
+
+  @override
+  String get smbErrorRootMutation =>
+      'The root of an SMB share cannot be modified.';
+
+  @override
+  String get smbErrorReparsePoint =>
+      'SMB symbolic links and reparse points are not supported.';
+
+  @override
+  String get smbErrorIncompleteListing =>
+      'The SMB directory listing could not be verified.';
+
+  @override
+  String get smbErrorNotFound =>
+      'The SMB file, directory, or share was not found.';
+
+  @override
+  String get smbErrorAlreadyExists => 'The SMB destination already exists.';
+
+  @override
+  String get smbErrorAccessDenied => 'Access to the SMB resource was denied.';
+
+  @override
+  String get smbErrorAuthentication => 'SMB authentication failed.';
+
+  @override
+  String get smbErrorTimeout => 'The SMB request timed out.';
+
+  @override
+  String get smbErrorConnection => 'Could not connect to the SMB share.';
+
+  @override
+  String get smbErrorNotDirectory => 'The SMB path is not a directory.';
+
+  @override
+  String get smbErrorIsDirectory => 'The SMB path is a directory.';
+
+  @override
+  String get smbErrorNotEmpty => 'The SMB directory is not empty.';
+
+  @override
+  String get smbErrorBusy => 'The SMB file or server is busy.';
+
+  @override
+  String get smbErrorDiskFull => 'The SMB share is out of space.';
+
+  @override
+  String get smbErrorUnsupported =>
+      'The SMB server or client does not support this operation.';
+
+  @override
+  String get smbErrorClosed => 'The SMB connection is closed.';
+
+  @override
+  String get smbErrorInvalidLength => 'The SMB upload length is invalid.';
+
+  @override
+  String get smbErrorTransferLength =>
+      'The SMB upload length does not match the data received.';
+
+  @override
+  String get smbErrorFailed => 'The SMB operation failed.';
 
   @override
   String get usernameHint => 'Enter a username';

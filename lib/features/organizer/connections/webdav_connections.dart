@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 import '../../../core/database/app_database.dart';
 import '../file_server/file_server_connection.dart';
@@ -131,6 +132,7 @@ class WebDavConnectionsRepository {
         ]).isEmpty) {
       throw StateError('连接已不存在');
     }
+    // The v3 trigger updates the unified selection in the same statement.
     db.execute('UPDATE webdav_state SET active_id = ? WHERE id = 1', [id]);
   }
 
@@ -187,7 +189,7 @@ class WebDavConnectionsRepository {
         }
         db.execute('COMMIT');
       } catch (_) {
-        db.execute('ROLLBACK');
+        if (!db.autocommit) db.execute('ROLLBACK');
         rethrow;
       }
     } catch (_) {
@@ -226,25 +228,11 @@ class WebDavConnectionsRepository {
       db.execute('BEGIN IMMEDIATE');
       try {
         for (final (value, key) in entries) {
-          db.execute(
-            '''
-            INSERT INTO webdav_connections
-              (id, name, url, username, proxy_enabled, secret_key)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''',
-            [
-              value.id,
-              value.name,
-              value.url,
-              value.username,
-              value.useProxy ? 1 : 0,
-              key,
-            ],
-          );
+          insertWebDavConnectionRow(db, value, key);
         }
         db.execute('COMMIT');
       } catch (_) {
-        db.execute('ROLLBACK');
+        if (!db.autocommit) db.execute('ROLLBACK');
         rethrow;
       }
     } catch (_) {
@@ -272,11 +260,34 @@ class WebDavConnectionsRepository {
       db.execute('DELETE FROM webdav_connections WHERE id = ?', [id]);
       db.execute('COMMIT');
     } catch (_) {
-      db.execute('ROLLBACK');
+      if (!db.autocommit) db.execute('ROLLBACK');
       rethrow;
     }
     if (rows.isNotEmpty) await _cleanup(rows.single['secret_key'] as String);
   }
+}
+
+/// Insert a WebDAV row using the caller's transaction and staged credential.
+void insertWebDavConnectionRow(
+  Database db,
+  WebDavConnection value,
+  String key,
+) {
+  db.execute(
+    '''
+    INSERT INTO webdav_connections
+      (id, name, url, username, proxy_enabled, secret_key)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ''',
+    [
+      value.id,
+      value.name,
+      value.url,
+      value.username,
+      value.useProxy ? 1 : 0,
+      key,
+    ],
+  );
 }
 
 final webDavConnectionsRepositoryProvider = Provider(

@@ -194,6 +194,12 @@ abstract class AppLocalizations {
   /// **'Add: {added}; skip duplicates: {skipped}'**
   String backupDavSummary(int added, int skipped);
 
+  /// No description provided for @backupSmbSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Add: {added}; skip duplicates: {skipped}'**
+  String backupSmbSummary(int added, int skipped);
+
   /// No description provided for @backupOverwrite.
   ///
   /// In en, this message translates to:
@@ -1267,6 +1273,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a WebDAV URL'**
   String get webdavUrlHint;
+
+  /// No description provided for @smbHost.
+  ///
+  /// In en, this message translates to:
+  /// **'SMB host'**
+  String get smbHost;
+
+  /// No description provided for @smbHostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example, nas.local or 192.168.1.10'**
+  String get smbHostHint;
+
+  /// No description provided for @smbShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share name'**
+  String get smbShare;
+
+  /// No description provided for @smbShareHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example, Media (not a path)'**
+  String get smbShareHint;
+
+  /// No description provided for @smbDomain.
+  ///
+  /// In en, this message translates to:
+  /// **'Domain or workgroup (optional)'**
+  String get smbDomain;
+
+  /// No description provided for @smbDomainHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example, WORKGROUP'**
+  String get smbDomainHint;
+
+  /// No description provided for @smbHostInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a DNS name or IPv4 address without a scheme, path, or port.'**
+  String get smbHostInvalid;
+
+  /// No description provided for @smbShareInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid share name, not a path.'**
+  String get smbShareInvalid;
+
+  /// No description provided for @smbUsernameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid SMB username and specify the domain separately.'**
+  String get smbUsernameInvalid;
+
+  /// No description provided for @smbErrorUnsafePath.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB path is invalid or unsafe.'**
+  String get smbErrorUnsafePath;
+
+  /// No description provided for @smbErrorRootMutation.
+  ///
+  /// In en, this message translates to:
+  /// **'The root of an SMB share cannot be modified.'**
+  String get smbErrorRootMutation;
+
+  /// No description provided for @smbErrorReparsePoint.
+  ///
+  /// In en, this message translates to:
+  /// **'SMB symbolic links and reparse points are not supported.'**
+  String get smbErrorReparsePoint;
+
+  /// No description provided for @smbErrorIncompleteListing.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB directory listing could not be verified.'**
+  String get smbErrorIncompleteListing;
+
+  /// No description provided for @smbErrorNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB file, directory, or share was not found.'**
+  String get smbErrorNotFound;
+
+  /// No description provided for @smbErrorAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB destination already exists.'**
+  String get smbErrorAlreadyExists;
+
+  /// No description provided for @smbErrorAccessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Access to the SMB resource was denied.'**
+  String get smbErrorAccessDenied;
+
+  /// No description provided for @smbErrorAuthentication.
+  ///
+  /// In en, this message translates to:
+  /// **'SMB authentication failed.'**
+  String get smbErrorAuthentication;
+
+  /// No description provided for @smbErrorTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB request timed out.'**
+  String get smbErrorTimeout;
+
+  /// No description provided for @smbErrorConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect to the SMB share.'**
+  String get smbErrorConnection;
+
+  /// No description provided for @smbErrorNotDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB path is not a directory.'**
+  String get smbErrorNotDirectory;
+
+  /// No description provided for @smbErrorIsDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB path is a directory.'**
+  String get smbErrorIsDirectory;
+
+  /// No description provided for @smbErrorNotEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB directory is not empty.'**
+  String get smbErrorNotEmpty;
+
+  /// No description provided for @smbErrorBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB file or server is busy.'**
+  String get smbErrorBusy;
+
+  /// No description provided for @smbErrorDiskFull.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB share is out of space.'**
+  String get smbErrorDiskFull;
+
+  /// No description provided for @smbErrorUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB server or client does not support this operation.'**
+  String get smbErrorUnsupported;
+
+  /// No description provided for @smbErrorClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB connection is closed.'**
+  String get smbErrorClosed;
+
+  /// No description provided for @smbErrorInvalidLength.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB upload length is invalid.'**
+  String get smbErrorInvalidLength;
+
+  /// No description provided for @smbErrorTransferLength.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB upload length does not match the data received.'**
+  String get smbErrorTransferLength;
+
+  /// No description provided for @smbErrorFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The SMB operation failed.'**
+  String get smbErrorFailed;
 
   /// No description provided for @usernameHint.
   ///

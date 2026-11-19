@@ -8,6 +8,7 @@ import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
+import 'package:azusa/features/organizer/smb/smb_connection.dart';
 import 'package:azusa/features/organizer/startup_connection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -66,13 +67,32 @@ class SwitchingDav extends WebDavClient {
   }
 }
 
+class _SwitchingSmb extends FileServerClient {
+  @override
+  String get root => '/';
+
+  @override
+  String normalize(String path) => path;
+
+  @override
+  Future<List<FileServerEntry>> list(String path) async => [
+    const FileServerEntry('/media.mkv', false),
+  ];
+
+  @override
+  void close() {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   late AppDatabase database;
   late WebDavConnectionsRepository repository;
   late ProviderContainer container;
   late MemoryPreferences preferences;
   late MemorySecrets secrets;
-  late WebDavClient Function(ConnectionSettings) factory;
+  late FileServerClient Function(ConnectionSettings) factory;
   const one = WebDavConnection(
     id: 'one',
     name: 'One',
@@ -193,6 +213,69 @@ void main() {
     );
     expect(container.read(organizerProvider).entries, isEmpty);
   });
+
+  test(
+    'SMB selection resets WebDAV state and is restored at startup',
+    () async {
+      const smb = SmbConnection(
+        id: 'smb',
+        name: 'Media',
+        host: 'nas.local',
+        share: 'Movies',
+        username: 'media',
+        password: 'secret',
+      );
+      final settings = container.read(connectionSettingsProvider.notifier);
+      await settings.saveConnection(smb);
+      expect(
+        container.read(connectionSettingsProvider).requireValue.connectionId,
+        one.id,
+      );
+      factory = (settings) {
+        final connection = settings.fileServerConnection as SmbConnection;
+        expect(connection.password, smb.password);
+        return _SwitchingSmb();
+      };
+      await settings.selectConnection(smb.id);
+      expect(container.read(organizerProvider).plan, isEmpty);
+      expect(container.read(organizerProvider).directory, '/');
+      expect(
+        container.read(organizerProvider).entries.single.name,
+        'media.mkv',
+      );
+      expect(await repository.activeId(), isNull);
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          connectionRepositoryProvider.overrideWithValue(
+            ConnectionRepository(preferences, secrets),
+          ),
+          fileServerClientProvider.overrideWithValue(
+            (settings) => factory(settings),
+          ),
+        ],
+      );
+      await container.read(startupConnectionProvider.future);
+      expect(
+        container.read(connectionSettingsProvider).requireValue.connectionId,
+        smb.id,
+      );
+      expect(
+        container.read(organizerProvider).entries.single.name,
+        'media.mkv',
+      );
+      await container
+          .read(connectionSettingsProvider.notifier)
+          .deleteConnection(smb.id);
+      expect(
+        container.read(connectionSettingsProvider).requireValue.connectionId,
+        isNull,
+      );
+      expect(container.read(organizerProvider).directory, isEmpty);
+    },
+  );
 
   test('重建容器后恢复最后连接并在启动时连接', () async {
     await repository.select(two.id);

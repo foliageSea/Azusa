@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
-  test('版本 1 数据库升级到版本 2 并保留已有记录', () async {
+  test('版本 1 数据库升级到版本 3 并保留已有记录', () async {
     final directory = await Directory('/tmp/opencode').createTemp('app-v1-');
     addTearDown(() => directory.delete(recursive: true));
     final path = '${directory.path}/azusa.sqlite3';
@@ -25,7 +25,7 @@ void main() {
     addTearDown(database.close);
     expect(await ExecutionHistoryRepository(database).load(), ['existing']);
     final db = await database.connection();
-    expect(db.select('PRAGMA user_version').single.values.single, 2);
+    expect(db.select('PRAGMA user_version').single.values.single, 3);
     db.execute(
       "INSERT INTO webdav_connections VALUES ('one', 'NAS', 'https://nas.test/', 'user', 0, 'secret-reference')",
     );
@@ -44,6 +44,46 @@ void main() {
           .single['active_id'],
       'one',
     );
+  });
+
+  test('版本 2 的 WebDAV 选择和密码引用迁移到版本 3', () async {
+    final seed = sqlite3.openInMemory();
+    seed.execute('''
+      CREATE TABLE webdav_connections (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL,
+        username TEXT NOT NULL, proxy_enabled INTEGER NOT NULL, secret_key TEXT NOT NULL
+      );
+      CREATE TABLE webdav_state (
+        id INTEGER PRIMARY KEY, active_id TEXT, migrated INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO webdav_connections
+      VALUES ('original-id', 'NAS', 'https://nas.test/', 'user', 1, 'original-reference');
+      INSERT INTO webdav_state VALUES (1, 'original-id', 1);
+      PRAGMA user_version = 2;
+    ''');
+    final database = AppDatabase(open: () async => seed);
+    addTearDown(database.close);
+    final db = await database.connection();
+    expect(db.select('PRAGMA user_version').single.values.single, 3);
+    expect(db.select('SELECT * FROM webdav_connections').single, {
+      'id': 'original-id',
+      'name': 'NAS',
+      'url': 'https://nas.test/',
+      'username': 'user',
+      'proxy_enabled': 1,
+      'secret_key': 'original-reference',
+    });
+    expect(db.select('SELECT active_id, migrated FROM webdav_state').single, {
+      'active_id': 'original-id',
+      'migrated': 1,
+    });
+    expect(
+      db
+          .select('SELECT active_protocol, active_id FROM file_server_state')
+          .single,
+      {'active_protocol': 'webdav', 'active_id': 'original-id'},
+    );
+    expect(db.select('SELECT * FROM smb_connections'), isEmpty);
   });
 
   test('三个 Repository 共用一个连接，记录及收藏重启后均保留', () async {
@@ -88,7 +128,7 @@ void main() {
     final db = await database.connection();
     expect(db.select('PRAGMA journal_mode').single.values.single, 'wal');
     expect(db.select('PRAGMA synchronous').single.values.single, 2);
-    expect(db.select('PRAGMA user_version').single.values.single, 2);
+    expect(db.select('PRAGMA user_version').single.values.single, 3);
     expect(
       db
           .select("SELECT name FROM sqlite_master WHERE type = 'table'")
@@ -99,6 +139,8 @@ void main() {
         'directory_favorites',
         'webdav_connections',
         'webdav_state',
+        'smb_connections',
+        'file_server_state',
       ]),
     );
     await database.close();
@@ -121,14 +163,14 @@ void main() {
     addTearDown(() => directory.delete(recursive: true));
     final path = '${directory.path}/azusa.sqlite3';
     final seed = sqlite3.open(path);
-    seed.execute('PRAGMA user_version = 3');
+    seed.execute('PRAGMA user_version = 4');
     seed.close();
     final database = AppDatabase(open: () async => sqlite3.open(path));
     addTearDown(database.close);
     await expectLater(database.connection(), throwsStateError);
     final inspection = sqlite3.open(path);
     addTearDown(inspection.close);
-    expect(inspection.select('PRAGMA user_version').single.values.single, 3);
+    expect(inspection.select('PRAGMA user_version').single.values.single, 4);
     expect(
       inspection.select("SELECT name FROM sqlite_master WHERE type = 'table'"),
       isEmpty,

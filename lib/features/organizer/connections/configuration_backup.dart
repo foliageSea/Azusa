@@ -7,9 +7,10 @@ import 'package:flutter/foundation.dart';
 import '../../../core/settings/naming_format.dart';
 import '../../../core/settings/naming_language.dart';
 import '../file_server/file_server_paths.dart';
+import '../smb/smb_connection.dart';
 import 'http_clients.dart';
 
-enum BackupSection { webdav, tmdb, ai }
+enum BackupSection { webdav, smb, tmdb, ai }
 
 typedef BackupDav = ({
   String name,
@@ -18,6 +19,27 @@ typedef BackupDav = ({
   bool proxy,
   String? password,
 });
+typedef BackupSmb = ({
+  String name,
+  String host,
+  String share,
+  String domain,
+  String username,
+  String? password,
+});
+
+extension BackupSmbConnection on BackupSmb {
+  SmbConnection toConnection({required String id}) => SmbConnection(
+    id: id,
+    name: name,
+    host: host,
+    share: share,
+    domain: domain,
+    username: username,
+    password: password ?? '',
+  );
+}
+
 typedef BackupAi = ({String url, String model, bool proxy, String? key});
 typedef BackupTmdb = ({
   NamingLanguage language,
@@ -38,21 +60,29 @@ BackupDavIdentity backupDavIdentity(String url, String username) {
 }
 
 class ConfigurationBackup {
-  ConfigurationBackup({List<BackupDav>? webdav, this.tmdb, this.ai})
-    : webdav = webdav == null ? null : List.unmodifiable(webdav);
+  ConfigurationBackup({
+    List<BackupDav>? webdav,
+    List<BackupSmb>? smb,
+    this.tmdb,
+    this.ai,
+  }) : webdav = webdav == null ? null : List.unmodifiable(webdav),
+       smb = smb == null ? null : List.unmodifiable(smb);
 
   final List<BackupDav>? webdav;
+  final List<BackupSmb>? smb;
   final BackupTmdb? tmdb;
   final BackupAi? ai;
 
   Set<BackupSection> get sections => {
     if (webdav != null) BackupSection.webdav,
+    if (smb != null) BackupSection.smb,
     if (tmdb != null) BackupSection.tmdb,
     if (ai != null) BackupSection.ai,
   };
 
   bool hasCredentials(BackupSection section) => switch (section) {
     BackupSection.webdav => webdav?.any((dav) => dav.password != null) ?? false,
+    BackupSection.smb => smb?.any((item) => item.password != null) ?? false,
     BackupSection.tmdb => tmdb?.token != null,
     BackupSection.ai => ai?.key != null,
   };
@@ -67,6 +97,18 @@ class ConfigurationBackup {
             'username': dav.username,
             'proxy': dav.proxy,
             'password': ?dav.password,
+          },
+      ],
+    if (smb case final items?)
+      'smb': [
+        for (final item in items)
+          {
+            'name': item.name,
+            'host': item.host,
+            'share': item.share,
+            'domain': item.domain,
+            'username': item.username,
+            'password': ?item.password,
           },
       ],
     if (tmdb case final tmdb?)
@@ -85,9 +127,19 @@ class ConfigurationBackup {
       },
   };
 
-  factory ConfigurationBackup._parse(Object? value, {required bool encrypted}) {
-    final data = _object(value, {'webdav', 'tmdb', 'ai'});
+  factory ConfigurationBackup._parse(
+    Object? value, {
+    required bool encrypted,
+    required int version,
+  }) {
+    final data = _object(value, {
+      'webdav',
+      if (version == ConfigurationBackupCodec._smbVersion) 'smb',
+      'tmdb',
+      'ai',
+    });
     List<BackupDav>? webdav;
+    List<BackupSmb>? smb;
     BackupTmdb? tmdb;
     BackupAi? ai;
     if (data.containsKey('webdav')) {
@@ -112,6 +164,43 @@ class ConfigurationBackup {
           username: username,
           proxy: _read<bool>(dav, 'proxy'),
           password: _secret(dav, 'password'),
+        );
+      }).toList();
+    }
+    if (data.containsKey('smb')) {
+      final items = data['smb'];
+      if (items is! List) _invalid();
+      smb = items.map((item) {
+        final fields = _object(item, {
+          'name',
+          'host',
+          'share',
+          'domain',
+          'username',
+          if (encrypted) 'password',
+        });
+        final value = (
+          name: _read<String>(fields, 'name'),
+          host: _read<String>(fields, 'host'),
+          share: _read<String>(fields, 'share'),
+          domain: _read<String>(fields, 'domain'),
+          username: _read<String>(fields, 'username'),
+          password: _secret(fields, 'password'),
+        );
+        try {
+          value.toConnection(id: 'backup').validate();
+        } on FormatException {
+          _invalid();
+        } on ArgumentError {
+          _invalid();
+        }
+        return (
+          name: value.name.trim(),
+          host: value.host.trim(),
+          share: value.share,
+          domain: value.domain.trim(),
+          username: value.username.trim(),
+          password: value.password,
         );
       }).toList();
     }
@@ -154,7 +243,7 @@ class ConfigurationBackup {
       );
     }
     if (data.isEmpty) _invalid();
-    return ConfigurationBackup(webdav: webdav, tmdb: tmdb, ai: ai);
+    return ConfigurationBackup(webdav: webdav, smb: smb, tmdb: tmdb, ai: ai);
   }
 }
 
@@ -196,9 +285,11 @@ class ConfigurationBackupCodec {
   static const maxBytes = 2 * 1024 * 1024;
   static const minPassphraseLength = 12;
   static const _format = 'azusa.configuration';
-  static const _version = 1;
+  static const _legacyVersion = 1;
+  static const _smbVersion = 2;
   static const _cipher = 'pbkdf2-sha256-600000/aes-256-gcm';
-  static final _aad = utf8.encode('$_format:$_version:$_cipher');
+  static List<int> _aad(int version) =>
+      utf8.encode('$_format:$version:$_cipher');
 
   Future<Uint8List> encode(ConfigurationBackup backup, {String? passphrase}) =>
       compute(_encode, (backup, passphrase));
@@ -219,7 +310,9 @@ class ConfigurationBackupCodec {
       _invalid();
     }
     if (raw is! Map<String, dynamic> || raw['format'] != _format) _invalid();
-    if (raw['version'] is! int || raw['version'] != _version) {
+    final version = raw['version'];
+    if (version is! int ||
+        (version != _legacyVersion && version != _smbVersion)) {
       throw const BackupException(BackupProblem.unsupported);
     }
     if (raw.containsKey('cipher')) {
@@ -241,8 +334,9 @@ class ConfigurationBackupCodec {
     final (backup, passphrase) = input;
     final data = backup._toJson();
     final encrypted = passphrase != null;
-    ConfigurationBackup._parse(data, encrypted: encrypted);
-    final envelope = <String, Object>{'format': _format, 'version': _version};
+    final version = backup.smb == null ? _legacyVersion : _smbVersion;
+    ConfigurationBackup._parse(data, encrypted: encrypted, version: version);
+    final envelope = <String, Object>{'format': _format, 'version': version};
     if (encrypted) {
       if (passphrase.trim().runes.length < minPassphraseLength) {
         throw const BackupException(BackupProblem.passphraseRequired);
@@ -252,7 +346,7 @@ class ConfigurationBackupCodec {
       final box = await AesGcm.with256bits().encrypt(
         utf8.encode(jsonEncode(data)),
         secretKey: await _key(passphrase, salt),
-        aad: _aad,
+        aad: _aad(version),
       );
       envelope.addAll({
         'cipher': _cipher,
@@ -274,6 +368,7 @@ class ConfigurationBackupCodec {
   static Future<ConfigurationBackup> _decode((Uint8List, String?) input) async {
     final (bytes, passphrase) = input;
     final envelope = _envelope(bytes);
+    final version = _read<int>(envelope, 'version');
     final encrypted = envelope.containsKey('cipher');
     try {
       Object? data = envelope['data'];
@@ -293,11 +388,15 @@ class ConfigurationBackupCodec {
         final clear = await cipher.decrypt(
           box,
           secretKey: await _key(passphrase, salt),
-          aad: _aad,
+          aad: _aad(version),
         );
         data = jsonDecode(utf8.decode(clear));
       }
-      return ConfigurationBackup._parse(data, encrypted: encrypted);
+      return ConfigurationBackup._parse(
+        data,
+        encrypted: encrypted,
+        version: version,
+      );
     } on SecretBoxAuthenticationError {
       throw const BackupException(BackupProblem.unlockFailed);
     } on FormatException {

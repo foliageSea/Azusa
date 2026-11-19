@@ -117,6 +117,8 @@ jobs:
         run: |
           BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
           APK="dist/Azusa-$VERSION-android-arm64-v8a.apk"
+          unzip -p "$APK" lib/arm64-v8a/libdart_smb2.so > "$RUNNER_TEMP/libdart_smb2.so"
+          test -s "$RUNNER_TEMP/libdart_smb2.so"
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK" > "$RUNNER_TEMP/apk-signature.txt"
           cat "$RUNNER_TEMP/apk-signature.txt"
           keytool -exportcert -keystore "$ANDROID_KEYSTORE_PATH" \
@@ -171,6 +173,9 @@ jobs:
             Sort-Object FullName -Descending | Select-Object -First 1
           if (!$crt) { throw 'VC++ redistributable DLLs not found' }
           Copy-Item "$($crt.FullName)\*.dll" build/windows/x64/runner/Release/
+          if (!(Test-Path build/windows/x64/runner/Release/dart_smb2.dll)) {
+            throw 'SMB native library is missing from the Windows bundle'
+          }
           $info = (Get-Item build/windows/x64/runner/Release/azusa.exe).VersionInfo
           if ($info.ProductVersion -ne "$env:VERSION+$env:BUILD_NUMBER") {
             throw "Unexpected application version: $($info.ProductVersion)"

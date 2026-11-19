@@ -24,7 +24,7 @@ class AppDatabase {
       db.execute('PRAGMA busy_timeout = 5000');
       final version =
           db.select('PRAGMA user_version').first.values.first as int;
-      if (version > 2) throw StateError('数据库版本过高');
+      if (version > 3) throw StateError('数据库版本过高');
       db.execute('PRAGMA journal_mode = WAL');
       // Preparation records must be committed before any NAS write begins.
       db.execute('PRAGMA synchronous = FULL');
@@ -73,11 +73,54 @@ class AppDatabase {
             migrated INTEGER NOT NULL DEFAULT 0
           );
           INSERT OR IGNORE INTO webdav_state (id) VALUES (1);
-          PRAGMA user_version = 2;
+          CREATE TABLE IF NOT EXISTS smb_connections (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            host TEXT NOT NULL,
+            share TEXT NOT NULL,
+            domain TEXT NOT NULL,
+            username TEXT NOT NULL,
+            secret_key TEXT NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS file_server_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            active_protocol TEXT CHECK (active_protocol IN ('webdav', 'smb')),
+            active_id TEXT,
+            CHECK ((active_protocol IS NULL) = (active_id IS NULL))
+          );
+          -- Seed the unified selection once; a v3 SMB selection must survive reopening.
+          INSERT OR IGNORE INTO file_server_state (id, active_protocol, active_id)
+            SELECT 1, CASE WHEN w.id IS NOT NULL THEN 'webdav' END, w.id
+            FROM webdav_state s LEFT JOIN webdav_connections w ON w.id = s.active_id
+            WHERE s.id = 1;
+          -- Keep legacy WebDAV saves, selection and removal in sync. Clearing a
+          -- WebDAV selection must not deactivate an active SMB connection.
+          CREATE TRIGGER IF NOT EXISTS sync_webdav_active
+          AFTER UPDATE OF active_id ON webdav_state
+          BEGIN
+            UPDATE file_server_state
+              SET active_protocol = CASE WHEN NEW.active_id IS NOT NULL THEN 'webdav' END,
+                  active_id = NEW.active_id
+              WHERE id = 1 AND (NEW.active_id IS NOT NULL OR active_protocol = 'webdav');
+          END;
+          -- Public selection and removal accept a bare id, so ids are global.
+          CREATE TRIGGER IF NOT EXISTS guard_webdav_connection_id
+          BEFORE INSERT ON webdav_connections
+          WHEN EXISTS (SELECT 1 FROM smb_connections WHERE id = NEW.id)
+          BEGIN
+            SELECT RAISE(ABORT, 'Duplicate file server connection id');
+          END;
+          CREATE TRIGGER IF NOT EXISTS guard_smb_connection_id
+          BEFORE INSERT ON smb_connections
+          WHEN EXISTS (SELECT 1 FROM webdav_connections WHERE id = NEW.id)
+          BEGIN
+            SELECT RAISE(ABORT, 'Duplicate file server connection id');
+          END;
+          PRAGMA user_version = 3;
         ''');
         db.execute('COMMIT');
       } catch (_) {
-        db.execute('ROLLBACK');
+        if (!db.autocommit) db.execute('ROLLBACK');
         rethrow;
       }
       return db;

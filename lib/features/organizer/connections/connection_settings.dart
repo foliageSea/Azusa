@@ -8,10 +8,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/settings/settings.dart';
 import '../file_server/file_server_connection.dart';
+import '../smb/smb_connection.dart';
 import '../organizer_state.dart';
 import 'configuration_backup.dart';
 import 'configuration_transfer.dart';
 import 'credential_vault.dart';
+import 'file_server_connections.dart';
 import 'webdav_connections.dart';
 
 enum ProxyMode {
@@ -239,13 +241,13 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
   }
 
   Future<ConnectionSettings> _resolve(ConnectionSettings globals) async {
-    final repository = ref.read(webDavConnectionsRepositoryProvider);
-    final id = await repository.activeId();
-    final connections = await repository.load(includePasswords: false);
-    final active = connections.where((item) => item.id == id).firstOrNull;
-    return active == null
-        ? globals.copyWith(clearFileServerConnection: true)
-        : (await repository.withPassword(active)).apply(globals);
+    final active = await ref
+        .read(fileServerConnectionsRepositoryProvider)
+        .active();
+    return globals.copyWith(
+      fileServerConnection: active,
+      clearFileServerConnection: active == null,
+    );
   }
 
   Future<void> _change(
@@ -277,22 +279,22 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
     }
   }
 
-  Future<void> saveConnection(WebDavConnection connection) => _change(
-    () => ref.read(webDavConnectionsRepositoryProvider).save(connection),
+  Future<void> saveConnection(FileServerConnection connection) => _change(
+    () => ref.read(fileServerConnectionsRepositoryProvider).save(connection),
     reset: connection.id == state.requireValue.connectionId,
   );
 
   Future<void> selectConnection(String id) async {
     if (id == state.requireValue.connectionId) return;
     await _change(
-      () => ref.read(webDavConnectionsRepositoryProvider).select(id),
+      () => ref.read(fileServerConnectionsRepositoryProvider).select(id),
       reset: true,
     );
     await ref.read(organizerProvider.notifier).open(null);
   }
 
   Future<void> deleteConnection(String id) => _change(
-    () => ref.read(webDavConnectionsRepositoryProvider).remove(id),
+    () => ref.read(fileServerConnectionsRepositoryProvider).remove(id),
     reset: id == state.requireValue.connectionId,
   );
 
@@ -316,6 +318,12 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
               .read(webDavConnectionsRepositoryProvider)
               .load(includePasswords: includeCredentials)
         : null;
+    final smb = selected.contains(BackupSection.smb)
+        ? (await ref
+                  .read(fileServerConnectionsRepositoryProvider)
+                  .load(includePasswords: includeCredentials))
+              .whereType<SmbConnection>()
+        : null;
     String? credential(String value) =>
         includeCredentials && value.isNotEmpty ? value : null;
     return ConfigurationBackup(
@@ -327,6 +335,18 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
               username: dav.username,
               proxy: dav.useProxy,
               password: credential(dav.password),
+            ),
+          )
+          .toList(),
+      smb: smb
+          ?.map(
+            (connection) => (
+              name: connection.name,
+              host: connection.host,
+              share: connection.share,
+              domain: connection.domain,
+              username: connection.username,
+              password: credential(connection.password),
             ),
           )
           .toList(),
@@ -358,6 +378,13 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
         : await ref
               .read(webDavConnectionsRepositoryProvider)
               .load(includePasswords: false),
+    existingSmb: backup.smb == null
+        ? const []
+        : (await ref
+                  .read(fileServerConnectionsRepositoryProvider)
+                  .load(includePasswords: false))
+              .whereType<SmbConnection>()
+              .toList(),
     globals: state.requireValue,
   );
 
@@ -373,6 +400,7 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
     final importsAi = selected.contains(BackupSection.ai);
     final importsTmdb = selected.contains(BackupSection.tmdb);
     final importsDav = selected.contains(BackupSection.webdav);
+    final importsSmb = selected.contains(BackupSection.smb);
     if (importsAi && previous.aiUrl != preview.previousAiUrl) {
       throw const ConfigurationImportChanged();
     }
@@ -382,13 +410,17 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
       replacementAiKey: replacementAiKey,
     );
     final connectionRepository = ref.read(connectionRepositoryProvider);
-    final davRepository = ref.read(webDavConnectionsRepositoryProvider);
+    final fileServers = ref.read(fileServerConnectionsRepositoryProvider);
     final settings = ref.read(settingsProvider.notifier);
     await _change(() async {
-      if (importsDav) {
+      if (importsDav || importsSmb) {
         final fresh = await previewConfiguration(preview.backup);
-        if (fresh.skipped != preview.skipped ||
-            !listEquals(fresh.additions, preview.additions)) {
+        if ((importsDav &&
+                (fresh.skipped != preview.skipped ||
+                    !listEquals(fresh.additions, preview.additions))) ||
+            (importsSmb &&
+                (fresh.smbSkipped != preview.smbSkipped ||
+                    !listEquals(fresh.smbAdditions, preview.smbAdditions)))) {
           throw const ConfigurationImportChanged();
         }
       }
@@ -404,17 +436,21 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
           attemptedNaming = true;
           await settings.update(preview.mergeNaming);
         }
-        if (importsDav) {
-          await davRepository.insertImported([
-            for (final dav in preview.additions)
-              WebDavConnection(
-                id: newConnectionId(),
-                name: dav.name,
-                url: dav.url,
-                username: dav.username,
-                password: dav.password ?? '',
-                useProxy: dav.proxy,
-              ),
+        if (importsDav || importsSmb) {
+          await fileServers.insertImported([
+            if (importsDav)
+              for (final dav in preview.additions)
+                WebDavConnection(
+                  id: newConnectionId(),
+                  name: dav.name,
+                  url: dav.url,
+                  username: dav.username,
+                  password: dav.password ?? '',
+                  useProxy: dav.proxy,
+                ),
+            if (importsSmb)
+              for (final smb in preview.smbAdditions)
+                smb.toConnection(id: newConnectionId()),
           ]);
         }
       } catch (_) {

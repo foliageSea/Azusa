@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../connections/connection_settings.dart';
 import '../connections/webdav_connections.dart';
 import '../dav/webdav.dart';
+import '../smb/smb_client.dart';
+import '../smb/smb_connection.dart';
 import 'file_server.dart';
 import 'file_server_connection.dart';
 
@@ -71,8 +73,30 @@ class _WebDavProtocol implements FileServerProtocol {
   }
 }
 
+class _SmbProtocol implements FileServerProtocol {
+  const _SmbProtocol();
+
+  SmbConnection _smb(FileServerConnection connection) {
+    if (connection is SmbConnection) return connection;
+    throw const FormatException('文件服务器连接配置无效');
+  }
+
+  @override
+  void validate(FileServerConnection connection) => _smb(connection).validate();
+
+  @override
+  FileServerClient create(
+    FileServerConnection connection,
+    ConnectionSettings settings,
+  ) => SmbClient.forConnection(_smb(connection));
+
+  @override
+  FileServerScope scope(FileServerConnection connection) => _smb(connection).scope;
+}
+
 const defaultFileServerFactory = FileServerFactory({
   WebDavConnection.protocolId: _WebDavProtocol(),
+  SmbConnection.protocolId: _SmbProtocol(),
 });
 final fileServerFactoryProvider = Provider<FileServerFactory>(
   (ref) => defaultFileServerFactory,
