@@ -1256,7 +1256,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get unknownHistoryFileServer => 'Unknown server';
+  String get unknownHistoryFileServer => '-';
 
   @override
   String operationCount(int count) {

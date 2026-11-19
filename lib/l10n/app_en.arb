@@ -415,7 +415,7 @@
   "noExecutionHistory": "No execution history yet",
   "historyFileServer": "File server: {server}",
   "@historyFileServer": {"placeholders": {"server": {"type": "String"}}},
-  "unknownHistoryFileServer": "Unknown server",
+  "unknownHistoryFileServer": "-",
   "operationCount": "{count} operations",
   "@operationCount": {"placeholders": {"count": {"type": "int"}}},
   "otherRecords": "Other records",

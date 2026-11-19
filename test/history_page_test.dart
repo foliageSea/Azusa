@@ -64,7 +64,7 @@ void main() {
     final labels = [
       l10n.historyFileServer('Archived WebDAV server (WebDAV)'),
       l10n.historyFileServer('Archived SMB server (SMB)'),
-      l10n.historyFileServer(l10n.unknownHistoryFileServer),
+      l10n.historyFileServer('-'),
     ];
     for (final label in labels) {
       expect(find.text(label), findsOneWidget);

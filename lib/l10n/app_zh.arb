@@ -400,7 +400,7 @@
   "noExecutionHistory": "暂无执行记录",
   "historyFileServer": "文件服务器：{server}",
   "@historyFileServer": {"placeholders": {"server": {"type": "String"}}},
-  "unknownHistoryFileServer": "未知服务器",
+  "unknownHistoryFileServer": "-",
   "operationCount": "{count} 项操作",
   "otherRecords": "其他记录",
   "today": "今天",

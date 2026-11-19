@@ -2411,7 +2411,7 @@ abstract class AppLocalizations {
   /// No description provided for @unknownHistoryFileServer.
   ///
   /// In en, this message translates to:
-  /// **'Unknown server'**
+  /// **'-'**
   String get unknownHistoryFileServer;
 
   /// No description provided for @operationCount.

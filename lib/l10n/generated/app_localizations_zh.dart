@@ -1232,7 +1232,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get unknownHistoryFileServer => '未知服务器';
+  String get unknownHistoryFileServer => '-';
 
   @override
   String operationCount(int count) {
