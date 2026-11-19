@@ -108,14 +108,34 @@ String _dateTime(DateTime time) {
   return '${local.year}-${_two(local.month)}-${_two(local.day)} ${_clock(local)}';
 }
 
-String _serverLabel(BuildContext context, HistoryServer? server) {
-  final l10n = context.l10n;
-  final description = switch (server) {
-    HistoryServer(protocol: 'webdav', :final name) => '$name (WebDAV)',
-    HistoryServer(protocol: 'smb', :final name) => '$name (SMB)',
-    _ => l10n.unknownHistoryFileServer,
-  };
-  return l10n.historyFileServer(description);
+class _HistoryServerLabel extends StatelessWidget {
+  const _HistoryServerLabel({required this.server, required this.style});
+
+  final HistoryServer? server;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final protocol = switch (server?.protocol) {
+      'webdav' => 'WebDAV',
+      'smb' => 'SMB',
+      _ => null,
+    };
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          l10n.historyFileServer(server?.name ?? l10n.unknownHistoryFileServer),
+          style: style,
+        ),
+        if (protocol != null)
+          FBadge(variant: .secondary, child: Text(protocol)),
+      ],
+    );
+  }
 }
 
 class _HistoryRow extends StatefulWidget {
@@ -204,7 +224,7 @@ class _HistoryRowState extends State<_HistoryRow> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(_serverLabel(context, entry.server), style: muted),
+          _HistoryServerLabel(server: entry.server, style: muted),
           const SizedBox(height: 8),
           if (entry.source != null && !expanded) ...[
             Text(

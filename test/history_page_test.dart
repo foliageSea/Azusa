@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 
 void main() {
-  testWidgets('shows stored servers in collapsed and expanded history rows', (
+  testWidgets('shows server names and protocol tags in all history rows', (
     tester,
   ) async {
     const records = [
@@ -62,13 +62,27 @@ void main() {
 
     final l10n = AppLocalizations.of(tester.element(find.byType(HistoryPage)))!;
     final labels = [
-      l10n.historyFileServer('Archived WebDAV server (WebDAV)'),
-      l10n.historyFileServer('Archived SMB server (SMB)'),
+      l10n.historyFileServer('Archived WebDAV server'),
+      l10n.historyFileServer('Archived SMB server'),
       l10n.historyFileServer('-'),
     ];
-    for (final label in labels) {
-      expect(find.text(label), findsOneWidget);
+    void expectServerLabels() {
+      for (final label in labels) {
+        expect(find.text(label), findsOneWidget);
+      }
+      for (final protocol in ['WebDAV', 'SMB']) {
+        expect(
+          find.ancestor(of: find.text(protocol), matching: find.byType(FBadge)),
+          findsOneWidget,
+        );
+      }
+      expect(
+        find.descendant(of: find.byType(FBadge), matching: find.text('-')),
+        findsNothing,
+      );
     }
+
+    expectServerLabels();
 
     for (var i = 0; i < records.length; i++) {
       final expand = find.byIcon(FLucideIcons.chevronDown).first;
@@ -77,8 +91,6 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(find.byIcon(FLucideIcons.chevronUp), findsNWidgets(records.length));
-    for (final label in labels) {
-      expect(find.text(label), findsOneWidget);
-    }
+    expectServerLabels();
   });
 }
