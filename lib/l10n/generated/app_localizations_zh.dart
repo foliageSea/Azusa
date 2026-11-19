@@ -1665,7 +1665,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get logExportError => '无法导出日志，请检查可用存储空间后重试。';
 
   @override
-  String get assistantTab => '整理助手';
+  String get assistantTab => 'Azusa';
 
   @override
   String get filesTab => '文件管理';
