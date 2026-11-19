@@ -4,7 +4,7 @@ import 'package:forui/forui.dart';
 
 import '../../shared/localization.dart';
 import '../../shared/responsive_button.dart';
-import '../organizer/dav/dav_paths.dart';
+import '../organizer/file_server/file_server_paths.dart';
 import '../organizer/organizer_state.dart';
 
 class SelectedDirectoriesButton extends StatelessWidget {
@@ -116,7 +116,7 @@ class _DirectoryPanel extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
                       child: Text(
-                        displayDavPath(group.key),
+                        displayFileServerPath(group.key),
                         style: theme.typography.body.xs.copyWith(
                           color: theme.colors.mutedForeground,
                         ),
@@ -208,13 +208,13 @@ class _DirectoryRowState extends State<_DirectoryRow> {
           const SizedBox(width: 10),
           Expanded(
             child: FTooltip(
-              tipBuilder: (_, _) => Text(displayDavPath(widget.path)),
+              tipBuilder: (_, _) => Text(displayFileServerPath(widget.path)),
               child: FTappable(
                 onPress: () => setState(() => expanded = !expanded),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Text(
-                    expanded ? displayDavPath(widget.path) : name,
+                    expanded ? displayFileServerPath(widget.path) : name,
                     maxLines: expanded ? null : 2,
                     overflow: expanded ? null : TextOverflow.ellipsis,
                     style: theme.typography.body.sm,

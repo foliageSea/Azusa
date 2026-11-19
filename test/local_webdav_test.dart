@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
-import 'package:azusa/features/organizer/dav/dav_paths.dart';
+import 'package:azusa/features/organizer/file_server/file_server_paths.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -27,7 +28,7 @@ void main() {
         );
         final root = await dav.list(dav.root);
         expect(root.map((e) => e.name), contains('剧集测试'));
-        directory = childDavPath(
+        directory = childFileServerPath(
           dav.root,
           '联调-${DateTime.now().microsecondsSinceEpoch}',
           directory: true,
@@ -37,17 +38,17 @@ void main() {
       tearDownAll(() => dav.close());
 
       Future<String> put(String name, String content) async {
-        final path = childDavPath(directory, name);
+        final path = childFileServerPath(directory, name);
         final bytes = utf8.encode(content);
         await dav.upload(path, Stream.value(bytes), bytes.length);
         return path;
       }
 
-      RenameItem rename(DavEntry entry, String name) => RenameItem(
+      RenameItem rename(FileServerEntry entry, String name) => RenameItem(
         source: entry.path,
         targetName: name,
         fingerprint: entry.fingerprint,
-        etag: entry.etag,
+        versionToken: entry.versionToken,
         reason: '本地真实 WebDAV 测试',
       );
 
@@ -75,13 +76,13 @@ void main() {
       test('读取独立中文目录与百分号文件', () async {
         var path = directory;
         for (final name in ['剧集测试', '绝命毒师', 'Season 01']) {
-          path = childDavPath(path, name, directory: true);
+          path = childFileServerPath(path, name, directory: true);
           await dav.mkdir(path);
         }
         for (final name in ['说明 100%.txt', 'Breaking.Bad.S01E01.1080p.mkv']) {
           final content = utf8.encode('isolated fixture');
           await dav.upload(
-            childDavPath(path, name),
+            childFileServerPath(path, name),
             Stream.value(content),
             content.length,
           );
@@ -108,8 +109,8 @@ void main() {
         } finally {
           await local.delete(recursive: true);
         }
-        final to = childDavPath(directory, '移动后的文件 100%.txt');
-        await dav.move(from, to, etag: entry!.etag);
+        final to = childFileServerPath(directory, '移动后的文件 100%.txt');
+        await dav.move(from, to, versionToken: entry!.versionToken);
         expect(await dav.exists(from), isFalse);
         expect(await dav.exists(to), isTrue);
         await dav.remove(to);
@@ -145,9 +146,9 @@ void main() {
 
       test('真实 ETag 过期时 MOVE 拒绝修改', () async {
         final source = await put('etag.txt', 'unchanged');
-        final target = childDavPath(directory, 'etag-renamed.txt');
+        final target = childFileServerPath(directory, 'etag-renamed.txt');
         await expectLater(
-          dav.move(source, target, etag: '"stale-etag"'),
+          dav.move(source, target, versionToken: '"stale-etag"'),
           throwsA(
             isA<DioException>().having(
               (e) => e.response?.statusCode,
@@ -223,8 +224,12 @@ void main() {
       });
 
       test('目录可移动并删除，连接根目录外的路径被拒绝', () async {
-        final child = childDavPath(directory, '子目录', directory: true);
-        final moved = childDavPath(directory, '移动后的子目录', directory: true);
+        final child = childFileServerPath(directory, '子目录', directory: true);
+        final moved = childFileServerPath(
+          directory,
+          '移动后的子目录',
+          directory: true,
+        );
         await dav.mkdir(child);
         await dav.move(child, moved);
         expect(await dav.exists(moved), isTrue);

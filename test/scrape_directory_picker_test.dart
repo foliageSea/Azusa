@@ -1,6 +1,7 @@
 import 'package:azusa/app/theme.dart';
 import 'package:azusa/core/settings/settings.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
+import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/scrape/scrape_dialog.dart';
 import 'package:azusa/features/organizer/scrape/scrape_directory_picker.dart';
@@ -33,7 +34,7 @@ Future<ProviderContainer> _mount(
     overrides: [
       organizerProvider.overrideWith(_Organizer.new),
       connectionSettingsProvider.overrideWith(_Connections.new),
-      webDavFactoryProvider.overrideWithValue(
+      fileServerClientProvider.overrideWithValue(
         (_) => throw StateError('Directory review must not access WebDAV'),
       ),
     ],

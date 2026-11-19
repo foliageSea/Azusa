@@ -27,9 +27,29 @@ import 'http_clients.dart';
 import 'naming_format_examples.dart';
 import '../organizer_state.dart';
 import '../ai/tmdb.dart';
-import '../dav/webdav.dart';
 
-enum _ConnectionAction { save, webdav, ai, tmdb, models }
+enum _ConnectionAction { save, ai, tmdb, models }
+
+enum _ConnectionTest {
+  ai(NetworkService.ai, _ConnectionAction.ai),
+  tmdb(NetworkService.tmdb, _ConnectionAction.tmdb);
+
+  const _ConnectionTest(this.service, this.action);
+  final NetworkService service;
+  final _ConnectionAction action;
+}
+
+enum _ConnectionField {
+  aiUrl(3),
+  model(4),
+  aiKey(5),
+  tmdbToken(6),
+  proxyUrl(7);
+
+  const _ConnectionField(this.keyIndex);
+  // Keep existing field and secret-toggle keys stable.
+  final int keyIndex;
+}
 
 class ConnectionsPage extends ConsumerStatefulWidget {
   const ConnectionsPage({this.tab = SettingsTab.general, super.key});
@@ -39,15 +59,17 @@ class ConnectionsPage extends ConsumerStatefulWidget {
 }
 
 class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
-  final fields = List.generate(8, (_) => TextEditingController());
+  final fields = {
+    for (final field in _ConnectionField.values) field: TextEditingController(),
+  };
   bool loaded = false;
   _ConnectionAction? activeAction;
   bool get busy => activeAction != null;
   bool savingNamingSettings = false;
   bool transferringConfiguration = false;
-  final visibleSecrets = <int>{};
+  final visibleSecrets = <_ConnectionField>{};
   GoRouter? router;
-  bool proxyAi = true, proxyTmdb = true, proxyWebdav = false;
+  bool proxyAi = true, proxyTmdb = true;
   ProxyMode proxyMode = ProxyMode.direct;
 
   @override
@@ -70,42 +92,41 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
   @override
   void dispose() {
     router?.routeInformationProvider.removeListener(hideSecretsOnNavigation);
-    for (final field in fields) {
+    for (final field in fields.values) {
       field.dispose();
     }
     super.dispose();
   }
 
-  ConnectionSettings get current => ConnectionSettings(
-    webdavUrl: fields[0].text.trim(),
-    username: fields[1].text.trim(),
-    webdavPassword: fields[2].text,
-    aiUrl: fields[3].text.trim(),
-    model: fields[4].text.trim(),
-    aiKey: fields[5].text.trim(),
-    tmdbToken: fields[6].text.trim(),
-    proxyUrl: fields[7].text.trim(),
-    proxyMode: proxyMode,
-    proxyAi: proxyAi,
-    proxyTmdb: proxyTmdb,
-    proxyWebdav: proxyWebdav,
-  );
+  ConnectionSettings get current => ref
+      .read(connectionSettingsProvider)
+      .requireValue
+      .copyWith(
+        aiUrl: fields[_ConnectionField.aiUrl]!.text.trim(),
+        model: fields[_ConnectionField.model]!.text.trim(),
+        aiKey: fields[_ConnectionField.aiKey]!.text.trim(),
+        tmdbToken: fields[_ConnectionField.tmdbToken]!.text.trim(),
+        proxyUrl: fields[_ConnectionField.proxyUrl]!.text.trim(),
+        proxyMode: proxyMode,
+        proxyAi: proxyAi,
+        proxyTmdb: proxyTmdb,
+      );
 
   void _refreshImportedFields(Set<BackupSection> selected) {
     if (!mounted) return;
     final value = ref.read(connectionSettingsProvider).requireValue;
     setState(() {
       if (selected.contains(BackupSection.ai)) {
-        fields[3].text = value.aiUrl;
-        fields[4].text = value.model;
-        fields[5].text = value.aiKey;
+        fields[_ConnectionField.aiUrl]!.text = value.aiUrl;
+        fields[_ConnectionField.model]!.text = value.model;
+        fields[_ConnectionField.aiKey]!.text = value.aiKey;
         proxyAi = value.proxyAi;
-        visibleSecrets.remove(5);
+        visibleSecrets.remove(_ConnectionField.aiKey);
       }
       if (selected.contains(BackupSection.tmdb)) {
-        fields[6].text = value.tmdbToken;
+        fields[_ConnectionField.tmdbToken]!.text = value.tmdbToken;
         proxyTmdb = value.proxyTmdb;
-        visibleSecrets.remove(6);
+        visibleSecrets.remove(_ConnectionField.tmdbToken);
       }
     });
   }
@@ -115,9 +136,6 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
     setState(() => activeAction = _ConnectionAction.save);
     try {
       final value = current;
-      if (value.webdavUrl.isNotEmpty) {
-        validatedHttpUrl(value.webdavUrl, allowHttp: true);
-      }
       if (value.aiUrl.isNotEmpty) {
         validatedHttpUrl(value.aiUrl, allowHttp: true);
       }
@@ -152,37 +170,27 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
     }
   }
 
-  Future<void> test(NetworkService service) async {
+  Future<void> test(_ConnectionTest target) async {
     if (busy) return;
-    setState(
-      () => activeAction = switch (service) {
-        NetworkService.webdav => _ConnectionAction.webdav,
-        NetworkService.ai => _ConnectionAction.ai,
-        NetworkService.tmdb => _ConnectionAction.tmdb,
-      },
-    );
-    final value = current;
-    WebDavClient? dav;
+    setState(() => activeAction = target.action);
     TmdbClient? tmdb;
     try {
-      switch (service) {
-        case NetworkService.webdav:
-          dav = WebDavClient(value);
-          await dav.list(dav.root);
-        case NetworkService.tmdb:
+      final value = current;
+      switch (target) {
+        case _ConnectionTest.tmdb:
           tmdb = TmdbClient(
             value,
             namingLanguage: ref.read(settingsProvider).namingLanguage,
           );
           await tmdb.search('Breaking Bad');
-        case NetworkService.ai:
+        case _ConnectionTest.ai:
           await ref.read(aiModelsLoaderProvider)(value);
       }
       if (mounted) {
         notifyUser(
           context,
           context.l10n.connectionSucceeded(
-            usesProxy(value, service)
+            usesProxy(value, target.service)
                 ? _proxyLabel(context, value.proxyMode)
                 : context.l10n.directConnection,
           ),
@@ -200,7 +208,6 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
         );
       }
     } finally {
-      dav?.close();
       tmdb?.close();
       if (mounted) setState(() => activeAction = null);
     }
@@ -220,9 +227,11 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
       final selected = await showModelPicker(
         context,
         models,
-        selected: fields[4].text.trim(),
+        selected: fields[_ConnectionField.model]!.text.trim(),
       );
-      if (mounted && selected != null) fields[4].text = selected;
+      if (mounted && selected != null) {
+        fields[_ConnectionField.model]!.text = selected;
+      }
     } catch (e) {
       if (mounted) {
         notifyUser(
@@ -250,57 +259,62 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
         savingNamingSettings ||
         organizer.busy ||
         organizer.executing;
-    final hints = [
-      l.webdavUrlHint,
-      l.usernameHint,
-      l.passwordHint,
-      l.aiUrlHint,
-      l.modelNameHint,
-      l.apiKeyHint,
-      l.tmdbTokenHint,
-      l.proxyUrlHint,
-    ];
-    Widget field(int i, String label) => Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: [2, 5, 6].contains(i)
-          ? SecretTextField(
-              fieldKey: ValueKey('connection-field-$i'),
-              toggleKey: ValueKey('toggle-secret-$i'),
-              controller: fields[i],
-              label: label,
-              hint: hints[i],
-              enabled: !locked,
-              visible: visibleSecrets.contains(i),
-              showLabel: i == 2 ? l.showPassword : l.showApiKey,
-              hideLabel: i == 2 ? l.hidePassword : l.hideApiKey,
-              onVisibilityChange: (visible) => setState(() {
-                if (visible) {
-                  visibleSecrets.add(i);
-                } else {
-                  visibleSecrets.remove(i);
-                }
-              }),
-            )
-          : FTextField(
-              key: ValueKey('connection-field-$i'),
-              label: Text(label),
-              hint: hints[i],
-              enabled: !locked,
-              control: .managed(controller: fields[i]),
-              suffixBuilder: i == 4
-                  ? (context, style, variants) => TextFieldAction(
-                      key: const ValueKey('fetch-ai-models'),
-                      style: style,
-                      label: l.fetchModels,
-                      icon: FLucideIcons.refreshCw,
-                      loading: activeAction == _ConnectionAction.models,
-                      onPress: locked ? null : getModels,
-                    )
-                  : null,
-              autocorrect: false,
-              enableSuggestions: false,
-            ),
-    );
+    Widget field(_ConnectionField field, String label) {
+      final hint = switch (field) {
+        _ConnectionField.aiUrl => l.aiUrlHint,
+        _ConnectionField.model => l.modelNameHint,
+        _ConnectionField.aiKey => l.apiKeyHint,
+        _ConnectionField.tmdbToken => l.tmdbTokenHint,
+        _ConnectionField.proxyUrl => l.proxyUrlHint,
+      };
+      final key = ValueKey('connection-field-${field.keyIndex}');
+      final controller = fields[field]!;
+      final secret =
+          field == _ConnectionField.aiKey ||
+          field == _ConnectionField.tmdbToken;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 18),
+        child: secret
+            ? SecretTextField(
+                fieldKey: key,
+                toggleKey: ValueKey('toggle-secret-${field.keyIndex}'),
+                controller: controller,
+                label: label,
+                hint: hint,
+                enabled: !locked,
+                visible: visibleSecrets.contains(field),
+                showLabel: l.showApiKey,
+                hideLabel: l.hideApiKey,
+                onVisibilityChange: (visible) => setState(() {
+                  if (visible) {
+                    visibleSecrets.add(field);
+                  } else {
+                    visibleSecrets.remove(field);
+                  }
+                }),
+              )
+            : FTextField(
+                key: key,
+                label: Text(label),
+                hint: hint,
+                enabled: !locked,
+                control: .managed(controller: controller),
+                suffixBuilder: field == _ConnectionField.model
+                    ? (context, style, variants) => TextFieldAction(
+                        key: const ValueKey('fetch-ai-models'),
+                        style: style,
+                        label: l.fetchModels,
+                        icon: FLucideIcons.refreshCw,
+                        loading: activeAction == _ConnectionAction.models,
+                        onPress: locked ? null : getModels,
+                      )
+                    : null,
+                autocorrect: false,
+                enableSuggestions: false,
+              ),
+      );
+    }
+
     Widget section(
       String title,
       List<Widget> children, {
@@ -331,17 +345,11 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
         ),
       ),
     );
-    Widget testButton(NetworkService service, String label) => LoadingButton(
+    Widget testButton(_ConnectionTest target, String label) => LoadingButton(
       label: label,
       variant: .outline,
-      loading:
-          activeAction ==
-          switch (service) {
-            NetworkService.webdav => _ConnectionAction.webdav,
-            NetworkService.ai => _ConnectionAction.ai,
-            NetworkService.tmdb => _ConnectionAction.tmdb,
-          },
-      onPress: locked ? null : () => test(service),
+      loading: activeAction == target.action,
+      onPress: locked ? null : () => test(target),
     );
     return settings.when(
       loading: () => const Center(child: FCircularProgress()),
@@ -361,23 +369,14 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
       ),
       data: (value) {
         if (!loaded) {
-          final values = [
-            value.webdavUrl,
-            value.username,
-            value.webdavPassword,
-            value.aiUrl,
-            value.model,
-            value.aiKey,
-            value.tmdbToken,
-            value.proxyUrl,
-          ];
-          for (var i = 0; i < fields.length; i++) {
-            fields[i].text = values[i];
-          }
+          fields[_ConnectionField.aiUrl]!.text = value.aiUrl;
+          fields[_ConnectionField.model]!.text = value.model;
+          fields[_ConnectionField.aiKey]!.text = value.aiKey;
+          fields[_ConnectionField.tmdbToken]!.text = value.tmdbToken;
+          fields[_ConnectionField.proxyUrl]!.text = value.proxyUrl;
           proxyAi = value.proxyAi;
           proxyMode = value.proxyMode;
           proxyTmdb = value.proxyTmdb;
-          proxyWebdav = value.proxyWebdav;
           loaded = true;
         }
         return SettingsPage(
@@ -405,7 +404,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
           },
           connectionTabs: [
             FTabEntry(
-              label: const Text('WebDAV'),
+              label: Text(l.fileServers),
               child: const Padding(
                 padding: EdgeInsets.only(bottom: 16),
                 child: Surface(child: WebDavManager()),
@@ -414,16 +413,19 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
             FTabEntry(
               label: const Text('AI Agent'),
               child: section('AI Agent', [
-                field(3, l.aiBaseUrl),
-                field(4, l.modelName),
-                field(5, 'API Key'),
-                testButton(NetworkService.ai, l.testAi),
+                field(_ConnectionField.aiUrl, l.aiBaseUrl),
+                field(_ConnectionField.model, l.modelName),
+                field(_ConnectionField.aiKey, 'API Key'),
+                testButton(_ConnectionTest.ai, l.testAi),
               ]),
             ),
             FTabEntry(
               label: const Text('TMDB'),
               child: section('TMDB', [
-                field(6, 'API Key / Read Access Token'),
+                field(
+                  _ConnectionField.tmdbToken,
+                  'API Key / Read Access Token',
+                ),
                 FSelect<NamingLanguage>.rich(
                   key: const ValueKey('naming-language-select'),
                   label: Text(context.l10n.namingLanguage),
@@ -522,7 +524,7 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                testButton(NetworkService.tmdb, l.testTmdb),
+                testButton(_ConnectionTest.tmdb, l.testTmdb),
               ]),
             ),
             FTabEntry(
@@ -547,7 +549,8 @@ class _ConnectionsPageState extends ConsumerState<ConnectionsPage> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                if (proxyMode == ProxyMode.manual) field(7, l.proxyAddress),
+                if (proxyMode == ProxyMode.manual)
+                  field(_ConnectionField.proxyUrl, l.proxyAddress),
                 FCheckbox(
                   label: Text(l.proxyAi),
                   value: proxyAi,

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
+import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/startup_connection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,10 +29,10 @@ class StartupDav extends WebDavClient {
   bool closed = false;
 
   @override
-  Future<List<DavEntry>> list(String path) async {
+  Future<List<FileServerEntry>> list(String path) async {
     requests++;
     if (fail) throw StateError('模拟连接失败');
-    return [DavEntry('${root}episode.mkv', false)];
+    return [FileServerEntry('${root}episode.mkv', false)];
   }
 
   @override
@@ -55,7 +57,7 @@ void main() {
         connectionSettingsProvider.overrideWith(
           () => SavedConnections(loaded.future),
         ),
-        webDavFactoryProvider.overrideWithValue((value) {
+        fileServerClientProvider.overrideWithValue((value) {
           expect(value.username, settings.username);
           expect(value.webdavPassword, settings.webdavPassword);
           return dav;
@@ -90,7 +92,7 @@ void main() {
         connectionSettingsProvider.overrideWith(
           () => SavedConnections(Future.value(const ConnectionSettings())),
         ),
-        webDavFactoryProvider.overrideWithValue((_) {
+        fileServerClientProvider.overrideWithValue((_) {
           fail('未配置地址不应创建 WebDAV 客户端');
         }),
       ],
@@ -108,7 +110,7 @@ void main() {
         connectionSettingsProvider.overrideWith(
           () => SavedConnections(Future.value(settings)),
         ),
-        webDavFactoryProvider.overrideWithValue((_) => dav),
+        fileServerClientProvider.overrideWithValue((_) => dav),
       ],
     );
     addTearDown(container.dispose);

@@ -67,7 +67,11 @@ void main() {
     final favorites = container.read(directoryFavoritesRepositoryProvider);
     expect(history.database, same(usage.database));
     expect(history.database, same(favorites.database));
-    const scope = (endpoint: 'https://nas.test/dav/', username: 'user');
+    const scope = (
+      endpoint: 'https://nas.test/dav/',
+      username: 'user',
+      root: '/dav/',
+    );
     final record = AiUsageRecord(
       startedAt: DateTime.utc(2026, 11, 2),
       model: 'test',

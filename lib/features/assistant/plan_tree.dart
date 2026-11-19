@@ -1,6 +1,6 @@
 import '../organizer/ai/folder_layout.dart';
-import '../organizer/dav/dav_paths.dart';
-import '../organizer/dav/webdav.dart';
+import '../organizer/file_server/file_server_paths.dart';
+import '../organizer/file_server/file_server.dart';
 import '../organizer/rename_plan.dart';
 
 sealed class PlanTreeNode {
@@ -37,7 +37,7 @@ class PlanTree {
   factory PlanTree.build(
     String directory,
     List<RenameItem> plan,
-    List<DavEntry> entries,
+    List<FileServerEntry> entries,
   ) {
     // Keep every destination inside the tree, even for older plans without a scope.
     var rootPath = directory;
@@ -93,6 +93,6 @@ class PlanTree {
 
   static String _name(String path) {
     final segments = path.split('/').where((segment) => segment.isNotEmpty);
-    return segments.isEmpty ? '/' : displayDavPath(segments.last);
+    return segments.isEmpty ? '/' : displayFileServerPath(segments.last);
   }
 }

@@ -1,20 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
-import '../connections/connection_settings.dart';
-import 'dav_paths.dart';
-import '../connections/http_clients.dart';
-
-typedef NasScope = ({String endpoint, String username});
-
-NasScope nasScope(ConnectionSettings settings) {
-  final uri = validatedHttpUrl(settings.webdavUrl, allowHttp: true);
-  final root = favoriteDirectory(uri.path.isEmpty ? '/' : uri.path);
-  return (endpoint: '${uri.origin}$root', username: settings.username);
-}
+import '../file_server/file_server.dart';
+import '../file_server/file_server_paths.dart';
 
 String favoriteDirectory(String path) {
-  final canonical = canonicalDavPath(path);
+  final canonical = canonicalFileServerPath(path);
   if (canonical.contains('//')) throw const FormatException('目录路径无效');
   return canonical.endsWith('/') ? canonical : '$canonical/';
 }
@@ -24,16 +15,16 @@ class DirectoryFavoritesRepository {
 
   final AppDatabase database;
 
-  String _validate(NasScope scope, String path) {
+  String _validate(FileServerScope scope, String path) {
     final directory = favoriteDirectory(path);
-    final root = favoriteDirectory(Uri.parse(scope.endpoint).path);
+    final root = favoriteDirectory(scope.root);
     if (!directory.startsWith(root)) {
-      throw const FormatException('收藏目录超出 NAS 根目录');
+      throw const FormatException('收藏目录超出文件服务器根目录');
     }
     return directory;
   }
 
-  Future<List<String>> load(NasScope scope) async {
+  Future<List<String>> load(FileServerScope scope) async {
     final db = await database.connection();
     return db
         .select(
@@ -47,7 +38,7 @@ class DirectoryFavoritesRepository {
         .toList();
   }
 
-  Future<void> add(NasScope scope, String path) async {
+  Future<void> add(FileServerScope scope, String path) async {
     final directory = _validate(scope, path);
     final db = await database.connection();
     db.execute(
@@ -56,7 +47,7 @@ class DirectoryFavoritesRepository {
     );
   }
 
-  Future<void> remove(NasScope scope, String path) async {
+  Future<void> remove(FileServerScope scope, String path) async {
     final directory = _validate(scope, path);
     final db = await database.connection();
     db.execute(
@@ -72,7 +63,7 @@ final directoryFavoritesRepositoryProvider =
     );
 
 final directoryFavoritesProvider =
-    FutureProvider.family<List<String>, NasScope>(
+    FutureProvider.family<List<String>, FileServerScope>(
       (ref, scope) =>
           ref.watch(directoryFavoritesRepositoryProvider).load(scope),
     );

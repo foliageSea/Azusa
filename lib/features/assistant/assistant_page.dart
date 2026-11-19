@@ -13,7 +13,7 @@ import '../organizer/ai/agent_activity.dart';
 import '../organizer/ai/folder_layout.dart';
 import '../organizer/connections/connection_settings.dart';
 import '../organizer/connections/webdav_manager.dart';
-import '../organizer/dav/dav_paths.dart';
+import '../organizer/file_server/file_server_paths.dart';
 import '../organizer/organizer_state.dart';
 import '../organizer/rename_plan.dart';
 import '../settings/settings_tab.dart';
@@ -216,7 +216,7 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
     if (config == null && settings.isLoading) {
       return const PageContent(children: [LoadingNotice()]);
     }
-    if (config == null || config.webdavUrl.isEmpty) {
+    if (config?.fileServerConnection == null) {
       return PageContent(
         children: [
           EmptyNotice(
@@ -225,7 +225,7 @@ class _AssistantPageState extends ConsumerState<AssistantPage> {
             child: FButton(
               mainAxisSize: MainAxisSize.min,
               prefix: const Icon(FLucideIcons.settings2),
-              onPress: () => context.go(SettingsTab.webdav.location),
+              onPress: () => context.go(SettingsTab.fileServers.location),
               child: Text(context.l10n.configureConnection),
             ),
           ),
@@ -390,7 +390,7 @@ class _Conversation extends ConsumerWidget {
                               size: .sm,
                               mainAxisSize: MainAxisSize.min,
                               builder: responsiveButtonContent,
-                              semanticsLabel: displayDavPath(directory),
+                              semanticsLabel: displayFileServerPath(directory),
                               prefix: const Icon(FLucideIcons.folderOpen),
                               onPress: locked ? null : onSelectDirectory,
                               child: Text(
@@ -498,8 +498,9 @@ class _Conversation extends ConsumerWidget {
                   if (organizer.analysisDirectory.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     FTooltip(
-                      tipBuilder: (_, _) =>
-                          Text(displayDavPath(organizer.analysisDirectory)),
+                      tipBuilder: (_, _) => Text(
+                        displayFileServerPath(organizer.analysisDirectory),
+                      ),
                       child: Row(
                         children: [
                           Icon(

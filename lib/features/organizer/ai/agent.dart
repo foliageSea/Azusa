@@ -6,7 +6,7 @@ import 'package:langchain_openai/langchain_openai.dart';
 
 import '../../../core/settings/naming_format.dart';
 import '../connections/connection_settings.dart';
-import '../dav/dav_paths.dart';
+import '../file_server/file_server_paths.dart';
 import 'ai_usage.dart';
 import 'agent_activity.dart';
 import 'folder_layout.dart';
@@ -14,7 +14,7 @@ import '../connections/http_clients.dart';
 import 'langchain_http_client.dart';
 import '../rename_plan.dart';
 import 'tmdb.dart';
-import '../dav/webdav.dart';
+import '../file_server/file_server.dart';
 
 bool subtitleMatchesVideo(String subtitle, String video) =>
     _subtitleSuffix(subtitle, video) != null;
@@ -67,7 +67,7 @@ class RenameAgent {
            createServiceClient(settings, timeout: const Duration(seconds: 90));
 
   final ConnectionSettings settings;
-  final WebDavClient dav;
+  final FileServerClient dav;
   final TmdbClient tmdb;
   final NamingFormat namingFormat;
   final Dio _dio;
@@ -110,19 +110,22 @@ class RenameAgent {
     'idx',
   };
 
-  static bool isVideo(DavEntry entry) =>
+  static bool isVideo(FileServerEntry entry) =>
       !entry.directory &&
       _videoExtensions.contains(entry.name.split('.').last.toLowerCase());
 
   /// Group by top-level work folder, then bound each request by video count.
-  static List<List<DavEntry>> batches(String root, List<DavEntry> entries) {
-    final groups = <String, List<DavEntry>>{};
+  static List<List<FileServerEntry>> batches(
+    String root,
+    List<FileServerEntry> entries,
+  ) {
+    final groups = <String, List<FileServerEntry>>{};
     for (final entry in entries.where(isVideo)) {
       final relative = entry.path.substring(root.length);
       final group = relative.contains('/') ? relative.split('/').first : '';
       groups.putIfAbsent(group, () => []).add(entry);
     }
-    final result = <List<DavEntry>>[];
+    final result = <List<FileServerEntry>>[];
     for (final videos in groups.values) {
       for (var start = 0; start < videos.length; start += 100) {
         final chunk = videos.skip(start).take(100).toList();
@@ -169,7 +172,11 @@ class RenameAgent {
       ? name.substring(name.lastIndexOf('.') + 1).toLowerCase()
       : '';
 
-  String _subtitleName(DavEntry subtitle, DavEntry video, String videoName) {
+  String _subtitleName(
+    FileServerEntry subtitle,
+    FileServerEntry video,
+    String videoName,
+  ) {
     final stem = videoName.substring(0, videoName.lastIndexOf('.'));
     final trailing = _subtitleSuffix(subtitle.name, video.name)!;
     return sanitizeSuggestedFileName(
@@ -180,7 +187,7 @@ class RenameAgent {
 
   Future<List<RenameItem>> propose(
     String directory,
-    List<DavEntry> entries, {
+    List<FileServerEntry> entries, {
     String instruction = '',
     FolderLayout? folderLayout,
     void Function(String message)? onStatus,
@@ -504,8 +511,8 @@ class RenameAgent {
   (List<RenameItem>, FolderLayout?) _parseProposal(
     String content,
     String directory,
-    List<DavEntry> entries,
-    List<DavEntry> videos,
+    List<FileServerEntry> entries,
+    List<FileServerEntry> videos,
     Map<String, Map<String, dynamic>> evidence,
     Map<int, Map<String, dynamic>> movieEvidence,
     Map<int, String> seriesNames,
@@ -592,7 +599,7 @@ class RenameAgent {
           scope: scope,
           targetDirectory: targetDirectory,
           fingerprint: entry.fingerprint,
-          etag: entry.etag,
+          versionToken: entry.versionToken,
           reason: isMovie
               ? '电影匹配：${movie!['title'] ?? movie['original_title']} · ${movie['release_date'] ?? ''}\nTMDB ${item['movie_id']}'
               : '匹配结果：第 ${item['season_number']} 季第 ${item['episode_number']} 集 · ${evidence[key]!['name']}\nTMDB ${item['series_id']}',
@@ -666,7 +673,7 @@ class RenameAgent {
                 targetDirectory: targetDirectory,
                 targetName: _subtitleName(subtitle, entry, target),
                 fingerprint: subtitle.fingerprint,
-                etag: subtitle.etag,
+                versionToken: subtitle.versionToken,
                 reason: isMovie
                     ? '随视频重命名 · ${entry.name}'
                     : '随视频移动 · ${entry.name}',

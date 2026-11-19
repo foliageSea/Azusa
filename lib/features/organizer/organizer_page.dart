@@ -15,14 +15,15 @@ import '../../shared/localization.dart';
 import '../../shared/runtime_localization.dart';
 import '../../shared/responsive_button.dart';
 import 'connections/connection_settings.dart';
-import 'dav/dav_paths.dart';
+import 'file_server/file_server_paths.dart';
 import 'dav/directory_breadcrumb.dart';
 import 'dav/directory_sort.dart';
 import 'dav/directory_favorites.dart';
 import 'dav/directory_favorites_bar.dart';
 import 'organizer_state.dart';
 import 'dav/empty_directory_dialog.dart';
-import 'dav/webdav.dart';
+import 'file_server/file_server.dart';
+import 'file_server/file_server_factory.dart';
 import 'connections/webdav_manager.dart';
 import 'scrape/scrape_dialog.dart';
 import '../settings/settings_tab.dart';
@@ -50,7 +51,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     _ => false,
   };
 
-  void _selectEntry(DavEntry entry) {
+  void _selectEntry(FileServerEntry entry) {
     setState(() => _selectedEntryPath = entry.path);
     _entryFocus.requestFocus();
   }
@@ -114,7 +115,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
   }
 
   Future<void> _toggleFavorite(
-    NasScope scope,
+    FileServerScope scope,
     String directory, {
     required bool selected,
   }) async {
@@ -141,7 +142,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     }
   }
 
-  Future<void> _renameEntry(DavEntry entry) async {
+  Future<void> _renameEntry(FileServerEntry entry) async {
     final connection = ref.read(connectionSettingsProvider).asData?.value;
     final state = ref.read(organizerProvider);
     if (_renamingEntry || state.busy || state.executing) return;
@@ -203,11 +204,11 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     });
     final state = ref.watch(organizerProvider);
     final settings = ref.watch(connectionSettingsProvider);
-    final config = settings.asData?.value;
-    if (config == null && settings.isLoading) {
+    final connection = settings.asData?.value.fileServerConnection;
+    if (connection == null && settings.isLoading) {
       return const PageContent(children: [LoadingNotice()]);
     }
-    if (config == null || config.webdavUrl.isEmpty) {
+    if (connection == null) {
       return PageContent(
         children: [
           EmptyNotice(
@@ -216,7 +217,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
             child: FButton(
               mainAxisSize: MainAxisSize.min,
               prefix: const Icon(FLucideIcons.settings2),
-              onPress: () => context.go(SettingsTab.webdav.location),
+              onPress: () => context.go(SettingsTab.fileServers.location),
               child: Text(context.l10n.configureConnection),
             ),
           ),
@@ -224,8 +225,8 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
       );
     }
     final locked = state.busy || state.executing;
-    final base = Uri.parse(config.webdavUrl).path;
-    final root = canonicalDavPath(base.endsWith('/') ? base : '$base/');
+    final scope = ref.watch(fileServerFactoryProvider).scope(connection);
+    final root = scope.root;
 
     final status = _status(context, state);
     final content = ColoredBox(
@@ -246,7 +247,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
                     state,
                     locked: locked,
                     root: root,
-                    scope: nasScope(config),
+                    scope: scope,
                   ),
                 ),
               ],
@@ -257,7 +258,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
             state,
             locked: locked,
             root: root,
-            scope: nasScope(config),
+            scope: scope,
           ),
         ],
       ),
@@ -288,7 +289,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     OrganizerState state, {
     required bool locked,
     required String root,
-    required NasScope scope,
+    required FileServerScope scope,
   }) {
     final padding = PageContent.paddingOf(context);
     return DecoratedBox(
@@ -356,7 +357,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     OrganizerState state, {
     required bool locked,
     required String root,
-    required NasScope scope,
+    required FileServerScope scope,
   }) {
     final parent = _parentDirectory(state, root);
     final paths = ref.watch(directoryFavoritesProvider(scope)).asData?.value;
@@ -469,7 +470,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
     OrganizerState state, {
     required bool locked,
     required String root,
-    required NasScope scope,
+    required FileServerScope scope,
   }) {
     final connected = state.directory.isNotEmpty;
 
@@ -868,7 +869,7 @@ class _OrganizerPageState extends ConsumerState<OrganizerPage> {
 class _RenameEntryDialog extends StatefulWidget {
   const _RenameEntryDialog({required this.entry, required this.animation});
 
-  final DavEntry entry;
+  final FileServerEntry entry;
   final Animation<double> animation;
 
   @override
@@ -993,7 +994,7 @@ const _videoExtensions = {
 const _subtitleExtensions = {'srt', 'ass', 'ssa', 'vtt', 'sub', 'sup', 'idx'};
 const _textExtensions = {'nfo', 'txt', 'md', 'json', 'xml'};
 
-IconData _entryIcon(DavEntry entry) {
+IconData _entryIcon(FileServerEntry entry) {
   if (entry.directory) return FLucideIcons.folder;
   final name = entry.name.toLowerCase();
   final extension = name.contains('.') ? name.split('.').last : '';
@@ -1043,7 +1044,7 @@ class _EntryRow extends StatelessWidget {
     required this.onToggle,
     super.key,
   });
-  final DavEntry entry;
+  final FileServerEntry entry;
   final bool locked, compact, planned, desktop, selected;
   final VoidCallback onSelect;
   final VoidCallback onOpen;

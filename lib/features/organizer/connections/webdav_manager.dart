@@ -2,13 +2,15 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 
+import '../../../shared/icon_action.dart';
 import '../../../shared/localization.dart';
 import '../../../shared/loading_button.dart';
 import '../../../shared/runtime_localization.dart';
 import '../../../shared/secret_text_field.dart';
 import '../../../shared/widgets.dart';
 import '../organizer_state.dart';
-import '../dav/webdav.dart';
+import '../file_server/file_server.dart';
+import '../file_server/file_server_factory.dart';
 import 'connection_settings.dart';
 import 'http_clients.dart';
 import 'webdav_connections.dart';
@@ -47,6 +49,13 @@ Future<bool> confirmConnectionChange(
       ),
     ) ??
     false;
+
+enum _FileServerType {
+  webdav('WebDAV');
+
+  const _FileServerType(this.label);
+  final String label;
+}
 
 class WebDavManager extends ConsumerStatefulWidget {
   const WebDavManager({super.key, this.compact = false, this.subtitle});
@@ -88,8 +97,7 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
     await ref.read(connectionSettingsProvider.notifier).selectConnection(id);
   });
 
-  Future<void> edit([WebDavConnection? value]) => run(() async {
-    final original = value;
+  Future<void> edit([WebDavConnection? original]) => run(() async {
     if (original != null &&
         original.id ==
             ref.read(connectionSettingsProvider).requireValue.connectionId &&
@@ -100,6 +108,9 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
         )) {
       return;
     }
+    if (!mounted) return;
+    final organizer = ref.read(organizerProvider);
+    if (organizer.busy || organizer.executing) return;
     final editable = original == null
         ? null
         : await ref
@@ -113,7 +124,7 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
       builder: (context, style, animation) => FDialog(
         animation: animation,
         constraints: const BoxConstraints(minWidth: 280, maxWidth: 480),
-        builder: (context, style) => _ConnectionEditor(value: editable),
+        builder: (context, style) => _FileServerEditor(value: editable),
       ),
     );
   });
@@ -132,13 +143,15 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
   });
 
   Future<void> testConnection(WebDavConnection item) => run(() async {
-    WebDavClient? dav;
+    FileServerClient? server;
     try {
-      dav = ref.read(webDavFactoryProvider)(
-        (await ref.read(webDavConnectionsRepositoryProvider).withPassword(item))
-            .apply(ref.read(connectionSettingsProvider).requireValue),
-      );
-      await dav.list(dav.root);
+      final connection = await ref
+          .read(webDavConnectionsRepositoryProvider)
+          .withPassword(item);
+      if (!mounted) return;
+      final globals = ref.read(connectionSettingsProvider).requireValue;
+      server = ref.read(fileServerClientProvider)(connection.apply(globals));
+      await server.list(server.root);
       if (mounted) {
         notifyUser(
           context,
@@ -147,7 +160,7 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
         );
       }
     } finally {
-      dav?.close();
+      server?.close();
     }
   });
 
@@ -201,19 +214,17 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
           children: [
             Expanded(
               child: Text(
-                'WebDAV',
+                l.fileServers,
                 style: context.theme.typography.body.lg.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-            FButton.icon(
+            IconAction(
               key: const ValueKey('add-webdav-connection'),
-              variant: .ghost,
-              size: .sm,
-              semanticsLabel: l.addWebdavConnection,
+              label: l.addFileServer,
+              icon: FLucideIcons.plus,
               onPress: locked ? null : () => edit(),
-              child: const Icon(FLucideIcons.plus),
             ),
           ],
         ),
@@ -221,15 +232,25 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
         connections.when(
           loading: () => const Center(child: FCircularProgress()),
           error: (e, _) => Text(localizeRuntimeMessage(l, serviceError(e))),
-          data: (items) => Column(
-            children: [
-              for (var i = 0; i < items.length; i++) ...[
-                if (i > 0)
-                  Container(height: 1, color: context.theme.colors.border),
-                _connectionRow(items[i], active: active, locked: locked),
-              ],
-            ],
-          ),
+          data: (items) => items.isEmpty
+              ? Text(
+                  l.noFileServers,
+                  style: context.theme.typography.body.sm.copyWith(
+                    color: context.theme.colors.mutedForeground,
+                  ),
+                )
+              : Column(
+                  children: [
+                    for (var i = 0; i < items.length; i++) ...[
+                      if (i > 0)
+                        Container(
+                          height: 1,
+                          color: context.theme.colors.border,
+                        ),
+                      _connectionRow(items[i], active: active, locked: locked),
+                    ],
+                  ],
+                ),
         ),
       ],
     );
@@ -317,6 +338,10 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
+                            FBadge(
+                              variant: .secondary,
+                              child: const Text('WebDAV'),
+                            ),
                             if (current)
                               FBadge(
                                 variant: .secondary,
@@ -354,20 +379,21 @@ class _WebDavManagerState extends ConsumerState<WebDavManager> {
   }
 }
 
-class _ConnectionEditor extends ConsumerStatefulWidget {
-  const _ConnectionEditor({this.value});
+class _FileServerEditor extends ConsumerStatefulWidget {
+  const _FileServerEditor({this.value});
   final WebDavConnection? value;
   @override
-  ConsumerState<_ConnectionEditor> createState() => _ConnectionEditorState();
+  ConsumerState<_FileServerEditor> createState() => _FileServerEditorState();
 }
 
-class _ConnectionEditorState extends ConsumerState<_ConnectionEditor> {
+class _FileServerEditorState extends ConsumerState<_FileServerEditor> {
   late final fields = [
     widget.value?.name ?? '',
     widget.value?.url ?? '',
     widget.value?.username ?? '',
     widget.value?.password ?? '',
   ].map((text) => TextEditingController(text: text)).toList();
+  var type = _FileServerType.webdav;
   late bool proxy = widget.value?.useProxy ?? false;
   bool visible = false, busy = false, testing = false;
   @override
@@ -384,21 +410,22 @@ class _ConnectionEditorState extends ConsumerState<_ConnectionEditor> {
       busy = true;
       testing = test;
     });
-    WebDavClient? dav;
+    FileServerClient? server;
     try {
-      final value = WebDavConnection(
-        id: widget.value?.id ?? newConnectionId(),
-        name: fields[0].text.trim(),
-        url: fields[1].text.trim(),
-        username: fields[2].text.trim(),
-        password: fields[3].text,
-        useProxy: proxy,
-      );
+      final value = switch (type) {
+        _FileServerType.webdav => WebDavConnection(
+          id: widget.value?.id ?? newConnectionId(),
+          name: fields[0].text.trim(),
+          url: fields[1].text.trim(),
+          username: fields[2].text.trim(),
+          password: fields[3].text,
+          useProxy: proxy,
+        ),
+      };
       if (test) {
-        dav = WebDavClient(
-          value.apply(ref.read(connectionSettingsProvider).requireValue),
-        );
-        await dav.list(dav.root);
+        final globals = ref.read(connectionSettingsProvider).requireValue;
+        server = ref.read(fileServerClientProvider)(value.apply(globals));
+        await server.list(server.root);
         if (mounted) {
           notifyUser(
             context,
@@ -431,7 +458,7 @@ class _ConnectionEditorState extends ConsumerState<_ConnectionEditor> {
         );
       }
     } finally {
-      dav?.close();
+      server?.close();
       if (mounted) setState(() => busy = false);
     }
   }
@@ -454,10 +481,34 @@ class _ConnectionEditorState extends ConsumerState<_ConnectionEditor> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                widget.value == null ? l.addWebdavConnection : l.editConnection,
+                widget.value == null ? l.addFileServer : l.editConnection,
                 style: context.theme.typography.body.lg.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
+              ),
+              const SizedBox(height: 16),
+              FSelect<_FileServerType>.rich(
+                key: const ValueKey('file-server-type'),
+                autoHide: true,
+                label: Text(l.fileServerType),
+                enabled: !locked,
+                format: (type) => type.label,
+                control: .lifted(
+                  value: type,
+                  onChange: (value) {
+                    if (value != null) setState(() => type = value);
+                  },
+                ),
+                children: [
+                  for (final option in _FileServerType.values)
+                    FSelectItem(
+                      title: Text(
+                        option.label,
+                        key: ValueKey('file-server-type-option-${option.name}'),
+                      ),
+                      value: option,
+                    ),
+                ],
               ),
               for (var i = 0; i < 3; i++)
                 Padding(

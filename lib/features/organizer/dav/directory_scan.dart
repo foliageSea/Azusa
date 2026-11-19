@@ -1,14 +1,14 @@
-import 'webdav.dart';
+import '../file_server/file_server.dart';
 
 /// Traverses only strict descendants; repeated or out-of-scope paths are ignored.
-Future<List<DavEntry>> scanMediaDirectories(
-  WebDavClient dav,
+Future<List<FileServerEntry>> scanMediaDirectories(
+  FileServerClient dav,
   String root, {
   required bool recursive,
   void Function(String path, int count)? onProgress,
   void Function()? checkCancelled,
 }) async {
-  final result = <String, DavEntry>{};
+  final result = <String, FileServerEntry>{};
   final pending = [root];
   final visited = <String>{};
   while (pending.isNotEmpty) {
@@ -31,7 +31,7 @@ Future<List<DavEntry>> scanMediaDirectories(
 
 class EmptyDirectoryCleaner {
   EmptyDirectoryCleaner(this.dav);
-  final WebDavClient dav;
+  final FileServerClient dav;
 
   /// Includes parents whose only contents are other empty folders, bottom-up.
   Future<List<String>> scan(
@@ -42,7 +42,7 @@ class EmptyDirectoryCleaner {
     final empty = <String>{};
     final visited = <String>{};
     final pending = [(root, false)];
-    final children = <String, List<DavEntry>>{};
+    final children = <String, List<FileServerEntry>>{};
     while (pending.isNotEmpty) {
       checkCancelled?.call();
       final (path, expanded) = pending.removeLast();

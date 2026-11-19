@@ -4,6 +4,7 @@ import '../organizer/ai/agent_activity.dart';
 import '../organizer/ai/ai_usage.dart';
 import '../organizer/ai/folder_layout.dart';
 import '../organizer/connections/connection_settings.dart';
+import '../organizer/file_server/file_server_factory.dart';
 import '../organizer/organizer_state.dart';
 import '../organizer/rename_plan.dart';
 
@@ -211,9 +212,18 @@ class AssistantController extends Notifier<AssistantState> {
   String? get scope {
     final directory = ref.read(organizerProvider).directory;
     if (directory.isEmpty) return null;
-    final connection = ref.read(connectionSettingsProvider).asData?.value;
+    final connection = ref
+        .read(connectionSettingsProvider)
+        .asData
+        ?.value
+        .fileServerConnection;
+    final serverKey = switch (connection) {
+      null => null,
+      final value when value.id.isNotEmpty => (value.protocol, value.id),
+      final value => ref.read(fileServerFactoryProvider).scope(value),
+    };
     final organizer = ref.read(organizerProvider);
-    return '${connection?.connectionId ?? connection?.webdavUrl}|${organizer.organizingDirectories.join('|')}|${organizer.includeSubdirectories}';
+    return '$serverKey|${organizer.organizingDirectories.join('|')}|${organizer.includeSubdirectories}';
   }
 
   bool get hasConsent => scope != null && state.consentScope == scope;

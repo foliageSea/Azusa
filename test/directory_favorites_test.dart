@@ -3,11 +3,16 @@ import 'dart:io';
 import 'package:azusa/core/database/app_database.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/dav/directory_favorites.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
+import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+FileServerScope _scope(ConnectionSettings settings) =>
+    defaultFileServerFactory.scope(settings.fileServerConnection!);
+
 void main() {
-  final scope = nasScope(
+  final scope = _scope(
     const ConnectionSettings(
       webdavUrl: 'https://nas.test/dav',
       username: 'user',
@@ -17,7 +22,7 @@ void main() {
   test('NAS 地址规范化，账号、根目录和服务器相互隔离', () async {
     expect(
       scope,
-      nasScope(
+      _scope(
         const ConnectionSettings(
           webdavUrl: 'https://NAS.test/dav/',
           username: 'user',
@@ -29,9 +34,9 @@ void main() {
     addTearDown(database.close);
     await repo.add(scope, '/dav/series/');
     for (final other in [
-      (endpoint: scope.endpoint, username: 'other'),
-      (endpoint: 'https://other.test/dav/', username: 'user'),
-      (endpoint: 'https://nas.test/other/', username: 'user'),
+      (endpoint: scope.endpoint, username: 'other', root: scope.root),
+      (endpoint: 'https://other.test/dav/', username: 'user', root: '/dav/'),
+      (endpoint: 'https://nas.test/other/', username: 'user', root: '/other/'),
     ]) {
       expect(await repo.load(other), isEmpty);
       await repo.remove(

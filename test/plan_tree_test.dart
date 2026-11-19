@@ -1,5 +1,5 @@
 import 'package:azusa/features/assistant/plan_tree.dart';
-import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -40,7 +40,7 @@ void main() {
     final existing = PlanTree.build(
       root,
       [episode('a')],
-      [DavEntry(show, true)],
+      [FileServerEntry(show, true)],
     );
     expect(existing.newDirectories, {season});
 

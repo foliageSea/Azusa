@@ -9,7 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../shared/localization.dart';
 import '../../../shared/status_badge.dart';
 import '../../../shared/widgets.dart';
-import '../dav/dav_paths.dart';
+import '../file_server/file_server_paths.dart';
 import 'ai_usage_history.dart';
 import 'ai_usage_statistics.dart';
 
@@ -884,7 +884,7 @@ class _RecordCardState extends State<_RecordCard> {
         ),
         const SizedBox(height: 4),
         Text(
-          displayDavPath(record.directory),
+          displayFileServerPath(record.directory),
           maxLines: _expanded ? null : 1,
           overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
           style: context.theme.typography.body.sm,

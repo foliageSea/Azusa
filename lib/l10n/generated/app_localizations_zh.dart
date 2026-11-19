@@ -200,7 +200,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get emptyDirectoryDeleteWarning =>
-      '选中目录将从最深层开始永久删除。删除前会重新检查，非空目录会跳过。WebDAV 删除目录可能递归删除内容，清理期间请勿向这些目录写入文件。';
+      '选中目录将从最深层开始永久删除。删除前会重新检查，非空目录会跳过。文件服务器删除目录时可能递归删除内容，清理期间请勿向这些目录写入文件。';
 
   @override
   String get appTitle => 'Azusa';
@@ -569,6 +569,21 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get saveThemeFailed => '保存主题设置失败，请重试';
+
+  @override
+  String get fileServers => '文件服务器';
+
+  @override
+  String get addFileServer => '添加文件服务器';
+
+  @override
+  String get fileServerType => '文件服务器类型';
+
+  @override
+  String get noFileServers => '尚未配置文件服务器。';
+
+  @override
+  String get manageFileServers => '管理文件服务器';
 
   @override
   String get webdavUrl => 'WebDAV 地址';
@@ -1172,7 +1187,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get invalidDirectoryPath => '目录路径无效';
 
   @override
-  String get favoriteOutsideRoot => '收藏目录超出 NAS 根目录';
+  String get favoriteOutsideRoot => '收藏目录超出文件服务器根目录';
 
   @override
   String get webdavUrlParameters => 'WebDAV 地址不能包含参数';
@@ -1199,10 +1214,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get uploadUnconfirmed => '上传未确认成功，请刷新目录核对';
 
   @override
-  String get absoluteWebdavPathRequired => 'WebDAV 路径必须为绝对路径';
+  String get absoluteFileServerPathRequired => '文件服务器路径必须为绝对路径';
 
   @override
-  String get unsafeWebdavPath => 'WebDAV 路径包含不安全的字符';
+  String get unsafeFileServerPath => '文件服务器路径包含不安全的字符';
 
   @override
   String get networkClientClosed => '网络客户端已关闭';
@@ -1422,7 +1437,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get targetExists => '目标已存在';
 
   @override
-  String get rootModificationForbidden => '不能修改 WebDAV 根目录';
+  String get rootModificationForbidden => '不能修改文件服务器根目录';
 
   @override
   String get moveIntoSelfForbidden => '不能移动目录到自身内部';

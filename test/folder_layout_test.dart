@@ -6,6 +6,7 @@ import 'package:azusa/features/organizer/ai/folder_layout.dart';
 import 'package:azusa/features/organizer/ai/tmdb.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:azusa/features/assistant/plan_tree.dart';
 import 'package:dio/dio.dart';
@@ -18,14 +19,14 @@ const _settings = ConnectionSettings(
 );
 
 class _FolderDav extends WebDavClient {
-  _FolderDav(Map<String, DavEntry> files)
+  _FolderDav(Map<String, FileServerEntry> files)
     : files = {...files},
       super(_settings);
-  final Map<String, DavEntry> files;
+  final Map<String, FileServerEntry> files;
   final log = <String>[];
 
   @override
-  Future<List<DavEntry>> list(String path) async {
+  Future<List<FileServerEntry>> list(String path) async {
     if (!files.containsKey(path) && path != '/dav/') {
       throw DioException(
         requestOptions: RequestOptions(path: path),
@@ -49,22 +50,22 @@ class _FolderDav extends WebDavClient {
   }
 
   @override
-  Future<DavEntry?> stat(String path) async => files[path];
+  Future<FileServerEntry?> stat(String path) async => files[path];
 
   @override
   Future<void> mkdir(String path) async {
     log.add('mkdir $path');
-    files[path] = DavEntry(path, true);
+    files[path] = FileServerEntry(path, true);
   }
 
   @override
-  Future<void> move(String from, String to, {String? etag}) async {
+  Future<void> move(String from, String to, {String? versionToken}) async {
     if (!files.containsKey(to.substring(0, to.lastIndexOf('/') + 1)) &&
         to.substring(0, to.lastIndexOf('/') + 1) != '/dav/') {
       throw StateError('父目录不存在');
     }
     log.add('move $from → $to');
-    files[to] = DavEntry(to, false);
+    files[to] = FileServerEntry(to, false);
     files.remove(from);
   }
 }
@@ -316,8 +317,8 @@ void main() {
         root: '/dav/',
       );
       final dav = _FolderDav({
-        scope: const DavEntry(scope, true),
-        source: const DavEntry(source, false),
+        scope: const FileServerEntry(scope, true),
+        source: const FileServerEntry(source, false),
       });
       addTearDown(dav.close);
       final result = await RenameExecutor(dav).execute(plan);
@@ -327,7 +328,7 @@ void main() {
         'mkdir /dav/Show/Season%2001/',
       ]);
       expect(dav.files.containsKey(plan.single.target), isTrue);
-      dav.files[source] = const DavEntry(source, false);
+      dav.files[source] = const FileServerEntry(source, false);
       final before = dav.log.length;
       expect((await RenameExecutor(dav).execute(plan)).error, contains('已存在'));
       expect(dav.log.length, before);
@@ -342,8 +343,11 @@ void main() {
         destinationScope: '/',
         targetDirectory: '/elsewhere/',
       );
-      expect(validatePlan([item], [const DavEntry(source, false)]), '目标目录无效');
-      final dav = _FolderDav({source: const DavEntry(source, false)});
+      expect(
+        validatePlan([item], [const FileServerEntry(source, false)]),
+        '目标目录无效',
+      );
+      final dav = _FolderDav({source: const FileServerEntry(source, false)});
       addTearDown(dav.close);
       expect((await RenameExecutor(dav).execute([item])).error, '目标目录无效');
       expect(dav.log, isEmpty);
@@ -353,8 +357,8 @@ void main() {
       final scope = _encoded(['绝命毒师 (2008)']);
       final source = '${scope}raw.mkv';
       final dav = _FolderDav({
-        scope: DavEntry(scope, true),
-        source: DavEntry(source, false),
+        scope: FileServerEntry(scope, true),
+        source: FileServerEntry(source, false),
       });
       addTearDown(dav.close);
       final plan = applyFolderLayout(
@@ -383,9 +387,9 @@ void main() {
     test('按需逐级创建文件夹后移动，已存在的文件夹不重复创建', () async {
       final existing = _encoded(['绝命毒师 (2008)']);
       final dav = _FolderDav({
-        '/dav/a.mkv': const DavEntry('/dav/a.mkv', false),
-        '/dav/b.mkv': const DavEntry('/dav/b.mkv', false),
-        existing: DavEntry(existing, true),
+        '/dav/a.mkv': const FileServerEntry('/dav/a.mkv', false),
+        '/dav/b.mkv': const FileServerEntry('/dav/b.mkv', false),
+        existing: FileServerEntry(existing, true),
       });
       addTearDown(dav.close);
       final plan = applyFolderLayout(
@@ -409,8 +413,8 @@ void main() {
     test('目标文件夹位置被文件占用时停止且不移动', () async {
       final blocked = _encoded(['星际穿越 (2014)']);
       final dav = _FolderDav({
-        '/dav/raw.mkv': const DavEntry('/dav/raw.mkv', false),
-        blocked: DavEntry(blocked, false),
+        '/dav/raw.mkv': const FileServerEntry('/dav/raw.mkv', false),
+        blocked: FileServerEntry(blocked, false),
       });
       addTearDown(dav.close);
       final plan = applyFolderLayout([_movie], '/dav/', FolderLayout.full);
@@ -423,9 +427,9 @@ void main() {
       final plan = applyFolderLayout([_movie], '/dav/', FolderLayout.full);
       final folder = plan.single.targetDirectory!;
       final error = validatePlan(plan, [
-        const DavEntry('/dav/raw.mkv', false),
-        DavEntry(plan.single.target, false),
-        DavEntry(folder, true),
+        const FileServerEntry('/dav/raw.mkv', false),
+        FileServerEntry(plan.single.target, false),
+        FileServerEntry(folder, true),
       ]);
       expect(error, contains('已存在'));
     });
@@ -437,12 +441,12 @@ void main() {
         targetDirectory: '/dav/other/',
       );
       expect(
-        validatePlan([item], [const DavEntry('/dav/a.mkv', false)]),
+        validatePlan([item], [const FileServerEntry('/dav/a.mkv', false)]),
         '目标目录无效',
       );
       final scoped = _movie.withTargetDirectory('/elsewhere/');
       expect(
-        validatePlan([scoped], [const DavEntry('/dav/raw.mkv', false)]),
+        validatePlan([scoped], [const FileServerEntry('/dav/raw.mkv', false)]),
         '目标目录无效',
       );
     });
@@ -532,9 +536,9 @@ void main() {
               },
       );
     const entries = [
-      DavEntry('/dav/Show.S01E01.1080p.mkv', false),
-      DavEntry('/dav/Show.S01E01.zh.srt', false),
-      DavEntry('/dav/other.srt', false),
+      FileServerEntry('/dav/Show.S01E01.1080p.mkv', false),
+      FileServerEntry('/dav/Show.S01E01.zh.srt', false),
+      FileServerEntry('/dav/other.srt', false),
     ];
     final dav = _FolderDav({for (final entry in entries) entry.path: entry});
     final tmdb = TmdbClient(_settings, client: data);

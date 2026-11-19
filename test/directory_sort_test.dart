@@ -1,7 +1,7 @@
 import 'package:azusa/core/settings/directory_sort.dart';
 import 'package:azusa/core/settings/settings.dart';
 import 'package:azusa/features/organizer/dav/directory_sort.dart';
-import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,15 +25,20 @@ void main() {
     );
   });
   const entries = [
-    DavEntry(
+    FileServerEntry(
       '/dav/b.mkv',
       false,
       size: 10,
       modified: 'Wed, 01 Jan 2025 00:00:00 GMT',
     ),
-    DavEntry('/dav/a.mkv', false, size: 20, modified: '2026-01-01T00:00:00Z'),
-    DavEntry('/dav/z/', true),
-    DavEntry('/dav/c.mkv', false, modified: 'invalid'),
+    FileServerEntry(
+      '/dav/a.mkv',
+      false,
+      size: 20,
+      modified: '2026-01-01T00:00:00Z',
+    ),
+    FileServerEntry('/dav/z/', true),
+    FileServerEntry('/dav/c.mkv', false, modified: 'invalid'),
   ];
   final expected = {
     DirectorySort.nameAscending: ['z', 'a.mkv', 'b.mkv', 'c.mkv'],
@@ -55,9 +60,9 @@ void main() {
 
   test('同值按名称排序，大小写同名用路径确定稳定顺序', () {
     const values = [
-      DavEntry('/dav/b.mkv', false, size: 1),
-      DavEntry('/dav/a.mkv', false, size: 1),
-      DavEntry('/dav/A.mkv', false, size: 1),
+      FileServerEntry('/dav/b.mkv', false, size: 1),
+      FileServerEntry('/dav/a.mkv', false, size: 1),
+      FileServerEntry('/dav/A.mkv', false, size: 1),
     ];
     expect(
       sortDirectoryEntries(

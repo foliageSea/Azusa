@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import '../../../core/settings/directory_sort.dart';
-import 'webdav.dart';
+import '../file_server/file_server.dart';
 
-List<DavEntry> sortDirectoryEntries(
-  List<DavEntry> entries,
+List<FileServerEntry> sortDirectoryEntries(
+  List<FileServerEntry> entries,
   DirectorySort order,
 ) {
-  DateTime? modified(DavEntry entry) {
+  DateTime? modified(FileServerEntry entry) {
     final value = entry.modified;
     if (value == null) return null;
     final iso = DateTime.tryParse(value);

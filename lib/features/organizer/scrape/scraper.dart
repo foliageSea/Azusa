@@ -4,9 +4,9 @@ import 'package:dio/dio.dart';
 
 import '../ai/agent.dart';
 import '../ai/tmdb.dart';
-import '../dav/dav_paths.dart';
+import '../file_server/file_server_paths.dart';
 import '../dav/directory_scan.dart';
-import '../dav/webdav.dart';
+import '../file_server/file_server.dart';
 import 'media_identity.dart';
 import 'nfo.dart';
 
@@ -56,7 +56,7 @@ class _ScrapeFile {
 /// and artwork next to them. Existing files are never overwritten.
 class MetadataScraper {
   MetadataScraper(this.dav, this.tmdb);
-  final WebDavClient dav;
+  final FileServerClient dav;
   final TmdbClient tmdb;
 
   final _searches = <String, Future<Map<String, dynamic>?>>{};
@@ -207,7 +207,7 @@ class MetadataScraper {
     if (!TmdbClient.validImagePath(tmdbPath)) return null;
     final path = tmdbPath as String;
     return _ScrapeFile(
-      childDavPath(directory, _imageName(base, path)),
+      childFileServerPath(directory, _imageName(base, path)),
       () => tmdb.image(path, size: size),
     );
   }
@@ -230,7 +230,7 @@ class MetadataScraper {
       if (episodes.isEmpty) continue;
       files.add(
         _ScrapeFile(
-          childDavPath(root, 'tvshow.nfo'),
+          childFileServerPath(root, 'tvshow.nfo'),
           () async => utf8Text(tvShowNfo(await _show(id))),
         ),
       );
@@ -259,7 +259,7 @@ class MetadataScraper {
       if (target.kind == ScrapeMediaKind.movie) {
         files.add(
           _ScrapeFile(
-            childDavPath(directory, '$base.nfo'),
+            childFileServerPath(directory, '$base.nfo'),
             () async => utf8Text(movieNfo(await _movie(target.tmdbId))),
           ),
         );
@@ -282,7 +282,7 @@ class MetadataScraper {
 
         files.add(
           _ScrapeFile(
-            childDavPath(directory, '$base.nfo'),
+            childFileServerPath(directory, '$base.nfo'),
             () async => utf8Text(
               episodeNfo(
                 await _show(target.tmdbId),

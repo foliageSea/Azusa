@@ -209,7 +209,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emptyDirectoryDeleteWarning =>
-      'Selected folders will be deleted permanently, deepest first. Contents are checked again before deletion; non-empty folders are skipped. WebDAV folder deletion can be recursive: do not write files into these folders during cleanup.';
+      'Selected folders will be deleted permanently, deepest first. Contents are checked again before deletion; non-empty folders are skipped. File server folder deletion can be recursive: do not write files into these folders during cleanup.';
 
   @override
   String get appTitle => 'Azusa';
@@ -580,6 +580,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveThemeFailed => 'Could not save theme. Please try again.';
+
+  @override
+  String get fileServers => 'File Servers';
+
+  @override
+  String get addFileServer => 'Add file server';
+
+  @override
+  String get fileServerType => 'File server type';
+
+  @override
+  String get noFileServers => 'No file servers configured.';
+
+  @override
+  String get manageFileServers => 'Manage file servers';
 
   @override
   String get webdavUrl => 'WebDAV URL';
@@ -1189,7 +1204,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get favoriteOutsideRoot =>
-      'The favorite directory is outside the NAS root';
+      'The favorite directory is outside the file server root';
 
   @override
   String get webdavUrlParameters =>
@@ -1224,10 +1239,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Upload was not confirmed. Refresh the directory to verify';
 
   @override
-  String get absoluteWebdavPathRequired => 'WebDAV paths must be absolute';
+  String get absoluteFileServerPathRequired =>
+      'File server paths must be absolute';
 
   @override
-  String get unsafeWebdavPath => 'The WebDAV path contains unsafe characters';
+  String get unsafeFileServerPath =>
+      'The file server path contains unsafe characters';
 
   @override
   String get networkClientClosed => 'Network client is closed';
@@ -1463,7 +1480,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rootModificationForbidden =>
-      'Cannot modify the WebDAV root directory';
+      'Cannot modify the file server root directory';
 
   @override
   String get moveIntoSelfForbidden => 'Cannot move a directory inside itself';

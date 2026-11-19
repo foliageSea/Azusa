@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/settings/naming_format.dart';
 import '../../../core/settings/naming_language.dart';
-import '../dav/dav_paths.dart';
+import '../file_server/file_server_paths.dart';
 import 'http_clients.dart';
 
 enum BackupSection { webdav, tmdb, ai }
@@ -30,7 +30,7 @@ typedef BackupDavIdentity = ({String endpoint, String username});
 
 BackupDavIdentity backupDavIdentity(String url, String username) {
   final uri = validatedHttpUrl(url, allowHttp: true);
-  final path = canonicalDavPath(uri.path.isEmpty ? '/' : uri.path);
+  final path = canonicalFileServerPath(uri.path.isEmpty ? '/' : uri.path);
   return (
     endpoint: '${uri.origin}${path.endsWith('/') ? path : '$path/'}',
     username: username.trim(),

@@ -11,13 +11,14 @@ import 'ai/ai_usage.dart';
 import 'ai/ai_usage_history.dart';
 import 'ai/model_pricing.dart';
 import 'connections/connection_settings.dart';
-import 'dav/dav_paths.dart';
+import 'file_server/file_server_paths.dart';
 import 'dav/directory_scan.dart';
 import 'history/execution_history.dart';
 import 'connections/http_clients.dart';
 import 'rename_plan.dart';
 import 'ai/tmdb.dart';
-import 'dav/webdav.dart';
+import 'file_server/file_server.dart';
+import 'file_server/file_server_factory.dart';
 import 'scrape/scrape_cleaner.dart';
 import 'scrape/scraper.dart';
 
@@ -40,8 +41,8 @@ class OrganizerState {
   });
   final String directory, progress, message;
   final String analysisDirectory;
-  final List<DavEntry> entries;
-  final List<DavEntry> analysisEntries;
+  final List<FileServerEntry> entries;
+  final List<FileServerEntry> analysisEntries;
   final List<RenameItem> plan;
   final bool busy, executing;
   final bool analyzing;
@@ -70,8 +71,8 @@ class OrganizerState {
     String? progress,
     String? analysisDirectory,
     String? message,
-    List<DavEntry>? entries,
-    List<DavEntry>? analysisEntries,
+    List<FileServerEntry>? entries,
+    List<FileServerEntry>? analysisEntries,
     List<RenameItem>? plan,
     bool? busy,
     bool? executing,
@@ -106,17 +107,13 @@ class OrganizerState {
 final organizerProvider = NotifierProvider<OrganizerController, OrganizerState>(
   OrganizerController.new,
 );
-final webDavFactoryProvider =
-    Provider<WebDavClient Function(ConnectionSettings)>(
-      (ref) => WebDavClient.new,
-    );
 final modelPricingLookupProvider =
     Provider<Future<ModelPricing?> Function(ConnectionSettings)>(
       (ref) => ModelPricingCatalog.lookup,
     );
 final renameAgentFactoryProvider =
     Provider<
-      RenameAgent Function(ConnectionSettings, WebDavClient, TmdbClient)
+      RenameAgent Function(ConnectionSettings, FileServerClient, TmdbClient)
     >(
       (ref) =>
           (settings, dav, tmdb) => RenameAgent(
@@ -137,15 +134,18 @@ final executionHistoryProvider = FutureProvider<List<String>>(
   (ref) => ref.watch(executionHistoryRepositoryProvider).load(),
 );
 
+typedef _MaintenanceScope = ({int generation, String directory});
+
 class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   int _analysisGeneration = 0;
+  int _connectionGeneration = 0;
   void Function()? _cancelAnalysis;
   bool _maintenanceCancelled = false;
   Set<String> _emptyCandidates = {};
-  String? _emptyScope;
+  _MaintenanceScope? _emptyScope;
 
-  String get _cleanupScope =>
-      '${config.connectionId}|${config.webdavUrl}|${config.username}|${state.directory}';
+  _MaintenanceScope get _cleanupScope =>
+      (generation: _connectionGeneration, directory: state.directory);
 
   void cancelMaintenance() => _maintenanceCancelled = true;
 
@@ -159,14 +159,14 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     _emptyScope = null;
     _maintenanceCancelled = false;
     state = state.copyWith(busy: true, message: '', progress: '');
-    WebDavClient? dav;
+    FileServerClient? dav;
     try {
       dav = client();
       final result = await EmptyDirectoryCleaner(dav).scan(
         state.directory,
         checkCancelled: _checkMaintenance,
         onProgress: (path) =>
-            state = state.copyWith(progress: displayDavPath(path)),
+            state = state.copyWith(progress: displayFileServerPath(path)),
       );
       _emptyCandidates = result.toSet();
       _emptyScope = _cleanupScope;
@@ -190,7 +190,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       message: '',
       progress: '0 / ${paths.length}',
     );
-    WebDavClient? dav;
+    FileServerClient? dav;
     var deleted = 0;
     var skipped = 0;
     try {
@@ -199,8 +199,10 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         state.directory,
         paths,
         checkCancelled: _checkMaintenance,
-        onDeleting: (path) => _record('准备 delete ${displayDavPath(path)}'),
-        onDeleted: (path) => _record('完成 delete ${displayDavPath(path)}'),
+        onDeleting: (path) =>
+            _record('准备 delete ${displayFileServerPath(path)}'),
+        onDeleted: (path) =>
+            _record('完成 delete ${displayFileServerPath(path)}'),
         onProgress: (done, ignored) {
           deleted = done;
           skipped = ignored;
@@ -232,14 +234,17 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   }
 
   ScrapeScan? _scrapeScan;
-  String? _scrapeScope;
+  _MaintenanceScope? _scrapeScope;
   Map<String, ScrapeArtifact> _scrapeArtifacts = {};
-  String? _artifactScope;
+  _MaintenanceScope? _artifactScope;
   List<String> _scrapeDirectories = const [];
   List<String> _artifactDirectories = const [];
 
   /// Recursive scopes are normalized and parent selections cover descendants.
-  List<String> _scrapeRoots(WebDavClient dav, Iterable<String>? directories) {
+  List<String> _scrapeRoots(
+    FileServerClient dav,
+    Iterable<String>? directories,
+  ) {
     final paths =
         (directories ??
                 (state.selectedDirectories.isEmpty
@@ -268,7 +273,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     _scrapeDirectories = const [];
     _maintenanceCancelled = false;
     state = state.copyWith(busy: true, message: '', progress: '');
-    WebDavClient? dav;
+    FileServerClient? dav;
     TmdbClient? tmdb;
     try {
       final settings = config;
@@ -285,7 +290,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
           root,
           checkCancelled: _checkScrape,
           onProgress: (path, _) =>
-              state = state.copyWith(progress: displayDavPath(path)),
+              state = state.copyWith(progress: displayFileServerPath(path)),
         );
         targets.addAll(scan.targets);
         unmatched.addAll(scan.unmatched);
@@ -325,7 +330,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     if (selected.isEmpty || selected.length != paths.length) return;
     _maintenanceCancelled = false;
     state = state.copyWith(busy: true, message: '', progress: '');
-    WebDavClient? dav;
+    FileServerClient? dav;
     TmdbClient? tmdb;
     var written = 0;
     var skipped = 0;
@@ -344,8 +349,10 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
           scan.targets.where((t) => t.video.startsWith(root)).toList(),
           artwork: artwork,
           checkCancelled: _checkScrape,
-          onWriting: (path) => _record('准备 upload ${displayDavPath(path)} '),
-          onWritten: (path) => _record('完成 upload ${displayDavPath(path)} '),
+          onWriting: (path) =>
+              _record('准备 upload ${displayFileServerPath(path)} '),
+          onWritten: (path) =>
+              _record('完成 upload ${displayFileServerPath(path)} '),
           onProgress: (done, ignored, total) {
             written = previousWritten + done;
             skipped = previousSkipped + ignored;
@@ -392,7 +399,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     _artifactDirectories = const [];
     _maintenanceCancelled = false;
     state = state.copyWith(busy: true, message: '', progress: '');
-    WebDavClient? dav;
+    FileServerClient? dav;
     try {
       dav = client();
       final roots = _scrapeRoots(dav, directories);
@@ -405,7 +412,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
             root,
             checkCancelled: _checkMaintenance,
             onProgress: (path) =>
-                state = state.copyWith(progress: displayDavPath(path)),
+                state = state.copyWith(progress: displayFileServerPath(path)),
           ),
         );
       }
@@ -435,7 +442,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       message: '',
       progress: '0 / ${paths.length}',
     );
-    WebDavClient? dav;
+    FileServerClient? dav;
     var deleted = 0;
     var skipped = 0;
     try {
@@ -450,8 +457,10 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
           root,
           batch,
           checkCancelled: _checkMaintenance,
-          onDeleting: (path) => _record('准备 delete ${displayDavPath(path)} '),
-          onDeleted: (path) => _record('完成 delete ${displayDavPath(path)} '),
+          onDeleting: (path) =>
+              _record('准备 delete ${displayFileServerPath(path)} '),
+          onDeleted: (path) =>
+              _record('完成 delete ${displayFileServerPath(path)} '),
           onProgress: (done, ignored) {
             deleted = previousDeleted + done;
             skipped = previousSkipped + ignored;
@@ -548,7 +557,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
 
   ConnectionSettings get config =>
       ref.read(connectionSettingsProvider).requireValue;
-  WebDavClient client() => ref.read(webDavFactoryProvider)(config);
+  FileServerClient client() => ref.read(fileServerClientProvider)(config);
 
   void beginConnectionChange() {
     if (state.busy || state.executing) throw StateError('请等待当前操作完成');
@@ -557,6 +566,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
 
   void endConnectionChange({bool reset = false}) {
     if (reset) {
+      _connectionGeneration++;
       _analysisGeneration++;
       state = const OrganizerState();
     } else {
@@ -566,6 +576,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
 
   void disconnect() {
     if (state.busy || state.executing) return;
+    _connectionGeneration++;
     _analysisGeneration++;
     state = const OrganizerState();
   }
@@ -574,7 +585,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     if (state.busy || state.executing) return;
     _analysisGeneration++;
     state = state.copyWith(busy: true, message: '');
-    WebDavClient? dav;
+    FileServerClient? dav;
     try {
       dav = client();
       final directory = dav.normalize(
@@ -640,7 +651,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       clearAnalysis: true,
     );
     Future<ModelPricing?>? pricing;
-    WebDavClient? dav;
+    FileServerClient? dav;
     TmdbClient? tmdb;
     RenameAgent? agent;
     void cancel() {
@@ -674,12 +685,12 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       var scan = AgentActivity(
         key: 'scan',
         kind: AgentActivityKind.scan,
-        subject: displayDavPath(state.directory),
+        subject: displayFileServerPath(state.directory),
       );
       onActivity?.call(scan);
-      final analysisEntries = <DavEntry>[];
-      final batches = <(String, List<DavEntry>)>[];
-      final List<DavEntry> fresh;
+      final analysisEntries = <FileServerEntry>[];
+      final batches = <(String, List<FileServerEntry>)>[];
+      final List<FileServerEntry> fresh;
       try {
         fresh = await interruptible(dav.list(state.directory));
         for (final scope in directories) {
@@ -697,7 +708,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
                     AgentActivity(
                       key: 'scan',
                       kind: AgentActivityKind.scan,
-                      subject: displayDavPath(path),
+                      subject: displayFileServerPath(path),
                       count: count,
                     ),
                   );
@@ -860,8 +871,9 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   /// Re-places the current plan with [layout], keeping manual edits.
   void applyLayout(FolderLayout layout) {
     if (state.executing || state.busy || state.directory.isEmpty) return;
-    final base = Uri.parse(config.webdavUrl).path;
-    final root = canonicalDavPath(base.endsWith('/') ? base : '$base/');
+    final connection = config.fileServerConnection;
+    if (connection == null) return;
+    final root = ref.read(fileServerFactoryProvider).root(connection);
     var plan = state.plan;
     for (final scope in state.organizingDirectories) {
       plan = applyFolderLayout(plan, scope, layout, root: root);
@@ -876,7 +888,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     ref.invalidate(executionHistoryProvider);
   }
 
-  Future<void> renameEntry(DavEntry entry, String name) async {
+  Future<void> renameEntry(FileServerEntry entry, String name) async {
     if (state.busy || state.executing || state.directory.isEmpty) return;
     final issue = fileNameError(name);
     if (issue != null) {
@@ -888,7 +900,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       state = state.copyWith(message: '源文件已不存在，请刷新目录核对');
       return;
     }
-    final target = childDavPath(
+    final target = childFileServerPath(
       state.directory,
       name,
       directory: entry.directory,
@@ -913,13 +925,13 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   }) async {
     if (state.busy || state.executing || state.directory.isEmpty) return;
     state = state.copyWith(busy: true, message: '');
-    WebDavClient? dav;
+    FileServerClient? dav;
     try {
       dav = client();
       final normalized = dav.normalize(source);
-      if (normalized == dav.root) throw StateError('不能修改 WebDAV 根目录');
+      if (normalized == dav.root) throw StateError('不能修改文件服务器根目录');
       await _record(
-        '准备 $action ${displayDavPath(source)} ${target == null ? '' : displayDavPath(target)}',
+        '准备 $action ${displayFileServerPath(source)} ${target == null ? '' : displayFileServerPath(target)}',
       );
       if (action == 'delete') {
         await dav.remove(source);
@@ -940,7 +952,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
         throw StateError('不支持的文件操作');
       }
       await _record(
-        '完成 $action ${displayDavPath(source)} ${target == null ? '' : displayDavPath(target)}',
+        '完成 $action ${displayFileServerPath(source)} ${target == null ? '' : displayFileServerPath(target)}',
       );
       state = state.copyWith(
         entries: await dav.list(state.directory),
@@ -958,7 +970,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
   Future<bool> download(String path, String destination) async {
     if (state.busy || state.executing) return false;
     state = state.copyWith(busy: true, message: '正在下载…');
-    WebDavClient? dav;
+    FileServerClient? dav;
     try {
       dav = client();
       await dav.download(path, destination);
@@ -985,21 +997,21 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       return;
     }
     state = state.copyWith(executing: true, progress: '准备执行', message: '');
-    WebDavClient? dav;
+    FileServerClient? dav;
     try {
       dav = client();
       final result = await RenameExecutor(dav).execute(
         frozen,
         onStarting: (item) => _record(
-          '准备重命名 ${displayDavPath(item.source)} → ${displayDavPath(item.target)}',
+          '准备重命名 ${displayFileServerPath(item.source)} → ${displayFileServerPath(item.target)}',
         ),
         onCompleted: (item) => _record(
-          '完成重命名 ${displayDavPath(item.source)} → ${displayDavPath(item.target)}',
+          '完成重命名 ${displayFileServerPath(item.source)} → ${displayFileServerPath(item.target)}',
         ),
         onCreatingDirectory: (path) =>
-            _record('准备 mkdir ${displayDavPath(path)} '),
+            _record('准备 mkdir ${displayFileServerPath(path)} '),
         onDirectoryCreated: (path) =>
-            _record('完成 mkdir ${displayDavPath(path)} '),
+            _record('完成 mkdir ${displayFileServerPath(path)} '),
         onProgress: (done, total) =>
             state = state.copyWith(progress: '$done / $total'),
       );
@@ -1012,7 +1024,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       final refreshed = await dav.list(state.directory);
       final remaining = state.plan;
       final sourceDirectories = {for (final item in remaining) item.parent};
-      final analysisEntries = <DavEntry>[...refreshed];
+      final analysisEntries = <FileServerEntry>[...refreshed];
       for (final path in sourceDirectories.where(
         (path) => path != state.directory,
       )) {
@@ -1034,7 +1046,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     try {
       await manage(
         'mkdir',
-        childDavPath(state.directory, name, directory: true),
+        childFileServerPath(state.directory, name, directory: true),
       );
     } catch (e) {
       state = state.copyWith(message: serviceError(e));

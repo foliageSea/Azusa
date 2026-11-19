@@ -1,14 +1,15 @@
 enum SettingsTab {
   general,
   appearance,
-  webdav,
+  fileServers,
   ai,
   tmdb,
   proxy,
   about;
 
-  static SettingsTab fromParameter(String? value) =>
-      values.where((tab) => tab.name == value).firstOrNull ?? general;
+  static SettingsTab fromParameter(String? value) => value == 'webdav'
+      ? fileServers
+      : values.where((tab) => tab.name == value).firstOrNull ?? general;
 
   String get location => '/connections?tab=$name';
 }

@@ -1,18 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
-import 'package:azusa/features/organizer/dav/dav_paths.dart';
+import 'package:azusa/features/organizer/file_server/file_server_paths.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 
 class MemoryDav extends WebDavClient {
   MemoryDav(this.files)
     : super(const ConnectionSettings(webdavUrl: 'https://nas.test/dav/'));
-  final Map<String, DavEntry> files;
+  final Map<String, FileServerEntry> files;
   final List<String> moved = [];
   int active = 0, maximum = 0;
   String? fail;
   @override
-  Future<List<DavEntry>> list(String path) async => files.values
+  Future<List<FileServerEntry>> list(String path) async => files.values
       .where(
         (e) =>
             e.path.startsWith(path) &&
@@ -23,15 +24,15 @@ class MemoryDav extends WebDavClient {
       )
       .toList();
   @override
-  Future<DavEntry?> stat(String path) async => files[path];
+  Future<FileServerEntry?> stat(String path) async => files[path];
   @override
-  Future<void> move(String from, String to, {String? etag}) async {
+  Future<void> move(String from, String to, {String? versionToken}) async {
     active++;
     if (active > maximum) maximum = active;
     try {
       await Future<void>.delayed(const Duration(milliseconds: 2));
       if (fail == from) throw StateError('模拟失败');
-      files[to] = DavEntry(to, false);
+      files[to] = FileServerEntry(to, false);
       files.remove(from);
       moved.add(from);
     } finally {
@@ -70,8 +71,8 @@ void main() {
     );
   });
   const entries = [
-    DavEntry('/dav/a.mkv', false),
-    DavEntry('/dav/b.mkv', false),
+    FileServerEntry('/dav/a.mkv', false),
+    FileServerEntry('/dav/b.mkv', false),
   ];
   const first = RenameItem(source: '/dav/a.mkv', targetName: '剧集 - S01E01.mkv');
   const second = RenameItem(
@@ -80,9 +81,9 @@ void main() {
   );
 
   test('中文、空格、百分号不会重复编码', () {
-    final path = childDavPath('/dav/', '剧集 100%.mkv');
-    expect(displayDavPath(path), '/dav/剧集 100%.mkv');
-    expect(canonicalDavPath(path), path);
+    final path = childFileServerPath('/dav/', '剧集 100%.mkv');
+    expect(displayFileServerPath(path), '/dav/剧集 100%.mkv');
+    expect(canonicalFileServerPath(path), path);
     final dav = MemoryDav({});
     addTearDown(dav.close);
     expect(dav.url(path).toString(), 'https://nas.test$path');
@@ -171,7 +172,7 @@ void main() {
     addTearDown(dav.close);
     expect((await RenameExecutor(dav).execute(plan)).error, contains('重复'));
     expect(dav.moved, isEmpty);
-    final existing = [...entries, DavEntry(plan.first.target, false)];
+    final existing = [...entries, FileServerEntry(plan.first.target, false)];
     expect(validatePlan([plan.first], existing), contains('已存在'));
   });
 
@@ -205,7 +206,7 @@ void main() {
 
   test('目录不能作为视频文件执行', () {
     expect(
-      validatePlan([first], [const DavEntry('/dav/a.mkv', true)]),
+      validatePlan([first], [const FileServerEntry('/dav/a.mkv', true)]),
       isNotNull,
     );
   });
@@ -242,7 +243,11 @@ void main() {
 
   test('预览后源文件发生变化时不修改', () async {
     final dav = MemoryDav({
-      '/dav/a.mkv': const DavEntry('/dav/a.mkv', false, etag: 'new'),
+      '/dav/a.mkv': const FileServerEntry(
+        '/dav/a.mkv',
+        false,
+        versionToken: 'new',
+      ),
     });
     addTearDown(dav.close);
     final item = RenameItem(
@@ -266,10 +271,10 @@ void main() {
 
   test('单集子目录文件平铺到季目录，字幕同名目标且保留子目录', () async {
     final dav = MemoryDav({
-      '/dav/01/': const DavEntry('/dav/01/', true),
-      '/dav/01/old.mkv': const DavEntry('/dav/01/old.mkv', false),
-      '/dav/01/old.zh.srt': const DavEntry('/dav/01/old.zh.srt', false),
-      '/dav/01/cover.jpg': const DavEntry('/dav/01/cover.jpg', false),
+      '/dav/01/': const FileServerEntry('/dav/01/', true),
+      '/dav/01/old.mkv': const FileServerEntry('/dav/01/old.mkv', false),
+      '/dav/01/old.zh.srt': const FileServerEntry('/dav/01/old.zh.srt', false),
+      '/dav/01/cover.jpg': const FileServerEntry('/dav/01/cover.jpg', false),
     });
     addTearDown(dav.close);
     final plan = [
@@ -310,9 +315,9 @@ void main() {
       targetName: 'Show.mkv',
     );
     final dav = MemoryDav({
-      first.source: DavEntry(first.source, false),
-      second.source: DavEntry(second.source, false),
-      first.target: DavEntry(first.target, false),
+      first.source: FileServerEntry(first.source, false),
+      second.source: FileServerEntry(second.source, false),
+      first.target: FileServerEntry(first.target, false),
     });
     addTearDown(dav.close);
     expect(
@@ -338,8 +343,8 @@ void main() {
       targetName: 'two.mkv',
     );
     final dav = MemoryDav({
-      one.source: DavEntry(one.source, false),
-      two.source: DavEntry(two.source, false),
+      one.source: FileServerEntry(one.source, false),
+      two.source: FileServerEntry(two.source, false),
     })..fail = two.source;
     addTearDown(dav.close);
     final executor = RenameExecutor(dav);
@@ -352,7 +357,7 @@ void main() {
   });
 
   test('平铺目标不能越界或使用编码后的分隔符', () {
-    const entry = DavEntry('/dav/01/a.mkv', false);
+    const entry = FileServerEntry('/dav/01/a.mkv', false);
     for (final directory in [
       '/other/',
       '/dav/../',

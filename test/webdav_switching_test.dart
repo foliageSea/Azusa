@@ -4,6 +4,8 @@ import 'package:azusa/core/database/app_database.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/connections/webdav_connections.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
+import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:azusa/features/organizer/startup_connection.dart';
@@ -31,7 +33,7 @@ class SwitchingOrganizer extends OrganizerController {
   @override
   OrganizerState build() => const OrganizerState(
     directory: '/dav/old/',
-    entries: [DavEntry('/dav/old/a.mkv', false)],
+    entries: [FileServerEntry('/dav/old/a.mkv', false)],
     plan: [
       RenameItem(
         source: '/dav/old/a.mkv',
@@ -51,10 +53,10 @@ class SwitchingDav extends WebDavClient {
   final Future<void>? pending;
   bool closed = false;
   @override
-  Future<List<DavEntry>> list(String path) async {
+  Future<List<FileServerEntry>> list(String path) async {
     await pending;
     if (fail) throw StateError('模拟失败');
-    return [DavEntry('$root${settings.username}.mkv', false)];
+    return [FileServerEntry('$root${connection.username}.mkv', false)];
   }
 
   @override
@@ -103,7 +105,7 @@ void main() {
           ConnectionRepository(preferences, secrets),
         ),
         organizerProvider.overrideWith(SwitchingOrganizer.new),
-        webDavFactoryProvider.overrideWithValue(
+        fileServerClientProvider.overrideWithValue(
           (settings) => factory(settings),
         ),
       ],
@@ -201,7 +203,7 @@ void main() {
         connectionRepositoryProvider.overrideWithValue(
           ConnectionRepository(preferences, secrets),
         ),
-        webDavFactoryProvider.overrideWithValue(
+        fileServerClientProvider.overrideWithValue(
           (settings) => SwitchingDav(settings),
         ),
       ],

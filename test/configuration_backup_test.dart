@@ -9,6 +9,7 @@ import 'package:azusa/features/organizer/connections/configuration_backup.dart';
 import 'package:azusa/features/organizer/connections/configuration_transfer.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/connections/webdav_connections.dart';
+import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -181,7 +182,7 @@ void main() {
           connectionRepositoryProvider.overrideWithValue(globals),
           preferencesProvider.overrideWithValue(prefs),
           organizerProvider.overrideWith(SwitchingOrganizer.new),
-          webDavFactoryProvider.overrideWithValue(
+          fileServerClientProvider.overrideWithValue(
             (_) => throw StateError('Import must not access WebDAV'),
           ),
         ],

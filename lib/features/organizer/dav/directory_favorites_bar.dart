@@ -5,7 +5,8 @@ import 'package:forui/forui.dart';
 import '../../../shared/widgets.dart';
 import '../../../shared/localization.dart';
 import '../organizer_state.dart';
-import 'dav_paths.dart';
+import '../file_server/file_server.dart';
+import '../file_server/file_server_paths.dart';
 import 'directory_favorites.dart';
 
 class DirectoryFavoritesButton extends StatelessWidget {
@@ -16,7 +17,7 @@ class DirectoryFavoritesButton extends StatelessWidget {
     required this.onOpen,
     super.key,
   });
-  final NasScope scope;
+  final FileServerScope scope;
   final String directory;
   final bool locked;
   final ValueChanged<String> onOpen;
@@ -82,7 +83,7 @@ class _FavoritesDialog extends ConsumerStatefulWidget {
     required this.onOpen,
   });
   final ValueChanged<String> onOpen;
-  final NasScope scope;
+  final FileServerScope scope;
   final String directory;
 
   @override
@@ -171,7 +172,9 @@ class _FavoritesDialogState extends ConsumerState<_FavoritesDialog> {
                                   Expanded(
                                     child: FButton(
                                       variant: .ghost,
-                                      semanticsLabel: displayDavPath(path),
+                                      semanticsLabel: displayFileServerPath(
+                                        path,
+                                      ),
                                       prefix: Icon(
                                         FLucideIcons.folder,
                                         color: path == current
@@ -214,7 +217,7 @@ class _FavoritesDialogState extends ConsumerState<_FavoritesDialog> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            displayDavPath(path),
+                                            displayFileServerPath(path),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: context
@@ -238,7 +241,7 @@ class _FavoritesDialogState extends ConsumerState<_FavoritesDialog> {
                                     variant: .ghost,
                                     size: .sm,
                                     semanticsLabel: context.l10n.removeFavorite(
-                                      displayDavPath(path),
+                                      displayFileServerPath(path),
                                     ),
                                     onPress: locked
                                         ? null

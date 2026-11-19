@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
+import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,11 +18,11 @@ class _Connections extends ConnectionSettingsController {
 
 class _Dav extends WebDavClient {
   _Dav(super.settings);
-  final pending = Completer<List<DavEntry>>();
+  final pending = Completer<List<FileServerEntry>>();
   var calls = 0;
   var closed = false;
   @override
-  Future<List<DavEntry>> list(String path) {
+  Future<List<FileServerEntry>> list(String path) {
     if (++calls == 1) return Future.value([]);
     return pending.future;
   }
@@ -40,7 +42,7 @@ void main() {
       overrides: [
         connectionSettingsProvider.overrideWith(_Connections.new),
         modelPricingLookupProvider.overrideWithValue((_) async => null),
-        webDavFactoryProvider.overrideWithValue((settings) {
+        fileServerClientProvider.overrideWithValue((settings) {
           final dav = _Dav(settings);
           if (++clients == 2) {
             scanning = dav;
@@ -65,7 +67,7 @@ void main() {
     expect(container.read(organizerProvider).message, 'AI 建议已中断');
     expect(container.read(organizerProvider).plan, isEmpty);
     await controller.open('/dav/new/');
-    scanning.pending.complete([const DavEntry('/dav/stale.mkv', false)]);
+    scanning.pending.complete([const FileServerEntry('/dav/stale.mkv', false)]);
     await Future<void>.delayed(Duration.zero);
     expect(container.read(organizerProvider).directory, '/dav/new/');
     expect(container.read(organizerProvider).message, isEmpty);

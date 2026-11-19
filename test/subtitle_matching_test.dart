@@ -1,5 +1,5 @@
 import 'package:azusa/features/organizer/ai/agent.dart';
-import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -43,28 +43,28 @@ void main() {
   });
 
   test('漏配字幕进入对应视频批次，普通文件和其他目录字幕不混入', () {
-    const video = DavEntry(
+    const video = FileServerEntry(
       '/dav/Season%2001/Breaking.Bad.S01E01.1080p.mkv',
       false,
     );
-    const subtitle = DavEntry(
+    const subtitle = FileServerEntry(
       '/dav/Season%2001/Breaking.Bad.S01E01.zh.srt',
       false,
     );
     final batches = RenameAgent.batches('/dav/', [
       video,
       subtitle,
-      const DavEntry('/dav/Season%2001/%E8%AF%B4%E6%98%8E.txt', false),
-      const DavEntry('/dav/other/Breaking.Bad.S01E01.zh.srt', false),
+      const FileServerEntry('/dav/Season%2001/%E8%AF%B4%E6%98%8E.txt', false),
+      const FileServerEntry('/dav/other/Breaking.Bad.S01E01.zh.srt', false),
     ]);
     expect(batches.single, [video, subtitle]);
   });
 
   test('同集多个视频版本有歧义时字幕不进入任何批次', () {
     final batches = RenameAgent.batches('/dav/', const [
-      DavEntry('/dav/Breaking.Bad.S01E01.1080p.mkv', false),
-      DavEntry('/dav/Breaking.Bad.S01E01.2160p.mkv', false),
-      DavEntry('/dav/Breaking.Bad.S01E01.zh.srt', false),
+      FileServerEntry('/dav/Breaking.Bad.S01E01.1080p.mkv', false),
+      FileServerEntry('/dav/Breaking.Bad.S01E01.2160p.mkv', false),
+      FileServerEntry('/dav/Breaking.Bad.S01E01.zh.srt', false),
     ]);
     expect(batches.single, hasLength(2));
     expect(batches.single.every(RenameAgent.isVideo), isTrue);

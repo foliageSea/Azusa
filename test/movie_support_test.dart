@@ -7,6 +7,7 @@ import 'package:azusa/features/organizer/ai/agent.dart';
 import 'package:azusa/features/organizer/ai/tmdb.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -46,7 +47,7 @@ const _movie = {
 };
 
 Future<List<RenameItem>> _propose(
-  List<DavEntry> entries,
+  List<FileServerEntry> entries,
   List<Map<String, Object>> items, {
   bool verify = true,
   bool searchOnly = false,
@@ -146,15 +147,15 @@ void main() {
 
   test('电影和配对字幕原地改名，保留扩展名、语言和指纹', () async {
     const entries = [
-      DavEntry('/dav/raw.MKV', false, etag: 'v1'),
-      DavEntry('/dav/raw.zh-Hans.srt', false),
-      DavEntry('/dav/unrelated.srt', false),
+      FileServerEntry('/dav/raw.MKV', false, versionToken: 'v1'),
+      FileServerEntry('/dav/raw.zh-Hans.srt', false),
+      FileServerEntry('/dav/unrelated.srt', false),
     ];
     final plan = await _propose(entries, [_item(entries.first.path)]);
     expect(plan, hasLength(2));
     expect(plan.first.targetName, '毒液：最后一舞 (2024).MKV');
     expect(plan.first.reason, '电影匹配：毒液：最后一舞 · 2024-10-22\nTMDB 912649');
-    expect(plan.first.etag, 'v1');
+    expect(plan.first.versionToken, 'v1');
     expect(
       plan.first.tmdbUrl.toString(),
       'https://www.themoviedb.org/movie/912649',
@@ -168,8 +169,8 @@ void main() {
   for (final format in NamingFormat.values) {
     test('${format.name} 格式的电影配对字幕跟随视频并保留语言标记', () async {
       const entries = [
-        DavEntry('/dav/raw.MKV', false),
-        DavEntry('/dav/raw.zh-Hans.srt', false),
+        FileServerEntry('/dav/raw.MKV', false),
+        FileServerEntry('/dav/raw.zh-Hans.srt', false),
       ];
       final dotted =
           format == NamingFormat.dotted || format == NamingFormat.dottedCompact;
@@ -185,9 +186,9 @@ void main() {
 
   test('电影子目录保持原位，不沿用剧集平铺行为', () async {
     const entries = [
-      DavEntry('/dav/Venom.2024/', true),
-      DavEntry('/dav/Venom.2024/raw.mkv', false),
-      DavEntry('/dav/Venom.2024/raw.en.srt', false),
+      FileServerEntry('/dav/Venom.2024/', true),
+      FileServerEntry('/dav/Venom.2024/raw.mkv', false),
+      FileServerEntry('/dav/Venom.2024/raw.en.srt', false),
     ];
     final plan = await _propose(entries, [_item(entries[1].path)]);
     expect(plan, hasLength(2));
@@ -202,7 +203,7 @@ void main() {
     test(searchOnly ? '仅电影搜索结果不能作为详情依据' : '未查询的电影不能进入预览', () async {
       await expectLater(
         _propose(
-          [const DavEntry('/dav/raw.mkv', false)],
+          [const FileServerEntry('/dav/raw.mkv', false)],
           [_item('/dav/raw.mkv')],
           verify: searchOnly,
           searchOnly: searchOnly,
@@ -214,8 +215,8 @@ void main() {
 
   test('电影多版本目标重名仍被执行校验阻止', () async {
     const entries = [
-      DavEntry('/dav/a.mkv', false),
-      DavEntry('/dav/b.mkv', false),
+      FileServerEntry('/dav/a.mkv', false),
+      FileServerEntry('/dav/b.mkv', false),
     ];
     final plan = await _propose(entries, [
       _item(entries.first.path),
@@ -226,9 +227,9 @@ void main() {
 
   test('字幕可匹配多个电影版本时不自动改名', () async {
     const entries = [
-      DavEntry('/dav/raw.mkv', false),
-      DavEntry('/dav/raw.en.mp4', false),
-      DavEntry('/dav/raw.en.srt', false),
+      FileServerEntry('/dav/raw.mkv', false),
+      FileServerEntry('/dav/raw.en.mp4', false),
+      FileServerEntry('/dav/raw.en.srt', false),
     ];
     final plan = await _propose(entries, [_item(entries.first.path)]);
     expect(plan, hasLength(1));
@@ -300,8 +301,8 @@ void main() {
       dav.close();
     });
     const entries = [
-      DavEntry('/dav/movie.mkv', false),
-      DavEntry('/dav/tv.mkv', false),
+      FileServerEntry('/dav/movie.mkv', false),
+      FileServerEntry('/dav/tv.mkv', false),
     ];
     final plan = await agent.propose('/dav/', entries);
     expect(plan, hasLength(2));

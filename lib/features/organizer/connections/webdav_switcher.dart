@@ -34,7 +34,7 @@ class WebDavSwitcher extends ConsumerWidget {
     final l = context.l10n;
     final name =
         items.where((item) => item.id == activeId).firstOrNull?.name ??
-        l.webdavConnection;
+        l.fileServers;
     Widget trigger(VoidCallback open) => FButton(
       key: const ValueKey('webdav-switcher-trigger'),
       semanticsLabel: '${l.switchConnection}: $name',
@@ -51,7 +51,7 @@ class WebDavSwitcher extends ConsumerWidget {
       child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
     void manage() {
-      if (!_locked(ref)) context.go(SettingsTab.webdav.location);
+      if (!_locked(ref)) context.go(SettingsTab.fileServers.location);
     }
 
     if (MediaQuery.sizeOf(context).width < 600) {
@@ -154,9 +154,9 @@ class _ConnectionPanelState extends ConsumerState<_ConnectionPanel> {
         widget.activeId;
     final items = widget.items
         .where(
-          (item) => '${item.name} ${_host(item.url)}'.toLowerCase().contains(
-            query.trim().toLowerCase(),
-          ),
+          (item) => 'WebDAV ${item.name} ${_host(item.url)}'
+              .toLowerCase()
+              .contains(query.trim().toLowerCase()),
         )
         .toList();
     return Container(
@@ -204,7 +204,7 @@ class _ConnectionPanelState extends ConsumerState<_ConnectionPanel> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         subtitle: Text(
-                          _host(item.url),
+                          'WebDAV · ${_host(item.url)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -236,7 +236,7 @@ class _ConnectionPanelState extends ConsumerState<_ConnectionPanel> {
           FItem(
             key: const ValueKey('manage-webdav-connections'),
             prefix: const Icon(FLucideIcons.settings2),
-            title: Text(l.manageWebdavConnections),
+            title: Text(l.manageFileServers),
             onPress: locked ? null : widget.onManage,
           ),
         ],

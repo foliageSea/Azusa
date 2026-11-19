@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/database/app_database.dart';
+import '../file_server/file_server_connection.dart';
+import '../file_server/file_server_factory.dart';
 import 'connection_settings.dart';
-import '../dav/webdav.dart';
 import 'credential_vault.dart';
 
 String newConnectionId() => List.generate(
@@ -13,7 +14,7 @@ String newConnectionId() => List.generate(
   (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0'),
 ).join();
 
-class WebDavConnection {
+class WebDavConnection implements FileServerConnection {
   const WebDavConnection({
     required this.id,
     required this.name,
@@ -23,15 +24,20 @@ class WebDavConnection {
     this.useProxy = false,
   });
 
-  final String id, name, url, username, password;
+  @override
+  final String id;
+  @override
+  final String name;
+  static const protocolId = 'webdav';
+
+  @override
+  String get protocol => protocolId;
+
+  final String url, username, password;
   final bool useProxy;
 
-  ConnectionSettings apply(ConnectionSettings settings) => settings.copyWith(
-    webdavUrl: url,
-    username: username,
-    webdavPassword: password,
-    proxyWebdav: useProxy,
-  );
+  ConnectionSettings apply(ConnectionSettings settings) =>
+      settings.copyWith(fileServerConnection: this);
 }
 
 class WebDavConnectionsRepository {
@@ -134,8 +140,7 @@ class WebDavConnectionsRepository {
     bool markMigrated = false,
   }) async {
     if (value.name.trim().isEmpty) throw const FormatException('请输入连接名称');
-    final validation = WebDavClient(value.apply(const ConnectionSettings()));
-    validation.close();
+    defaultFileServerFactory.validate(value);
     final db = await database.connection();
     final previous = db.select(
       'SELECT secret_key FROM webdav_connections WHERE id = ?',

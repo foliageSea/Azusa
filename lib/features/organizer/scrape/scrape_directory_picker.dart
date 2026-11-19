@@ -4,7 +4,7 @@ import 'package:forui/forui.dart';
 
 import '../../../shared/localization.dart';
 import '../../../shared/responsive_button.dart';
-import '../dav/dav_paths.dart';
+import '../file_server/file_server_paths.dart';
 import '../organizer_state.dart';
 
 /// Returns an immutable snapshot, without changing the main browser's state.
@@ -114,7 +114,9 @@ class _ScrapeDirectoryPickerState
                             child: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               child: Text(
-                                expanded ? displayDavPath(path) : _name(path),
+                                expanded
+                                    ? displayFileServerPath(path)
+                                    : _name(path),
                                 maxLines: expanded ? null : 1,
                                 overflow: expanded
                                     ? null
@@ -129,7 +131,7 @@ class _ScrapeDirectoryPickerState
                           variant: .ghost,
                           size: .sm,
                           semanticsLabel: l.removeSelectedDirectory(
-                            displayDavPath(path),
+                            displayFileServerPath(path),
                           ),
                           onPress: () => _toggle(path, false),
                           child: const Icon(FLucideIcons.x, size: 16),

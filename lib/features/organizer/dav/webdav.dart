@@ -4,46 +4,50 @@ import 'package:dio/dio.dart';
 import 'package:xml/xml.dart';
 
 import '../connections/connection_settings.dart';
-import 'dav_paths.dart';
 import '../connections/http_clients.dart';
+import '../connections/webdav_connections.dart';
+import '../file_server/file_server.dart';
+import '../file_server/file_server_paths.dart';
 
-class DavEntry {
-  const DavEntry(
-    this.path,
-    this.directory, {
-    this.etag,
-    this.size,
-    this.modified,
-  });
-  final String path;
-  final bool directory;
-  final String? etag, modified;
-  final int? size;
-  String get name =>
-      Uri.decodeComponent(path.split('/').where((s) => s.isNotEmpty).last);
-  String? get fingerprint =>
-      etag ?? (size == null && modified == null ? null : '$size:$modified');
-}
+class WebDavClient extends FileServerClient {
+  WebDavClient(ConnectionSettings settings, {Dio? client})
+    : this.forConnection(_connectionFrom(settings), settings, client: client);
 
-class WebDavClient {
-  WebDavClient(this.settings, {Dio? client})
-    : base = validatedHttpUrl(settings.webdavUrl, allowHttp: true),
-      dio =
-          client ??
-          createServiceClient(settings, service: NetworkService.webdav) {
-    if (base.query.isNotEmpty || base.fragment.isNotEmpty) {
-      throw const FormatException('WebDAV 地址不能包含参数');
-    }
-  }
-  final ConnectionSettings settings;
+  WebDavClient.forConnection(
+    this.connection,
+    ConnectionSettings settings, {
+    Dio? client,
+  }) : base = endpoint(connection),
+       dio =
+           client ??
+           createServiceClient(
+             connection.apply(settings),
+             service: NetworkService.webdav,
+           );
+
+  final WebDavConnection connection;
   final Dio dio;
   final Uri base;
 
-  String get root =>
-      canonicalDavPath(base.path.endsWith('/') ? base.path : '${base.path}/');
+  static WebDavConnection _connectionFrom(ConnectionSettings settings) {
+    final connection = settings.fileServerConnection;
+    if (connection is WebDavConnection) return connection;
+    throw const FormatException('请输入有效的 HTTPS 地址（WebDAV 可使用 HTTP）');
+  }
 
+  static Uri endpoint(WebDavConnection connection) =>
+      validatedHttpUrl(connection.url, allowHttp: true);
+
+  static String rootFor(Uri uri) => canonicalFileServerPath(
+    uri.path.endsWith('/') ? uri.path : '${uri.path}/',
+  );
+
+  @override
+  String get root => rootFor(base);
+
+  @override
   String normalize(String path) {
-    final normalized = canonicalDavPath(path);
+    final normalized = canonicalFileServerPath(path);
     if (!normalized.startsWith(root)) {
       throw const FormatException('路径不在 WebDAV 连接目录内');
     }
@@ -54,15 +58,15 @@ class WebDavClient {
 
   Options options({Map<String, String>? headers}) => Options(
     headers: {
-      if (settings.username.isNotEmpty)
+      if (connection.username.isNotEmpty)
         'Authorization':
-            'Basic ${base64Encode(utf8.encode('${settings.username}:${settings.webdavPassword}'))}',
+            'Basic ${base64Encode(utf8.encode('${connection.username}:${connection.password}'))}',
       ...?headers,
     },
     responseType: ResponseType.plain,
   );
 
-  Future<List<DavEntry>> _properties(
+  Future<List<FileServerEntry>> _properties(
     String path,
     String depth, {
     bool strict = false,
@@ -81,7 +85,7 @@ class WebDavClient {
       throw const FormatException('WebDAV 未返回有效属性');
     }
     final document = XmlDocument.parse(response.data ?? '');
-    final results = <DavEntry>[];
+    final results = <FileServerEntry>[];
     for (final node in document.descendants.whereType<XmlElement>().where(
       (e) => e.name.local == 'response',
     )) {
@@ -127,16 +131,16 @@ class WebDavClient {
       );
       String? property(String key) =>
           successful.map((s) => text(s, key)).whereType<String>().firstOrNull;
-      final entryPath = canonicalDavPath(uri.path);
+      final entryPath = canonicalFileServerPath(uri.path);
       if (!entryPath.startsWith(root)) {
         if (strict) throw const FormatException('WebDAV 未返回有效属性');
         continue;
       }
       results.add(
-        DavEntry(
+        FileServerEntry(
           isDirectory && !entryPath.endsWith('/') ? '$entryPath/' : entryPath,
           isDirectory,
-          etag: property('getetag'),
+          versionToken: property('getetag'),
           size: int.tryParse(property('getcontentlength') ?? ''),
           modified: property('getlastmodified'),
         ),
@@ -148,7 +152,8 @@ class WebDavClient {
     return results;
   }
 
-  Future<List<DavEntry>> list(String path) async {
+  @override
+  Future<List<FileServerEntry>> list(String path) async {
     final results = await _listChildren(path, strict: false);
     return results
         .where(
@@ -160,11 +165,12 @@ class WebDavClient {
   }
 
   /// Unfiltered immediate children. Required for safe empty-folder checks.
-  Future<List<DavEntry>> listAll(String path) async {
+  @override
+  Future<List<FileServerEntry>> listAll(String path) async {
     return _listChildren(path, strict: true);
   }
 
-  Future<List<DavEntry>> _listChildren(
+  Future<List<FileServerEntry>> _listChildren(
     String path, {
     required bool strict,
   }) async {
@@ -202,7 +208,8 @@ class WebDavClient {
       );
   }
 
-  Future<DavEntry?> stat(String path) async {
+  @override
+  Future<FileServerEntry?> stat(String path) async {
     try {
       final normalized = normalize(path);
       final properties = await _properties(normalized, '0');
@@ -221,16 +228,16 @@ class WebDavClient {
     }
   }
 
-  Future<bool> exists(String path) async => await stat(path) != null;
-
-  Future<void> move(String from, String to, {String? etag}) async {
+  @override
+  Future<void> move(String from, String to, {String? versionToken}) async {
     final response = await dio.requestUri<String>(
       url(from),
       options: options(
         headers: {
           'Destination': url(to).toString(),
           'Overwrite': 'F',
-          if (etag != null && !etag.startsWith('W/')) 'If-Match': etag,
+          if (versionToken != null && !versionToken.startsWith('W/'))
+            'If-Match': versionToken,
         },
       ).copyWith(method: 'MOVE'),
     );
@@ -239,6 +246,7 @@ class WebDavClient {
     }
   }
 
+  @override
   Future<void> mkdir(String path) async {
     final response = await dio.requestUri<String>(
       url(path.endsWith('/') ? path : '$path/'),
@@ -247,6 +255,7 @@ class WebDavClient {
     if (response.statusCode != 201) throw const FormatException('创建目录未确认成功');
   }
 
+  @override
   Future<void> remove(String path) async {
     final response = await dio.deleteUri<String>(url(path), options: options());
     if (![200, 204].contains(response.statusCode)) {
@@ -254,6 +263,7 @@ class WebDavClient {
     }
   }
 
+  @override
   Future<void> upload(String path, Stream<List<int>> bytes, int length) async {
     final response = await dio.putUri<String>(
       url(path),
@@ -271,9 +281,11 @@ class WebDavClient {
     }
   }
 
+  @override
   Future<void> download(String path, String destination) async {
     await dio.downloadUri(url(path), destination, options: options());
   }
 
+  @override
   void close() => dio.close(force: true);
 }

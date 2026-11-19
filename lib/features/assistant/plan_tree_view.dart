@@ -5,8 +5,8 @@ import '../../shared/localization.dart';
 import '../../shared/responsive_button.dart';
 import '../../shared/runtime_localization.dart';
 import '../../shared/widgets.dart';
-import '../organizer/dav/dav_paths.dart';
-import '../organizer/dav/webdav.dart';
+import '../organizer/file_server/file_server_paths.dart';
+import '../organizer/file_server/file_server.dart';
 import '../organizer/rename_plan.dart';
 import 'plan_tree.dart';
 
@@ -21,7 +21,7 @@ class PlanTreeView extends StatefulWidget {
   });
 
   final PlanTree tree;
-  final List<DavEntry> entries;
+  final List<FileServerEntry> entries;
   final bool disabled;
   final void Function(int index, String name) onName;
   final void Function(int index, bool enabled) onEnabled;
@@ -175,7 +175,7 @@ class _FileRow extends StatelessWidget {
 
   final PlanTreeFile node;
   final bool expanded, disabled;
-  final List<DavEntry> entries;
+  final List<FileServerEntry> entries;
   final VoidCallback onToggle;
   final ValueChanged<String> onName;
   final ValueChanged<bool> onEnabled;
@@ -340,7 +340,7 @@ class _FileDetailsState extends State<_FileDetails> {
           ],
           Text(l.originalPath, style: muted),
           const SizedBox(height: 4),
-          Text(displayDavPath(item.source), style: muted),
+          Text(displayFileServerPath(item.source), style: muted),
           const SizedBox(height: 12),
           FTextField(
             key: ValueKey('plan-name-${item.source}'),
@@ -354,7 +354,7 @@ class _FileDetailsState extends State<_FileDetails> {
           const SizedBox(height: 12),
           Text(l.newPath, style: muted),
           const SizedBox(height: 4),
-          Text(displayDavPath(item.target), style: muted),
+          Text(displayFileServerPath(item.target), style: muted),
           if (widget.issue case final issue?) ...[
             const SizedBox(height: 8),
             Text(

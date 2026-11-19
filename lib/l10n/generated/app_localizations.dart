@@ -437,7 +437,7 @@ abstract class AppLocalizations {
   /// No description provided for @emptyDirectoryDeleteWarning.
   ///
   /// In en, this message translates to:
-  /// **'Selected folders will be deleted permanently, deepest first. Contents are checked again before deletion; non-empty folders are skipped. WebDAV folder deletion can be recursive: do not write files into these folders during cleanup.'**
+  /// **'Selected folders will be deleted permanently, deepest first. Contents are checked again before deletion; non-empty folders are skipped. File server folder deletion can be recursive: do not write files into these folders during cleanup.'**
   String get emptyDirectoryDeleteWarning;
 
   /// No description provided for @appTitle.
@@ -1171,6 +1171,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not save theme. Please try again.'**
   String get saveThemeFailed;
+
+  /// No description provided for @fileServers.
+  ///
+  /// In en, this message translates to:
+  /// **'File Servers'**
+  String get fileServers;
+
+  /// No description provided for @addFileServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Add file server'**
+  String get addFileServer;
+
+  /// No description provided for @fileServerType.
+  ///
+  /// In en, this message translates to:
+  /// **'File server type'**
+  String get fileServerType;
+
+  /// No description provided for @noFileServers.
+  ///
+  /// In en, this message translates to:
+  /// **'No file servers configured.'**
+  String get noFileServers;
+
+  /// No description provided for @manageFileServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage file servers'**
+  String get manageFileServers;
 
   /// No description provided for @webdavUrl.
   ///
@@ -2291,7 +2321,7 @@ abstract class AppLocalizations {
   /// No description provided for @favoriteOutsideRoot.
   ///
   /// In en, this message translates to:
-  /// **'The favorite directory is outside the NAS root'**
+  /// **'The favorite directory is outside the file server root'**
   String get favoriteOutsideRoot;
 
   /// No description provided for @webdavUrlParameters.
@@ -2342,17 +2372,17 @@ abstract class AppLocalizations {
   /// **'Upload was not confirmed. Refresh the directory to verify'**
   String get uploadUnconfirmed;
 
-  /// No description provided for @absoluteWebdavPathRequired.
+  /// No description provided for @absoluteFileServerPathRequired.
   ///
   /// In en, this message translates to:
-  /// **'WebDAV paths must be absolute'**
-  String get absoluteWebdavPathRequired;
+  /// **'File server paths must be absolute'**
+  String get absoluteFileServerPathRequired;
 
-  /// No description provided for @unsafeWebdavPath.
+  /// No description provided for @unsafeFileServerPath.
   ///
   /// In en, this message translates to:
-  /// **'The WebDAV path contains unsafe characters'**
-  String get unsafeWebdavPath;
+  /// **'The file server path contains unsafe characters'**
+  String get unsafeFileServerPath;
 
   /// No description provided for @networkClientClosed.
   ///
@@ -2735,7 +2765,7 @@ abstract class AppLocalizations {
   /// No description provided for @rootModificationForbidden.
   ///
   /// In en, this message translates to:
-  /// **'Cannot modify the WebDAV root directory'**
+  /// **'Cannot modify the file server root directory'**
   String get rootModificationForbidden;
 
   /// No description provided for @moveIntoSelfForbidden.

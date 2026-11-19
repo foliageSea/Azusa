@@ -5,7 +5,7 @@ import 'package:forui/forui.dart';
 import '../../../shared/localization.dart';
 import '../../../shared/runtime_localization.dart';
 import '../organizer_state.dart';
-import 'dav_paths.dart';
+import '../file_server/file_server_paths.dart';
 
 Future<void> showEmptyDirectoryDialog(BuildContext context) =>
     showFDialog<void>(
@@ -137,7 +137,7 @@ class _EmptyDirectoryDialogState extends ConsumerState<_EmptyDirectoryDialog> {
                         child: FCheckbox(
                           value: _selected.contains(path),
                           enabled: !_confirming,
-                          label: Text(displayDavPath(path)),
+                          label: Text(displayFileServerPath(path)),
                           onChange: (value) => setState(() {
                             value
                                 ? _selected.add(path)

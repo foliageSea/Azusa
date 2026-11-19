@@ -13,6 +13,7 @@ import 'package:azusa/features/organizer/ai/langchain_http_client.dart';
 import 'package:http/http.dart' as http;
 import 'package:azusa/features/organizer/ai/tmdb.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 
 class TestAdapter implements HttpClientAdapter {
@@ -148,7 +149,7 @@ void main() {
       });
       expect(
         await agent.propose('/dav/', [
-          const DavEntry('/dav/a.mkv', false),
+          const FileServerEntry('/dav/a.mkv', false),
         ], instruction: '使用其他语言'),
         isEmpty,
       );
@@ -202,7 +203,7 @@ void main() {
       });
       expect(
         await agent.propose('/dav/', [
-          const DavEntry('/dav/a.mkv', false),
+          const FileServerEntry('/dav/a.mkv', false),
         ], instruction: '使用其他命名格式'),
         isEmpty,
       );
@@ -331,7 +332,7 @@ void main() {
       dav.close();
     });
     await expectLater(
-      agent.propose('/dav/', [const DavEntry('/dav/a.mkv', false)]),
+      agent.propose('/dav/', [const FileServerEntry('/dav/a.mkv', false)]),
       throwsStateError,
     );
     expect(requests, 8);
@@ -400,14 +401,16 @@ void main() {
       tmdb.close();
       dav.close();
     });
-    const entries = [DavEntry('/dav/22%20-%20S01E12.MP4', false, etag: 'v1')];
+    const entries = [
+      FileServerEntry('/dav/22%20-%20S01E12.MP4', false, versionToken: 'v1'),
+    ];
     final plan = await agent.propose('/dav/', entries);
     expect(plan, hasLength(1));
     expect(plan.single.source, entries.single.path);
     expect(plan.single.targetName, '22 ／ 7 - S01E12 - 22／7.MP4');
     expect(plan.single.reason, '匹配结果：第 1 季第 12 集 · 22/7\nTMDB 93875');
     expect(plan.single.fingerprint, entries.single.fingerprint);
-    expect(plan.single.etag, 'v1');
+    expect(plan.single.versionToken, 'v1');
     expect(validatePlan(plan, entries), isNull);
     expect(requests, 2);
   });
@@ -467,7 +470,7 @@ void main() {
     addTearDown(dav.close);
     final entries = await dav.list('/dav/');
     expect(entries.map((e) => e.name), ['sub', '剧集 1.mkv']);
-    expect(entries.last.etag, '"v1"');
+    expect(entries.last.versionToken, '"v1"');
   });
 
   test('MOVE 不覆盖且携带 ETag 条件', () async {
@@ -484,7 +487,7 @@ void main() {
       client: dio,
     );
     addTearDown(dav.close);
-    await dav.move('/dav/a.mkv', '/dav/new.mkv', etag: '"old"');
+    await dav.move('/dav/a.mkv', '/dav/new.mkv', versionToken: '"old"');
   });
 
   test('实际 HTTP 请求走配置代理且直连开关有效', () async {
@@ -602,7 +605,7 @@ void main() {
       tmdb.close();
     });
     final plan = await agent.propose('/dav/', [
-      const DavEntry('/dav/a.mkv', false),
+      const FileServerEntry('/dav/a.mkv', false),
     ]);
     expect(plan.single.reason, contains('TMDB 1396'));
     expect(
@@ -690,10 +693,10 @@ void main() {
       tmdb.close();
     });
     final plan = await agent.propose('/dav/', [
-      const DavEntry('/dav/Season%203%20-%2001/', true),
-      const DavEntry('/dav/Season%203%20-%2001/raw.mkv', false),
-      const DavEntry('/dav/Season%203%20-%2001/raw.zh.srt', false),
-      const DavEntry('/dav/Season%203%20-%2001/unrelated.srt', false),
+      const FileServerEntry('/dav/Season%203%20-%2001/', true),
+      const FileServerEntry('/dav/Season%203%20-%2001/raw.mkv', false),
+      const FileServerEntry('/dav/Season%203%20-%2001/raw.zh.srt', false),
+      const FileServerEntry('/dav/Season%203%20-%2001/unrelated.srt', false),
     ]);
     expect(plan.length, 2);
     expect(plan.first.target, '/dav/%E5%89%A7%E9%9B%86%20-%20S03E01.mkv');
@@ -727,7 +730,7 @@ void main() {
       tmdb.close();
     });
     await expectLater(
-      agent.propose('/dav/', [const DavEntry('/dav/a.mkv', false)]),
+      agent.propose('/dav/', [const FileServerEntry('/dav/a.mkv', false)]),
       throwsFormatException,
     );
   });

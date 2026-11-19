@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
-import 'dav/webdav.dart';
-import 'dav/dav_paths.dart';
+import 'file_server/file_server.dart';
+import 'file_server/file_server_paths.dart';
 import 'connections/http_clients.dart';
 
 enum TmdbMediaType { tv, movie }
@@ -13,7 +13,7 @@ class RenameItem {
     this.reason = '',
     this.enabled = true,
     this.fingerprint,
-    this.etag,
+    this.versionToken,
     this.targetDirectory,
     this.tmdbId,
     this.tmdbMediaType,
@@ -25,7 +25,7 @@ class RenameItem {
     this.destinationScope,
   });
   final String source, targetName, reason;
-  final String? fingerprint, etag;
+  final String? fingerprint, versionToken;
   final String? targetDirectory;
   final bool enabled;
   final int? tmdbId;
@@ -69,7 +69,7 @@ class RenameItem {
     reason: reason,
     enabled: enabled ?? this.enabled,
     fingerprint: fingerprint,
-    etag: etag,
+    versionToken: versionToken,
     targetDirectory: targetDirectory == null
         ? this.targetDirectory
         : targetDirectory(),
@@ -84,7 +84,7 @@ class RenameItem {
   );
 }
 
-String? validatePlan(List<RenameItem> plan, List<DavEntry> entries) {
+String? validatePlan(List<RenameItem> plan, List<FileServerEntry> entries) {
   final targets = <String>{};
   final sources = plan.where((e) => e.enabled).map((e) => e.source).toSet();
   final existing = {for (final entry in entries) entry.path: entry};
@@ -93,7 +93,7 @@ String? validatePlan(List<RenameItem> plan, List<DavEntry> entries) {
     if (!seen.add(item.source)) return '同一源文件出现多次';
     final source = existing[item.source];
     if (source == null || source.directory) {
-      return '源文件已变化：${displayDavPath(item.source)}';
+      return '源文件已变化：${displayFileServerPath(item.source)}';
     }
     if (item.fingerprint != null && item.fingerprint != source.fingerprint) {
       return '源文件属性已变化，请重新生成建议';
@@ -105,7 +105,8 @@ String? validatePlan(List<RenameItem> plan, List<DavEntry> entries) {
     if (item.destinationScope != null &&
         (item.scope == null ||
             (item.destinationScope != item.scope &&
-                item.destinationScope != parentDavDirectory(item.scope!)))) {
+                item.destinationScope !=
+                    parentFileServerDirectory(item.scope!)))) {
       return '目标目录无效';
     }
     if (directory != null &&
@@ -117,7 +118,7 @@ String? validatePlan(List<RenameItem> plan, List<DavEntry> entries) {
       return '目标目录无效';
     }
     try {
-      if (canonicalDavPath(item.target) != item.target) return '目标目录无效';
+      if (canonicalFileServerPath(item.target) != item.target) return '目标目录无效';
     } on FormatException {
       return '目标目录无效';
     }
@@ -153,10 +154,10 @@ class ExecutionResult {
 
 class RenameExecutor {
   RenameExecutor(this.dav);
-  final WebDavClient dav;
+  final FileServerClient dav;
   bool running = false;
 
-  Future<List<DavEntry>> _listIfPresent(String directory) async {
+  Future<List<FileServerEntry>> _listIfPresent(String directory) async {
     try {
       return await dav.list(directory);
     } on DioException catch (error) {
@@ -226,7 +227,7 @@ class RenameExecutor {
         for (final item in selected)
           if (item.targetDirectory != null) item.targetDirectory!,
       };
-      final initial = <DavEntry>[];
+      final initial = <FileServerEntry>[];
       for (final directory in directories) {
         initial.addAll(await _listIfPresent(directory));
       }
@@ -249,7 +250,11 @@ class RenameExecutor {
           );
           if (await dav.exists(item.target)) throw StateError('目标文件已存在');
           await onStarting?.call(item);
-          await dav.move(item.source, item.target, etag: item.etag);
+          await dav.move(
+            item.source,
+            item.target,
+            versionToken: item.versionToken,
+          );
           completed.add(item);
           await onCompleted?.call(item);
           onProgress?.call(index + 1, selected.length);

@@ -5,6 +5,8 @@ import 'package:azusa/features/organizer/ai/ai_usage.dart';
 import 'package:azusa/features/organizer/ai/folder_layout.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
+import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,22 +23,25 @@ class _Connections extends ConnectionSettingsController {
 class _Dav extends WebDavClient {
   _Dav(super.settings, this.calls);
   final List<String> calls;
-  final listings = <String, List<DavEntry>>{};
+  final listings = <String, List<FileServerEntry>>{};
   final failures = <String>{};
 
   @override
-  Future<List<DavEntry>> list(String path) async {
+  Future<List<FileServerEntry>> list(String path) async {
     calls.add(path);
     if (failures.contains(path)) throw StateError('Directory unavailable');
     if (listings.containsKey(path)) return listings[path]!;
     return switch (path) {
-      '/dav/' => const [DavEntry('/dav/a/', true), DavEntry('/dav/b/', true)],
-      '/dav/a/' => const [
-        DavEntry('/dav/a/child/', true),
-        DavEntry('/dav/a/one.mkv', false),
+      '/dav/' => const [
+        FileServerEntry('/dav/a/', true),
+        FileServerEntry('/dav/b/', true),
       ],
-      '/dav/a/child/' => const [DavEntry('/dav/a/child/two.mkv', false)],
-      '/dav/b/' => const [DavEntry('/dav/b/three.mkv', false)],
+      '/dav/a/' => const [
+        FileServerEntry('/dav/a/child/', true),
+        FileServerEntry('/dav/a/one.mkv', false),
+      ],
+      '/dav/a/child/' => const [FileServerEntry('/dav/a/child/two.mkv', false)],
+      '/dav/b/' => const [FileServerEntry('/dav/b/three.mkv', false)],
       _ => [],
     };
   }
@@ -49,7 +54,7 @@ class _Agent extends RenameAgent {
   @override
   Future<List<RenameItem>> propose(
     String directory,
-    List<DavEntry> entries, {
+    List<FileServerEntry> entries, {
     String instruction = '',
     FolderLayout? folderLayout,
     void Function(String message)? onStatus,
@@ -83,7 +88,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           connectionSettingsProvider.overrideWith(_Connections.new),
-          webDavFactoryProvider.overrideWithValue((_) => dav),
+          fileServerClientProvider.overrideWithValue((_) => dav),
         ],
       );
       addTearDown(container.dispose);
@@ -100,7 +105,7 @@ void main() {
       await controller.open('/dav/');
       expect(current().selectedDirectories, same(selection));
       expect(current().selectedDirectories, ['/dav/a/', '/dav/b/']);
-      dav.listings['/dav/'] = const [DavEntry('/dav/a/', true)];
+      dav.listings['/dav/'] = const [FileServerEntry('/dav/a/', true)];
       await controller.open('/dav/');
       expect(current().selectedDirectories, ['/dav/a/']);
 
@@ -158,7 +163,7 @@ void main() {
         overrides: [
           connectionSettingsProvider.overrideWith(_Connections.new),
           modelPricingLookupProvider.overrideWithValue((_) async => null),
-          webDavFactoryProvider.overrideWithValue(
+          fileServerClientProvider.overrideWithValue(
             (settings) => _Dav(settings, calls),
           ),
           renameAgentFactoryProvider.overrideWithValue(

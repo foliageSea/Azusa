@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:azusa/features/organizer/ai/agent.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
-import 'package:azusa/features/organizer/dav/dav_paths.dart';
+import 'package:azusa/features/organizer/file_server/file_server_paths.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:azusa/features/organizer/ai/tmdb.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
@@ -39,7 +39,7 @@ void main() {
         tmdb.close();
         dav.close();
       });
-      final directory = childDavPath(
+      final directory = childFileServerPath(
         dav.root,
         'AI端到端-${DateTime.now().microsecondsSinceEpoch}',
         directory: true,
@@ -48,7 +48,7 @@ void main() {
       for (var i = 1; i <= 3; i++) {
         final content = utf8.encode('AZU AI END TO END TEST EPISODE $i');
         await dav.upload(
-          childDavPath(directory, 'Breaking.Bad.S01E0$i.1080p.mkv'),
+          childFileServerPath(directory, 'Breaking.Bad.S01E0$i.1080p.mkv'),
           Stream.value(content),
           content.length,
         );
@@ -90,7 +90,7 @@ void main() {
       expect(await dav.exists(ordered[2].target), isFalse);
       final finalEntries = await dav.list(directory);
       expect(finalEntries.length, 3);
-      debugPrint('测试目录: ${displayDavPath(directory)}');
+      debugPrint('测试目录: ${displayFileServerPath(directory)}');
       for (final entry in finalEntries) {
         debugPrint('最终文件: ${entry.name}');
       }

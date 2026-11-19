@@ -4,7 +4,7 @@ import 'package:forui/forui.dart';
 
 import '../../../shared/localization.dart';
 import '../../../shared/runtime_localization.dart';
-import '../dav/dav_paths.dart';
+import '../file_server/file_server_paths.dart';
 import '../organizer_state.dart';
 import 'media_identity.dart';
 import 'scrape_cleaner.dart';
@@ -228,7 +228,10 @@ class _ScrapeDialogState extends ConsumerState<_ScrapeDialog> {
       body: [
         Text(l.scrapeScanScope, style: context.theme.typography.body.sm),
         for (final path in widget.directories)
-          Text(displayDavPath(path), style: context.theme.typography.body.sm),
+          Text(
+            displayFileServerPath(path),
+            style: context.theme.typography.body.sm,
+          ),
         const SizedBox(height: 12),
         if (_loading) ...[
           Text(_writing ? l.scrapeWriting : l.scrapeScanning),
@@ -279,7 +282,7 @@ class _ScrapeDialogState extends ConsumerState<_ScrapeDialog> {
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: FCheckbox(
                       value: _selected.contains(target.video),
-                      label: Text(displayDavPath(target.video)),
+                      label: Text(displayFileServerPath(target.video)),
                       description: Text(_describe(context, target)),
                       onChange: (value) => setState(() {
                         value
@@ -293,7 +296,7 @@ class _ScrapeDialogState extends ConsumerState<_ScrapeDialog> {
                   Text(l.scrapeUnmatched(scan.unmatched.length)),
                   const SizedBox(height: 4),
                   for (final path in scan.unmatched.take(100))
-                    Text(displayDavPath(path), style: muted),
+                    Text(displayFileServerPath(path), style: muted),
                 ],
               ],
             ),
@@ -398,7 +401,10 @@ class _ScrapeCleanupDialogState extends ConsumerState<_ScrapeCleanupDialog> {
       body: [
         Text(l.scrapeScanScope, style: context.theme.typography.body.sm),
         for (final path in widget.directories)
-          Text(displayDavPath(path), style: context.theme.typography.body.sm),
+          Text(
+            displayFileServerPath(path),
+            style: context.theme.typography.body.sm,
+          ),
         const SizedBox(height: 12),
         if (_loading) ...[
           Text(l.scanningOrCleaning),
@@ -452,7 +458,7 @@ class _ScrapeCleanupDialogState extends ConsumerState<_ScrapeCleanupDialog> {
                   child: FCheckbox(
                     value: _selected.contains(artifact.path),
                     enabled: !_confirming,
-                    label: Text(displayDavPath(artifact.path)),
+                    label: Text(displayFileServerPath(artifact.path)),
                     description: Text(
                       artifact.kind == ScrapeArtifactKind.nfo
                           ? l.scrapeArtifactNfo

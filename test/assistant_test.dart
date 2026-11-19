@@ -9,6 +9,7 @@ import 'package:azusa/features/organizer/ai/ai_usage.dart';
 import 'package:azusa/features/organizer/ai/tmdb.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:dio/dio.dart';
@@ -75,7 +76,10 @@ class _ScriptedOrganizer extends OrganizerController {
   @override
   OrganizerState build() => const OrganizerState(
     directory: '/dav/',
-    entries: [DavEntry('/dav/a.mkv', false), DavEntry('/dav/b.mkv', false)],
+    entries: [
+      FileServerEntry('/dav/a.mkv', false),
+      FileServerEntry('/dav/b.mkv', false),
+    ],
   );
 
   @override
@@ -193,7 +197,7 @@ void main() {
     });
 
     final plan = await agent.propose('/dav/', [
-      const DavEntry('/dav/a.mkv', false),
+      const FileServerEntry('/dav/a.mkv', false),
     ], onActivity: events.add);
 
     final latest = <String, AgentActivity>{

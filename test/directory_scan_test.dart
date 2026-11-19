@@ -4,6 +4,7 @@ import 'package:azusa/features/organizer/ai/agent_activity.dart';
 import 'package:azusa/features/organizer/ai/ai_usage.dart';
 import 'package:azusa/features/organizer/ai/ai_usage_history.dart';
 import 'package:azusa/features/organizer/ai/folder_layout.dart';
+import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,17 +12,18 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/dav/directory_scan.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _Dav extends WebDavClient {
-  _Dav(List<DavEntry> entries)
+  _Dav(List<FileServerEntry> entries)
     : files = {for (final e in entries) e.path: e},
       super(const ConnectionSettings(webdavUrl: 'https://nas.test/dav/'));
-  final Map<String, DavEntry> files;
+  final Map<String, FileServerEntry> files;
   final deleted = <String>[];
   String? fail;
   @override
-  Future<List<DavEntry>> listAll(String path) async {
+  Future<List<FileServerEntry>> listAll(String path) async {
     if (path == fail) throw StateError('permission denied');
     return files.values
         .where(
@@ -37,7 +39,7 @@ class _Dav extends WebDavClient {
   }
 
   @override
-  Future<List<DavEntry>> list(String path) => listAll(path);
+  Future<List<FileServerEntry>> list(String path) => listAll(path);
   @override
   Future<void> remove(String path) async {
     if (path == fail) throw StateError('permission denied');
@@ -61,7 +63,7 @@ class _Agent extends RenameAgent {
   @override
   Future<List<RenameItem>> propose(
     String directory,
-    List<DavEntry> entries, {
+    List<FileServerEntry> entries, {
     String instruction = '',
     FolderLayout? folderLayout,
     void Function(String)? onStatus,
@@ -102,9 +104,9 @@ void main() {
     'delete failure and cancellation stop later folders without rollback',
     () async {
       final dav = _Dav([
-        const DavEntry('/dav/a/', true),
-        const DavEntry('/dav/b/', true),
-        const DavEntry('/dav/c/', true),
+        const FileServerEntry('/dav/a/', true),
+        const FileServerEntry('/dav/b/', true),
+        const FileServerEntry('/dav/c/', true),
       ]);
       addTearDown(dav.close);
       final cleaner = EmptyDirectoryCleaner(dav);
@@ -137,16 +139,16 @@ void main() {
     final db = AppDatabase(open: () async => sqlite3.openInMemory());
     addTearDown(db.close);
     final dav = _Dav([
-      const DavEntry('/dav/show/', true),
-      const DavEntry('/dav/show/season/', true),
+      const FileServerEntry('/dav/show/', true),
+      const FileServerEntry('/dav/show/season/', true),
       for (var i = 0; i < 205; i++)
-        DavEntry('/dav/show/season/ep$i.mkv', false),
+        FileServerEntry('/dav/show/season/ep$i.mkv', false),
     ]);
     final agents = <_Agent>[];
     final container = ProviderContainer(
       overrides: [
         connectionSettingsProvider.overrideWith(_Connections.new),
-        webDavFactoryProvider.overrideWithValue((_) => dav),
+        fileServerClientProvider.overrideWithValue((_) => dav),
         modelPricingLookupProvider.overrideWithValue((_) async => null),
         aiUsageRepositoryProvider.overrideWithValue(AiUsageRepository(db)),
         renameAgentFactoryProvider.overrideWithValue((settings, dav, tmdb) {
@@ -182,9 +184,9 @@ void main() {
     'recursive scan finds multi-season nested media; disabled scans root only',
     () async {
       final dav = _Dav([
-        const DavEntry('/dav/show/', true),
-        const DavEntry('/dav/show/season/', true),
-        const DavEntry('/dav/show/season/ep.mkv', false),
+        const FileServerEntry('/dav/show/', true),
+        const FileServerEntry('/dav/show/season/', true),
+        const FileServerEntry('/dav/show/season/ep.mkv', false),
       ]);
       addTearDown(dav.close);
       expect(
@@ -202,11 +204,11 @@ void main() {
     'empty tree is deleted bottom-up; hidden files and root are preserved',
     () async {
       final dav = _Dav([
-        const DavEntry('/dav/a/', true),
-        const DavEntry('/dav/a/b/', true),
-        const DavEntry('/dav/hidden/', true),
-        const DavEntry('/dav/hidden/.keep', false),
-        const DavEntry('/dav/.system/', true),
+        const FileServerEntry('/dav/a/', true),
+        const FileServerEntry('/dav/a/b/', true),
+        const FileServerEntry('/dav/hidden/', true),
+        const FileServerEntry('/dav/hidden/.keep', false),
+        const FileServerEntry('/dav/.system/', true),
       ]);
       addTearDown(dav.close);
       final cleaner = EmptyDirectoryCleaner(dav);
@@ -221,14 +223,17 @@ void main() {
 
   test('new contents and unchecked children prevent parent deletion', () async {
     final dav = _Dav([
-      const DavEntry('/dav/a/', true),
-      const DavEntry('/dav/a/b/', true),
+      const FileServerEntry('/dav/a/', true),
+      const FileServerEntry('/dav/a/b/', true),
     ]);
     addTearDown(dav.close);
     final cleaner = EmptyDirectoryCleaner(dav);
     await cleaner.scan('/dav/');
     expect((await cleaner.clean('/dav/', ['/dav/a/'])).skipped, 1);
-    dav.files['/dav/a/b/new.mkv'] = const DavEntry('/dav/a/b/new.mkv', false);
+    dav.files['/dav/a/b/new.mkv'] = const FileServerEntry(
+      '/dav/a/b/new.mkv',
+      false,
+    );
     expect((await cleaner.clean('/dav/', ['/dav/a/b/', '/dav/a/'])).skipped, 2);
     expect(dav.deleted, isEmpty);
   });
@@ -236,7 +241,8 @@ void main() {
   test(
     'read failure, cancellation and root/out-of-scope cleanup are rejected',
     () async {
-      final dav = _Dav([const DavEntry('/dav/a/', true)])..fail = '/dav/a/';
+      final dav = _Dav([const FileServerEntry('/dav/a/', true)])
+        ..fail = '/dav/a/';
       addTearDown(dav.close);
       final cleaner = EmptyDirectoryCleaner(dav);
       await expectLater(cleaner.scan('/dav/'), throwsStateError);
@@ -257,9 +263,9 @@ void main() {
     () {
       final entries = [
         for (var i = 0; i < 602; i++)
-          DavEntry('/dav/show/season/ep$i.mkv', false),
-        const DavEntry('/dav/show/season/ep100.zh.srt', false),
-        const DavEntry('/dav/other/ep.mkv', false),
+          FileServerEntry('/dav/show/season/ep$i.mkv', false),
+        const FileServerEntry('/dav/show/season/ep100.zh.srt', false),
+        const FileServerEntry('/dav/other/ep.mkv', false),
       ];
       final batches = RenameAgent.batches('/dav/', entries);
       expect(batches.length, 8);

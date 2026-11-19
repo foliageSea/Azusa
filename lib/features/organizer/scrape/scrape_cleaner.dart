@@ -1,4 +1,4 @@
-import '../dav/webdav.dart';
+import '../file_server/file_server.dart';
 import 'media_identity.dart';
 
 enum ScrapeArtifactKind { nfo, image }
@@ -74,7 +74,7 @@ ScrapeArtifactKind? classifyScrapeFile(
 /// Finds and deletes scraper output (NFO files and artwork) below a folder.
 class ScrapeCleaner {
   ScrapeCleaner(this.dav);
-  final WebDavClient dav;
+  final FileServerClient dav;
 
   Future<List<ScrapeArtifact>> scan(
     String root, {

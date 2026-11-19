@@ -5,7 +5,7 @@ import 'organizer_state.dart';
 
 final startupConnectionProvider = FutureProvider<void>((ref) async {
   final settings = await ref.read(connectionSettingsProvider.future);
-  if (!ref.mounted || settings.webdavUrl.trim().isEmpty) return;
+  if (!ref.mounted || settings.fileServerConnection == null) return;
 
   final organizer = ref.read(organizerProvider);
   if (organizer.directory.isNotEmpty || organizer.busy || organizer.executing) {

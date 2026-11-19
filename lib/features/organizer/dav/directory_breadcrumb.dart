@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
 import '../../../shared/localization.dart';
-import 'dav_paths.dart';
+import '../file_server/file_server_paths.dart';
 
 class DirectoryBreadcrumb extends StatelessWidget {
   const DirectoryBreadcrumb({
@@ -35,7 +35,7 @@ class DirectoryBreadcrumb extends StatelessWidget {
         crumbs.add((Uri.decodeComponent(segment), path));
       }
     } else if (directory.isNotEmpty) {
-      crumbs.add((displayDavPath(directory), directory));
+      crumbs.add((displayFileServerPath(directory), directory));
     }
 
     return FBreadcrumb(

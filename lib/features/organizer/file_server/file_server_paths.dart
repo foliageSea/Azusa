@@ -1,6 +1,6 @@
-String canonicalDavPath(String path) {
+String canonicalFileServerPath(String path) {
   if (!path.startsWith('/') || path.contains('?') || path.contains('#')) {
-    throw const FormatException('WebDAV 路径必须为绝对路径');
+    throw const FormatException('文件服务器路径必须为绝对路径');
   }
   return path
       .split('/')
@@ -9,16 +9,16 @@ String canonicalDavPath(String path) {
         if (decoded == '.' ||
             decoded == '..' ||
             decoded.contains(RegExp(r'[/\\\x00-\x1F]'))) {
-          throw const FormatException('WebDAV 路径包含不安全的字符');
+          throw const FormatException('文件服务器路径包含不安全的字符');
         }
         return Uri.encodeComponent(decoded);
       })
       .join('/');
 }
 
-String displayDavPath(String path) => Uri.decodeComponent(path);
+String displayFileServerPath(String path) => Uri.decodeComponent(path);
 
-String parentDavDirectory(String directory) {
+String parentFileServerDirectory(String directory) {
   if (directory == '/') return '/';
   final trimmed = directory.endsWith('/')
       ? directory.substring(0, directory.length - 1)
@@ -79,7 +79,11 @@ String sanitizeSuggestedFileName(String name, {required String originalName}) {
   return sanitized.isEmpty ? originalName : sanitized;
 }
 
-String childDavPath(String parent, String name, {bool directory = false}) {
+String childFileServerPath(
+  String parent,
+  String name, {
+  bool directory = false,
+}) {
   if (!validFileName(name)) throw const FormatException('文件名包含非法字符');
   return '${parent.endsWith('/') ? parent : '$parent/'}${Uri.encodeComponent(name)}${directory ? '/' : ''}';
 }

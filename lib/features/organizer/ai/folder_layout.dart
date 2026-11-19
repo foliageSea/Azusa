@@ -1,4 +1,4 @@
-import '../dav/dav_paths.dart';
+import '../file_server/file_server_paths.dart';
 import '../rename_plan.dart';
 
 /// How matched media is grouped into folders below the analyzed directory.
@@ -136,7 +136,7 @@ String folderLayoutScope(
   String root = '/',
 }) {
   if (!layout.inParentDirectory || scope == root) return scope;
-  final parent = parentDavDirectory(scope);
+  final parent = parentFileServerDirectory(scope);
   return parent.startsWith(root) ? parent : scope;
 }
 

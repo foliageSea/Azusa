@@ -7,11 +7,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/settings/settings.dart';
+import '../file_server/file_server_connection.dart';
 import '../organizer_state.dart';
-import 'webdav_connections.dart';
-import 'credential_vault.dart';
 import 'configuration_backup.dart';
 import 'configuration_transfer.dart';
+import 'credential_vault.dart';
+import 'webdav_connections.dart';
 
 enum ProxyMode {
   direct('直连'),
@@ -24,33 +25,80 @@ enum ProxyMode {
 
 class ConnectionSettings {
   const ConnectionSettings({
-    this.connectionId,
-    this.webdavUrl = '',
-    this.username = '',
+    FileServerConnection? fileServerConnection,
+    String? connectionId,
+    String webdavUrl = '',
+    String username = '',
     this.aiUrl = 'https://api.openai.com/v1',
     this.model = '',
     this.proxyUrl = '',
     ProxyMode? proxyMode,
     this.proxyAi = true,
     this.proxyTmdb = true,
-    this.proxyWebdav = false,
-    this.webdavPassword = '',
+    bool proxyWebdav = false,
+    String webdavPassword = '',
     this.aiKey = '',
     this.tmdbToken = '',
-    // Keep the public parameter separate from its legacy-aware backing field.
-    // ignore: prefer_initializing_formals
-  }) : _proxyMode = proxyMode;
+  }) : // Keep public named parameters separate from legacy-aware getters.
+       // ignore: prefer_initializing_formals
+       _fileServerConnection = fileServerConnection,
+       _legacyConnectionId = connectionId,
+       _legacyUrl = webdavUrl,
+       _legacyUsername = username,
+       _legacyPassword = webdavPassword,
+       _legacyUseProxy = proxyWebdav,
+       // ignore: prefer_initializing_formals
+       _proxyMode = proxyMode;
+
+  final FileServerConnection? _fileServerConnection;
+  final String? _legacyConnectionId;
+  final String _legacyUrl, _legacyUsername, _legacyPassword;
+  final bool _legacyUseProxy;
   final ProxyMode? _proxyMode;
-  final String? connectionId;
+
+  FileServerConnection? get fileServerConnection {
+    final active = _fileServerConnection;
+    if (active != null) return active;
+    if (_legacyUrl.trim().isEmpty) return null;
+    return WebDavConnection(
+      id: _legacyConnectionId ?? '',
+      name: Uri.tryParse(_legacyUrl)?.host ?? 'WebDAV',
+      url: _legacyUrl,
+      username: _legacyUsername,
+      password: _legacyPassword,
+      useProxy: _legacyUseProxy,
+    );
+  }
+
+  String? get connectionId => _fileServerConnection?.id ?? _legacyConnectionId;
+
+  // Compatibility for legacy preference migration and WebDAV-only callers.
+  WebDavConnection? get _activeWebDav => switch (_fileServerConnection) {
+    final WebDavConnection webdav => webdav,
+    _ => null,
+  };
+  String get webdavUrl =>
+      _activeWebDav?.url ?? (_fileServerConnection == null ? _legacyUrl : '');
+  String get username =>
+      _activeWebDav?.username ??
+      (_fileServerConnection == null ? _legacyUsername : '');
+  String get webdavPassword =>
+      _activeWebDav?.password ??
+      (_fileServerConnection == null ? _legacyPassword : '');
+  bool get proxyWebdav =>
+      _activeWebDav?.useProxy ??
+      (_fileServerConnection == null && _legacyUseProxy);
+
   // Preserve the behavior of callers and saved configurations predating modes.
   ProxyMode get proxyMode =>
       _proxyMode ??
       (proxyUrl.trim().isEmpty ? ProxyMode.direct : ProxyMode.manual);
-  final String webdavUrl, username, aiUrl, model, proxyUrl;
-  final String webdavPassword, aiKey, tmdbToken;
-  final bool proxyAi, proxyTmdb, proxyWebdav;
+  final String aiUrl, model, proxyUrl, aiKey, tmdbToken;
+  final bool proxyAi, proxyTmdb;
 
   ConnectionSettings copyWith({
+    FileServerConnection? fileServerConnection,
+    bool clearFileServerConnection = false,
     String? connectionId,
     String? webdavUrl,
     String? username,
@@ -64,21 +112,44 @@ class ConnectionSettings {
     bool? proxyAi,
     bool? proxyTmdb,
     bool? proxyWebdav,
-  }) => ConnectionSettings(
-    connectionId: connectionId ?? this.connectionId,
-    webdavUrl: webdavUrl ?? this.webdavUrl,
-    username: username ?? this.username,
-    aiUrl: aiUrl ?? this.aiUrl,
-    model: model ?? this.model,
-    proxyUrl: proxyUrl ?? this.proxyUrl,
-    proxyMode: proxyMode ?? _proxyMode,
-    webdavPassword: webdavPassword ?? this.webdavPassword,
-    aiKey: aiKey ?? this.aiKey,
-    tmdbToken: tmdbToken ?? this.tmdbToken,
-    proxyAi: proxyAi ?? this.proxyAi,
-    proxyTmdb: proxyTmdb ?? this.proxyTmdb,
-    proxyWebdav: proxyWebdav ?? this.proxyWebdav,
-  );
+  }) {
+    var active = clearFileServerConnection
+        ? null
+        : fileServerConnection ?? _fileServerConnection;
+    if (fileServerConnection == null &&
+        active is WebDavConnection &&
+        (connectionId != null ||
+            webdavUrl != null ||
+            username != null ||
+            webdavPassword != null ||
+            proxyWebdav != null)) {
+      active = WebDavConnection(
+        id: connectionId ?? active.id,
+        name: active.name,
+        url: webdavUrl ?? active.url,
+        username: username ?? active.username,
+        password: webdavPassword ?? active.password,
+        useProxy: proxyWebdav ?? active.useProxy,
+      );
+    }
+    final keepLegacy = !clearFileServerConnection && active == null;
+    return ConnectionSettings(
+      fileServerConnection: active,
+      connectionId: keepLegacy ? connectionId ?? _legacyConnectionId : null,
+      webdavUrl: keepLegacy ? webdavUrl ?? _legacyUrl : '',
+      username: keepLegacy ? username ?? _legacyUsername : '',
+      aiUrl: aiUrl ?? this.aiUrl,
+      model: model ?? this.model,
+      proxyUrl: proxyUrl ?? this.proxyUrl,
+      proxyMode: proxyMode ?? _proxyMode,
+      webdavPassword: keepLegacy ? webdavPassword ?? _legacyPassword : '',
+      aiKey: aiKey ?? this.aiKey,
+      tmdbToken: tmdbToken ?? this.tmdbToken,
+      proxyAi: proxyAi ?? this.proxyAi,
+      proxyTmdb: proxyTmdb ?? this.proxyTmdb,
+      proxyWebdav: keepLegacy && (proxyWebdav ?? _legacyUseProxy),
+    );
+  }
 }
 
 class ConnectionRepository {
@@ -172,21 +243,9 @@ class ConnectionSettingsController extends AsyncNotifier<ConnectionSettings> {
     final id = await repository.activeId();
     final connections = await repository.load(includePasswords: false);
     final active = connections.where((item) => item.id == id).firstOrNull;
-    final cleared = ConnectionSettings(
-      aiUrl: globals.aiUrl,
-      model: globals.model,
-      aiKey: globals.aiKey,
-      tmdbToken: globals.tmdbToken,
-      proxyUrl: globals.proxyUrl,
-      proxyMode: globals.proxyMode,
-      proxyAi: globals.proxyAi,
-      proxyTmdb: globals.proxyTmdb,
-    );
     return active == null
-        ? cleared
-        : (await repository.withPassword(active))
-              .apply(cleared)
-              .copyWith(connectionId: active.id);
+        ? globals.copyWith(clearFileServerConnection: true)
+        : (await repository.withPassword(active)).apply(globals);
   }
 
   Future<void> _change(

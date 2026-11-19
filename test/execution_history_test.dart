@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:azusa/core/database/app_database.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/history/execution_history.dart';
+import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -24,7 +26,7 @@ class ReadyOrganizer extends OrganizerController {
   @override
   OrganizerState build() => const OrganizerState(
     directory: '/dav/',
-    entries: [DavEntry('/dav/old.mkv', false)],
+    entries: [FileServerEntry('/dav/old.mkv', false)],
     plan: [RenameItem(source: '/dav/old.mkv', targetName: 'new.mkv')],
   );
 }
@@ -34,17 +36,18 @@ class RecordingDav extends WebDavClient {
     : super(const ConnectionSettings(webdavUrl: 'https://nas.test/dav/'));
   int writes = 0;
   @override
-  Future<List<DavEntry>> list(String path) async => [];
+  Future<List<FileServerEntry>> list(String path) async => [];
   @override
-  Future<DavEntry?> stat(String path) async =>
-      path == '/dav/old.mkv' ? const DavEntry('/dav/old.mkv', false) : null;
+  Future<FileServerEntry?> stat(String path) async => path == '/dav/old.mkv'
+      ? const FileServerEntry('/dav/old.mkv', false)
+      : null;
   @override
   Future<void> mkdir(String path) async {
     writes++;
   }
 
   @override
-  Future<void> move(String from, String to, {String? etag}) async {
+  Future<void> move(String from, String to, {String? versionToken}) async {
     writes++;
   }
 }
@@ -52,20 +55,21 @@ class RecordingDav extends WebDavClient {
 class RenameDav extends RecordingDav {
   RenameDav(this.files);
 
-  final Map<String, DavEntry> files;
+  final Map<String, FileServerEntry> files;
   final moves = <(String, String)>[];
 
   @override
-  Future<DavEntry?> stat(String path) => Future.value(files[path]);
+  Future<FileServerEntry?> stat(String path) => Future.value(files[path]);
 
   @override
-  Future<List<DavEntry>> list(String path) async => files.values.toList();
+  Future<List<FileServerEntry>> list(String path) async =>
+      files.values.toList();
 
   @override
-  Future<void> move(String from, String to, {String? etag}) async {
+  Future<void> move(String from, String to, {String? versionToken}) async {
     moves.add((from, to));
     final entry = files.remove(from)!;
-    files[to] = DavEntry(to, entry.directory);
+    files[to] = FileServerEntry(to, entry.directory);
   }
 }
 
@@ -74,9 +78,9 @@ class RenameOrganizer extends ReadyOrganizer {
   OrganizerState build() => const OrganizerState(
     directory: '/dav/',
     entries: [
-      DavEntry('/dav/a.mkv', false),
-      DavEntry('/dav/season/', true),
-      DavEntry('/dav/taken.mkv', false),
+      FileServerEntry('/dav/a.mkv', false),
+      FileServerEntry('/dav/season/', true),
+      FileServerEntry('/dav/taken.mkv', false),
     ],
   );
 }
@@ -87,26 +91,29 @@ void main() {
     addTearDown(database.close);
     final repo = ExecutionHistoryRepository(database);
     final dav = RenameDav({
-      '/dav/a.mkv': const DavEntry('/dav/a.mkv', false),
-      '/dav/season/': const DavEntry('/dav/season/', true),
-      '/dav/taken.mkv': const DavEntry('/dav/taken.mkv', false),
+      '/dav/a.mkv': const FileServerEntry('/dav/a.mkv', false),
+      '/dav/season/': const FileServerEntry('/dav/season/', true),
+      '/dav/taken.mkv': const FileServerEntry('/dav/taken.mkv', false),
     });
     addTearDown(dav.close);
     final container = ProviderContainer(
       overrides: [
         organizerProvider.overrideWith(RenameOrganizer.new),
         executionHistoryRepositoryProvider.overrideWithValue(repo),
-        webDavFactoryProvider.overrideWithValue((_) => dav),
+        fileServerClientProvider.overrideWithValue((_) => dav),
       ],
     );
     addTearDown(container.dispose);
     final controller = container.read(organizerProvider.notifier);
 
     await controller.renameEntry(
-      const DavEntry('/dav/a.mkv', false),
+      const FileServerEntry('/dav/a.mkv', false),
       '新 剧集%.mkv',
     );
-    await controller.renameEntry(const DavEntry('/dav/season/', true), '第二季');
+    await controller.renameEntry(
+      const FileServerEntry('/dav/season/', true),
+      '第二季',
+    );
     expect(dav.moves, [
       ('/dav/a.mkv', '/dav/%E6%96%B0%20%E5%89%A7%E9%9B%86%25.mkv'),
       ('/dav/season/', '/dav/%E7%AC%AC%E4%BA%8C%E5%AD%A3/'),
@@ -121,12 +128,12 @@ void main() {
       isTrue,
     );
     await controller.renameEntry(
-      const DavEntry('/dav/taken.mkv', false),
+      const FileServerEntry('/dav/taken.mkv', false),
       '新 剧集%.mkv',
     );
     expect(container.read(organizerProvider).message, contains('已存在'));
     await controller.renameEntry(
-      const DavEntry('/dav/taken.mkv', false),
+      const FileServerEntry('/dav/taken.mkv', false),
       'bad/name',
     );
     expect(container.read(organizerProvider).message, contains('无效'));
@@ -188,7 +195,7 @@ void main() {
         overrides: [
           organizerProvider.overrideWith(ReadyOrganizer.new),
           executionHistoryRepositoryProvider.overrideWithValue(repo),
-          webDavFactoryProvider.overrideWithValue((_) => dav),
+          fileServerClientProvider.overrideWithValue((_) => dav),
         ],
       );
       addTearDown(container.dispose);
@@ -219,7 +226,7 @@ void main() {
       overrides: [
         organizerProvider.overrideWith(ReadyOrganizer.new),
         executionHistoryRepositoryProvider.overrideWithValue(repo),
-        webDavFactoryProvider.overrideWithValue((_) => dav),
+        fileServerClientProvider.overrideWithValue((_) => dav),
       ],
     );
     addTearDown(container.dispose);

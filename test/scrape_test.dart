@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:azusa/core/database/app_database.dart';
 import 'package:azusa/features/organizer/ai/tmdb.dart';
 import 'package:azusa/features/organizer/history/execution_history.dart';
+import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/dav/webdav.dart';
+import 'package:azusa/features/organizer/file_server/file_server.dart';
 import 'package:azusa/features/organizer/scrape/media_identity.dart';
 import 'package:azusa/features/organizer/scrape/nfo.dart';
 import 'package:azusa/features/organizer/scrape/scrape_cleaner.dart';
@@ -30,17 +32,21 @@ class _Dav extends WebDavClient {
       add(path);
     }
   }
-  final files = <String, DavEntry>{};
+  final files = <String, FileServerEntry>{};
   final uploads = <String, List<int>>{};
   final deleted = <String>[];
   final listed = <String>[];
 
-  void add(String raw, {String? etag}) {
+  void add(String raw, {String? versionToken}) {
     final path = _p(raw);
-    files[path] = DavEntry(path, path.endsWith('/'), etag: etag ?? 'e');
+    files[path] = FileServerEntry(
+      path,
+      path.endsWith('/'),
+      versionToken: versionToken ?? 'e',
+    );
     var parent = path.substring(0, path.lastIndexOf('/', path.length - 2) + 1);
     while (parent.length > '/dav/'.length) {
-      files.putIfAbsent(parent, () => DavEntry(parent, true));
+      files.putIfAbsent(parent, () => FileServerEntry(parent, true));
       parent = parent.substring(
         0,
         parent.lastIndexOf('/', parent.length - 2) + 1,
@@ -49,7 +55,7 @@ class _Dav extends WebDavClient {
   }
 
   @override
-  Future<List<DavEntry>> listAll(String path) async {
+  Future<List<FileServerEntry>> listAll(String path) async {
     listed.add(path);
     return [
       for (final e in files.values)
@@ -64,13 +70,13 @@ class _Dav extends WebDavClient {
   }
 
   @override
-  Future<List<DavEntry>> list(String path) async => [
+  Future<List<FileServerEntry>> list(String path) async => [
     for (final e in await listAll(path))
       if (!e.name.startsWith('.')) e,
   ];
 
   @override
-  Future<DavEntry?> stat(String path) async => files[path];
+  Future<FileServerEntry?> stat(String path) async => files[path];
 
   @override
   Future<void> upload(String path, Stream<List<int>> bytes, int length) async {
@@ -78,7 +84,7 @@ class _Dav extends WebDavClient {
     final data = [for (final chunk in await bytes.toList()) ...chunk];
     expect(data.length, length);
     uploads[path] = data;
-    files[path] = DavEntry(path, false, etag: 'new');
+    files[path] = FileServerEntry(path, false, versionToken: 'new');
   }
 
   @override
@@ -329,7 +335,7 @@ void main() {
       });
 
       // A file changed after scanning is skipped rather than deleted.
-      dav.add('/dav/m/poster.jpg', etag: 'changed');
+      dav.add('/dav/m/poster.jpg', versionToken: 'changed');
       final result = await cleaner.clean('/dav/m/', artifacts);
       expect(result, (deleted: 7, skipped: 1));
       expect(dav.files.containsKey(_p('/dav/m/holiday.jpg')), isTrue);
@@ -352,7 +358,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         connectionSettingsProvider.overrideWith(_Connections.new),
-        webDavFactoryProvider.overrideWithValue((_) => dav),
+        fileServerClientProvider.overrideWithValue((_) => dav),
         tmdbFactoryProvider.overrideWithValue((_) => _Tmdb()),
         executionHistoryRepositoryProvider.overrideWithValue(history),
       ],
@@ -406,7 +412,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         connectionSettingsProvider.overrideWith(_Connections.new),
-        webDavFactoryProvider.overrideWithValue((_) => dav),
+        fileServerClientProvider.overrideWithValue((_) => dav),
         tmdbFactoryProvider.overrideWithValue((_) => _Tmdb()),
         executionHistoryRepositoryProvider.overrideWithValue(
           ExecutionHistoryRepository(db),
@@ -462,7 +468,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         connectionSettingsProvider.overrideWith(_Connections.new),
-        webDavFactoryProvider.overrideWithValue((_) => dav),
+        fileServerClientProvider.overrideWithValue((_) => dav),
         tmdbFactoryProvider.overrideWithValue((_) => _Tmdb()),
         executionHistoryRepositoryProvider.overrideWithValue(
           ExecutionHistoryRepository(db),
