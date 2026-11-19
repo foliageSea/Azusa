@@ -382,7 +382,10 @@ void main() {
     expect(dav.uploads.keys.map(Uri.decodeComponent), [
       '/dav/Interstellar (2014).nfo',
     ]);
-    expect((await history.load()).where((e) => e.contains('upload')).length, 2);
+    expect(
+      (await history.load()).where((e) => e.raw.contains('upload')).length,
+      2,
+    );
 
     final artifacts = await controller.scanScrapeArtifacts();
     expect(artifacts.length, 2);

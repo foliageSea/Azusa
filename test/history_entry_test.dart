@@ -35,6 +35,36 @@ void main() {
     expect(entries.last.source, '/dav/旧文件.txt');
   });
 
+  test('相同路径的操作只在同一连接内配对，连接改名不影响配对', () {
+    const a = HistoryServer(connectionId: 'a', name: '旧名称', protocol: 'smb');
+    const renamed = HistoryServer(
+      connectionId: 'a',
+      name: '新名称',
+      protocol: 'smb',
+    );
+    const b = HistoryServer(connectionId: 'b', name: '另一台', protocol: 'smb');
+    const c = HistoryServer(connectionId: 'c', name: 'DAV', protocol: 'webdav');
+    const start = '2026-11-02 10:00:00 准备 delete /same.mkv ';
+    const done = '2026-11-02 10:01:00 完成 delete /same.mkv ';
+    final entries = HistoryEntry.fromStoredRecords(const [
+      ExecutionHistoryRecord(start, server: a),
+      ExecutionHistoryRecord(start, server: b),
+      ExecutionHistoryRecord(start, server: c),
+      ExecutionHistoryRecord(start),
+      ExecutionHistoryRecord(done, server: renamed),
+    ]);
+    expect(entries, hasLength(4));
+    expect(entries.first.completed, isTrue);
+    expect(entries.first.startedAt, DateTime(2026, 11, 2, 10));
+    expect(entries.first.server?.name, '新名称');
+    expect(entries.skip(1).map((entry) => entry.server?.connectionId), [
+      null,
+      'c',
+      'b',
+    ]);
+    expect(entries.skip(1).every((entry) => entry.completed == false), isTrue);
+  });
+
   test('重复操作只合并对应的一组', () {
     final entries = HistoryEntry.fromRecords([
       '准备 upload /dav/a.txt ',

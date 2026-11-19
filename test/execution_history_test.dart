@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:azusa/core/database/app_database.dart';
 import 'package:azusa/features/organizer/connections/connection_settings.dart';
 import 'package:azusa/features/organizer/history/execution_history.dart';
+import 'package:azusa/features/organizer/history/history_entry.dart';
+import 'package:azusa/features/organizer/connections/webdav_connections.dart';
 import 'package:azusa/features/organizer/file_server/file_server_factory.dart';
 import 'package:azusa/features/organizer/organizer_state.dart';
 import 'package:azusa/features/organizer/rename_plan.dart';
@@ -20,8 +22,14 @@ const records = [
 
 class ReadyOrganizer extends OrganizerController {
   @override
-  ConnectionSettings get config =>
-      const ConnectionSettings(webdavUrl: 'https://nas.test/dav/');
+  ConnectionSettings get config => const ConnectionSettings(
+    fileServerConnection: WebDavConnection(
+      id: 'dav-1',
+      name: '历史 NAS',
+      url: 'https://nas.test/dav/',
+      password: 'test-secret',
+    ),
+  );
 
   @override
   OrganizerState build() => const OrganizerState(
@@ -138,7 +146,14 @@ void main() {
     );
     expect(container.read(organizerProvider).message, contains('无效'));
     expect(dav.moves.length, 2);
-    expect((await repo.load()).length, 4);
+    final stored = await repo.load();
+    expect(stored.length, 4);
+    for (final record in stored) {
+      expect(record.server?.connectionId, 'dav-1');
+      expect(record.server?.name, '历史 NAS');
+      expect(record.server?.protocol, 'webdav');
+      expect(record.raw, isNot(contains('test-secret')));
+    }
   });
 
   test('SQLite 重启及并发追加保留原文、顺序和重复记录', () async {
@@ -151,12 +166,24 @@ void main() {
     addTearDown(database.close);
     expect(await repo.load(), isEmpty);
     await Future.wait(records.map(repo.append));
-    await repo.append(records.last);
+    await repo.append(
+      records.last,
+      server: const HistoryServer(
+        connectionId: 'smb-1',
+        name: 'Server at execution',
+        protocol: 'smb',
+      ),
+    );
     await database.close();
     final reopenedDatabase = AppDatabase(open: () async => sqlite3.open(path));
     final reopened = ExecutionHistoryRepository(reopenedDatabase);
     addTearDown(reopenedDatabase.close);
-    expect(await reopened.load(), [...records, records.last]);
+    final stored = await reopened.load();
+    expect(stored.map((record) => record.raw), [...records, records.last]);
+    expect(stored.take(3).every((record) => record.server == null), isTrue);
+    expect(stored.last.server?.connectionId, 'smb-1');
+    expect(stored.last.server?.name, 'Server at execution');
+    expect(stored.last.server?.protocol, 'smb');
   });
 
   test('数据库打开失败后可重试，关闭后禁止读写', () async {
@@ -172,7 +199,7 @@ void main() {
     await expectLater(repo.append(records.first), throwsStateError);
     fails = false;
     await repo.append(records.first);
-    expect(await repo.load(), [records.first]);
+    expect((await repo.load()).single.raw, records.first);
     await database.close();
     await database.close();
     await expectLater(repo.load(), throwsStateError);
@@ -234,7 +261,7 @@ void main() {
         .read(organizerProvider.notifier)
         .manage('mkdir', '/dav/new/');
     expect(dav.writes, 1);
-    expect((await repo.load()).single, contains('准备 mkdir'));
+    expect((await repo.load()).single.raw, contains('准备 mkdir'));
     expect(container.read(organizerProvider).message, contains('请刷新目录核对结果'));
   });
 }

@@ -22,14 +22,14 @@ class AppDatabase {
     try {
       db = await open();
       db.execute('PRAGMA busy_timeout = 5000');
-      final version =
-          db.select('PRAGMA user_version').first.values.first as int;
-      if (version > 3) throw StateError('数据库版本过高');
       db.execute('PRAGMA journal_mode = WAL');
       // Preparation records must be committed before any NAS write begins.
       db.execute('PRAGMA synchronous = FULL');
       db.execute('BEGIN IMMEDIATE');
       try {
+        final version =
+            db.select('PRAGMA user_version').single.values.single as int;
+        if (version > 4) throw StateError('数据库版本过高');
         db.execute('''
           CREATE TABLE IF NOT EXISTS execution_history (
             id INTEGER PRIMARY KEY,
@@ -116,8 +116,17 @@ class AppDatabase {
           BEGIN
             SELECT RAISE(ABORT, 'Duplicate file server connection id');
           END;
-          PRAGMA user_version = 3;
         ''');
+        if (version < 4) {
+          // Keep existing rows unknown. The active connection cannot tell us
+          // where these historical operations actually ran.
+          db.execute('''
+            ALTER TABLE execution_history ADD COLUMN connection_id TEXT;
+            ALTER TABLE execution_history ADD COLUMN server_name TEXT;
+            ALTER TABLE execution_history ADD COLUMN server_protocol TEXT;
+            PRAGMA user_version = 4;
+          ''');
+        }
         db.execute('COMMIT');
       } catch (_) {
         if (!db.autocommit) db.execute('ROLLBACK');

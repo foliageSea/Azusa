@@ -2402,6 +2402,18 @@ abstract class AppLocalizations {
   /// **'No execution history yet'**
   String get noExecutionHistory;
 
+  /// No description provided for @historyFileServer.
+  ///
+  /// In en, this message translates to:
+  /// **'File server: {server}'**
+  String historyFileServer(String server);
+
+  /// No description provided for @unknownHistoryFileServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown server'**
+  String get unknownHistoryFileServer;
+
   /// No description provided for @operationCount.
   ///
   /// In en, this message translates to:

@@ -1227,6 +1227,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noExecutionHistory => '暂无执行记录';
 
   @override
+  String historyFileServer(String server) {
+    return '文件服务器：$server';
+  }
+
+  @override
+  String get unknownHistoryFileServer => '未知服务器';
+
+  @override
   String operationCount(int count) {
     return '$count 项操作';
   }

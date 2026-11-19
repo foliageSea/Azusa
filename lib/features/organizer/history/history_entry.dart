@@ -1,5 +1,22 @@
 enum HistoryPathChange { rename, move, moveAndRename }
 
+class HistoryServer {
+  const HistoryServer({
+    required this.connectionId,
+    required this.name,
+    required this.protocol,
+  });
+
+  final String connectionId, name, protocol;
+}
+
+class ExecutionHistoryRecord {
+  const ExecutionHistoryRecord(this.raw, {this.server});
+
+  final String raw;
+  final HistoryServer? server;
+}
+
 class HistoryEntry {
   const HistoryEntry({
     required this.raw,
@@ -10,12 +27,14 @@ class HistoryEntry {
     this.source,
     this.target,
     this.startedAt,
+    this.server,
   });
 
   final String raw, message, action;
   final bool? completed;
   final DateTime? time, startedAt;
   final String? source, target;
+  final HistoryServer? server;
 
   static String _normalizedPath(String path) =>
       path.replaceFirst(RegExp(r'/+$'), '');
@@ -49,7 +68,7 @@ class HistoryEntry {
     r'^(准备|完成)(重命名| move| upload| delete| mkdir) ',
   );
 
-  factory HistoryEntry.parse(String raw) {
+  factory HistoryEntry.parse(String raw, {HistoryServer? server}) {
     final stamp = _timestamp.firstMatch(raw);
     final message = stamp == null ? raw : raw.substring(stamp.end);
     final operation = _operation.firstMatch(message);
@@ -75,6 +94,7 @@ class HistoryEntry {
       time: stamp == null ? null : DateTime.tryParse(stamp.group(1)!),
       source: source,
       target: target,
+      server: server,
     );
   }
 
@@ -92,7 +112,11 @@ class HistoryEntry {
     },
   };
 
-  String get _key => message.replaceFirst(RegExp(r'^(准备|完成)'), '');
+  (String?, String?, String) get _key => (
+    server?.protocol,
+    server?.connectionId,
+    message.replaceFirst(RegExp(r'^(准备|完成)'), ''),
+  );
 
   HistoryEntry _withStart(DateTime? start) => HistoryEntry(
     raw: raw,
@@ -103,13 +127,19 @@ class HistoryEntry {
     source: source,
     target: target,
     startedAt: start,
+    server: server,
   );
 
-  static List<HistoryEntry> fromRecords(List<String> records) {
+  static List<HistoryEntry> fromRecords(List<String> records) =>
+      fromStoredRecords(records.map(ExecutionHistoryRecord.new));
+
+  static List<HistoryEntry> fromStoredRecords(
+    Iterable<ExecutionHistoryRecord> records,
+  ) {
     final entries = <HistoryEntry?>[];
-    final pending = <String, List<int>>{};
-    for (final raw in records) {
-      var entry = HistoryEntry.parse(raw);
+    final pending = <(String?, String?, String), List<int>>{};
+    for (final record in records) {
+      var entry = HistoryEntry.parse(record.raw, server: record.server);
       if (entry.completed == false) {
         pending.putIfAbsent(entry._key, () => []).add(entries.length);
       } else if (entry.completed == true) {

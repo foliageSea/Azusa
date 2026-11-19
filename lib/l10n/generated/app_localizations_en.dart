@@ -1251,6 +1251,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noExecutionHistory => 'No execution history yet';
 
   @override
+  String historyFileServer(String server) {
+    return 'File server: $server';
+  }
+
+  @override
+  String get unknownHistoryFileServer => 'Unknown server';
+
+  @override
   String operationCount(int count) {
     return '$count operations';
   }

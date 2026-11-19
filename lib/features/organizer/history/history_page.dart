@@ -21,7 +21,7 @@ class HistoryPage extends ConsumerWidget {
           error: (e, _) =>
               Surface(child: Text(context.l10n.historyLoadFailed('$e'))),
           data: (items) {
-            final entries = HistoryEntry.fromRecords(items);
+            final entries = HistoryEntry.fromStoredRecords(items);
             if (entries.isEmpty) {
               return EmptyNotice(
                 context.l10n.noExecutionHistory,
@@ -106,6 +106,16 @@ String _clock(DateTime time) {
 String _dateTime(DateTime time) {
   final local = time.toLocal();
   return '${local.year}-${_two(local.month)}-${_two(local.day)} ${_clock(local)}';
+}
+
+String _serverLabel(BuildContext context, HistoryServer? server) {
+  final l10n = context.l10n;
+  final description = switch (server) {
+    HistoryServer(protocol: 'webdav', :final name) => '$name (WebDAV)',
+    HistoryServer(protocol: 'smb', :final name) => '$name (SMB)',
+    _ => l10n.unknownHistoryFileServer,
+  };
+  return l10n.historyFileServer(description);
 }
 
 class _HistoryRow extends StatefulWidget {
@@ -193,6 +203,8 @@ class _HistoryRowState extends State<_HistoryRow> {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Text(_serverLabel(context, entry.server), style: muted),
           const SizedBox(height: 8),
           if (entry.source != null && !expanded) ...[
             Text(

@@ -14,6 +14,7 @@ import 'connections/connection_settings.dart';
 import 'file_server/file_server_paths.dart';
 import 'dav/directory_scan.dart';
 import 'history/execution_history.dart';
+import 'history/history_entry.dart';
 import 'connections/http_clients.dart';
 import 'rename_plan.dart';
 import 'ai/tmdb.dart';
@@ -130,7 +131,7 @@ final tmdbFactoryProvider = Provider<TmdbClient Function(ConnectionSettings)>(
         namingLanguage: ref.read(settingsProvider).namingLanguage,
       ),
 );
-final executionHistoryProvider = FutureProvider<List<String>>(
+final executionHistoryProvider = FutureProvider<List<ExecutionHistoryRecord>>(
   (ref) => ref.watch(executionHistoryRepositoryProvider).load(),
 );
 
@@ -194,15 +195,16 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     var deleted = 0;
     var skipped = 0;
     try {
-      dav = client();
+      final settings = config;
+      dav = client(settings);
+      final record = _historyRecorder(settings);
       await EmptyDirectoryCleaner(dav).clean(
         state.directory,
         paths,
         checkCancelled: _checkMaintenance,
         onDeleting: (path) =>
-            _record('准备 delete ${displayFileServerPath(path)}'),
-        onDeleted: (path) =>
-            _record('完成 delete ${displayFileServerPath(path)}'),
+            record('准备 delete ${displayFileServerPath(path)}'),
+        onDeleted: (path) => record('完成 delete ${displayFileServerPath(path)}'),
         onProgress: (done, ignored) {
           deleted = done;
           skipped = ignored;
@@ -335,8 +337,10 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     var written = 0;
     var skipped = 0;
     try {
-      dav = client();
-      tmdb = ref.read(tmdbFactoryProvider)(config);
+      final settings = config;
+      dav = client(settings);
+      final record = _historyRecorder(settings);
+      tmdb = ref.read(tmdbFactoryProvider)(settings);
       final scraper = MetadataScraper(dav, tmdb);
       for (final root in _scrapeDirectories) {
         final batch = selected.where((t) => t.video.startsWith(root)).toList();
@@ -350,9 +354,9 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
           artwork: artwork,
           checkCancelled: _checkScrape,
           onWriting: (path) =>
-              _record('准备 upload ${displayFileServerPath(path)} '),
+              record('准备 upload ${displayFileServerPath(path)} '),
           onWritten: (path) =>
-              _record('完成 upload ${displayFileServerPath(path)} '),
+              record('完成 upload ${displayFileServerPath(path)} '),
           onProgress: (done, ignored, total) {
             written = previousWritten + done;
             skipped = previousSkipped + ignored;
@@ -446,7 +450,9 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     var deleted = 0;
     var skipped = 0;
     try {
-      dav = client();
+      final settings = config;
+      dav = client(settings);
+      final record = _historyRecorder(settings);
       final cleaner = ScrapeCleaner(dav);
       for (final root in _artifactDirectories) {
         final batch = artifacts.where((item) => item.path.startsWith(root));
@@ -458,9 +464,9 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
           batch,
           checkCancelled: _checkMaintenance,
           onDeleting: (path) =>
-              _record('准备 delete ${displayFileServerPath(path)} '),
+              record('准备 delete ${displayFileServerPath(path)} '),
           onDeleted: (path) =>
-              _record('完成 delete ${displayFileServerPath(path)} '),
+              record('完成 delete ${displayFileServerPath(path)} '),
           onProgress: (done, ignored) {
             deleted = previousDeleted + done;
             skipped = previousSkipped + ignored;
@@ -557,7 +563,8 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
 
   ConnectionSettings get config =>
       ref.read(connectionSettingsProvider).requireValue;
-  FileServerClient client() => ref.read(fileServerClientProvider)(config);
+  FileServerClient client([ConnectionSettings? settings]) =>
+      ref.read(fileServerClientProvider)(settings ?? config);
 
   void beginConnectionChange() {
     if (state.busy || state.executing) throw StateError('请等待当前操作完成');
@@ -881,11 +888,21 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     state = state.copyWith(plan: plan);
   }
 
-  Future<void> _record(String entry) async {
-    await ref
-        .read(executionHistoryRepositoryProvider)
-        .append('${DateTime.now().toLocal()} $entry');
-    ref.invalidate(executionHistoryProvider);
+  Future<void> Function(String) _historyRecorder(ConnectionSettings settings) {
+    final connection = settings.fileServerConnection;
+    final server = connection == null || connection.id.isEmpty
+        ? null
+        : HistoryServer(
+            connectionId: connection.id,
+            name: connection.name,
+            protocol: connection.protocol,
+          );
+    return (entry) async {
+      await ref
+          .read(executionHistoryRepositoryProvider)
+          .append('${DateTime.now().toLocal()} $entry', server: server);
+      ref.invalidate(executionHistoryProvider);
+    };
   }
 
   Future<void> renameEntry(FileServerEntry entry, String name) async {
@@ -927,10 +944,12 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     state = state.copyWith(busy: true, message: '');
     FileServerClient? dav;
     try {
-      dav = client();
+      final settings = config;
+      dav = client(settings);
+      final record = _historyRecorder(settings);
       final normalized = dav.normalize(source);
       if (normalized == dav.root) throw StateError('不能修改文件服务器根目录');
-      await _record(
+      await record(
         '准备 $action ${displayFileServerPath(source)} ${target == null ? '' : displayFileServerPath(target)}',
       );
       if (action == 'delete') {
@@ -951,7 +970,7 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
       } else {
         throw StateError('不支持的文件操作');
       }
-      await _record(
+      await record(
         '完成 $action ${displayFileServerPath(source)} ${target == null ? '' : displayFileServerPath(target)}',
       );
       state = state.copyWith(
@@ -999,19 +1018,21 @@ class OrganizerController extends Notifier<OrganizerState> with LoggingMixin {
     state = state.copyWith(executing: true, progress: '准备执行', message: '');
     FileServerClient? dav;
     try {
-      dav = client();
+      final settings = config;
+      dav = client(settings);
+      final record = _historyRecorder(settings);
       final result = await RenameExecutor(dav).execute(
         frozen,
-        onStarting: (item) => _record(
+        onStarting: (item) => record(
           '准备重命名 ${displayFileServerPath(item.source)} → ${displayFileServerPath(item.target)}',
         ),
-        onCompleted: (item) => _record(
+        onCompleted: (item) => record(
           '完成重命名 ${displayFileServerPath(item.source)} → ${displayFileServerPath(item.target)}',
         ),
         onCreatingDirectory: (path) =>
-            _record('准备 mkdir ${displayFileServerPath(path)} '),
+            record('准备 mkdir ${displayFileServerPath(path)} '),
         onDirectoryCreated: (path) =>
-            _record('完成 mkdir ${displayFileServerPath(path)} '),
+            record('完成 mkdir ${displayFileServerPath(path)} '),
         onProgress: (done, total) =>
             state = state.copyWith(progress: '$done / $total'),
       );
