@@ -1,8 +1,12 @@
-# 构建与发版
+<h1 align="center">构建与发版</h1>
 
-## 产物
+<p align="center">
+  <a href="../README.md">Azusa</a> · <strong>发布维护</strong>
+</p>
 
-发布 GitHub Release 后，`.github/workflows/release.yml` 自动校验版本、运行测试，并构建：
+## 下载与安装
+
+从 [GitHub Releases](https://github.com/foliageSea/Azusa/releases) 下载对应平台和架构的安装包。发布 GitHub Release 后，[Release 工作流](../.github/workflows/release.yml)自动校验版本、运行测试，并构建：
 
 | 平台 | 架构 | 文件名 |
 | --- | --- | --- |
@@ -14,6 +18,16 @@
 Android 使用正式密钥签名。Windows 不做代码签名；macOS 仅 ad-hoc 签名，不做 Developer ID 签名或公证，首次运行可能被 SmartScreen/Gatekeeper 提示或阻止。macOS 安装时将应用拖到 Applications，若被拦截，确认来源后按系统「隐私与安全性」中的提示允许打开。
 
 Linux 在 Ubuntu 22.04 构建，DEB 从实际 ELF 文件推导系统库依赖；不承诺兼容所有 Debian/Ubuntu 版本。系统需要可用的 Secret Service（例如 GNOME Keyring）以保存凭据。桌面构建禁用仅由 Android 插件间接引入的 JNI，避免链接构建机 JDK；用户无需安装 Java。
+
+下载时可一并保存 `SHA256SUMS.txt`，将所下载安装包的 SHA-256 与其中对应文件名的记录比对：
+
+| 平台 | 在下载目录执行 |
+| --- | --- |
+| Linux | `sha256sum 文件名` |
+| macOS | `shasum -a 256 文件名` |
+| Windows PowerShell | `Get-FileHash -Algorithm SHA256 文件名` |
+
+## 发布流程
 
 所有构建成功后才开始将四个安装包和 `SHA256SUMS.txt` 上传到当前 Release。Release 本身会先发布，构建期间尚无安装包。上传不是原子操作，网络失败时可能只上传部分文件，需重跑上传 job。
 
@@ -68,13 +82,13 @@ fvm flutter build apk --release --target-platform android-arm64 --split-per-abi 
 
 ```bash
 # 仅校验并预览，不修改文件、提交或推送；需要联网及 gh 登录
-python3 tool/release.py 1.0.1 --dry-run
+python3 tool/release.py 0.0.7 --dry-run
 
 # 修改版本、检查测试、提交、创建 Tag、推送并发布 Release
-python3 tool/release.py 1.0.1
+python3 tool/release.py 0.0.7
 ```
 
-版本必须为递增的稳定版本 `X.Y.Z`。检查和测试通过后，脚本将 `pubspec.yaml` 更新为 `1.0.1+2`（build number 自动加一），同步 `snap/snapcraft.yaml`，提交版本文件、创建带注释的 `v1.0.1` Tag，并原子推送分支与 Tag，最后通过 `gh release create --verify-tag --generate-notes` 发布 Release。
+上面的 `0.0.7` 仅为示例，请替换为高于仓库当前版本的稳定版本 `X.Y.Z`。检查和测试通过后，脚本更新 [pubspec.yaml](../pubspec.yaml)（build number 自动加一），同步 [snapcraft.yaml](../snap/snapcraft.yaml)，提交版本文件、创建带注释的 `vX.Y.Z` Tag，并原子推送分支与 Tag，最后通过 `gh release create --verify-tag --generate-notes` 发布 Release。
 
 `pubspec.yaml` 是唯一应用版本来源；Android、Windows、macOS 的应用版本与安装包版本均从它生成。为兼容 Windows 四段数字版本，各段和 build number 不超过 65535。不使用 Actions run number，以免重跑改变应用版本。
 
